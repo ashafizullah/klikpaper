@@ -1,0 +1,87 @@
+import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { PDFDocument, PDFName, PDFArray, PDFDict } from "@cantoo/pdf-lib";
+import { arrowHead, drawOnPdf, numberAnchor, pageLabel, wrapLines } from "./draw";
+import type { Overlay, PageNumbers } from "./doc.svelte";
+
+const fontDir = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).pathname;
+const fonts = async () => ({
+  regular: new Uint8Array(readFileSync(fontDir + "LiberationSans-Regular.ttf")),
+  bold: new Uint8Array(readFileSync(fontDir + "LiberationSans-Bold.ttf")),
+});
+
+test("wraps text at spaces and breaks long words", () => {
+  const measure = (s: string) => s.length;
+  expect(wrapLines("satu dua tiga empat", measure, 9)).toEqual(["satu dua", "tiga", "empat"]);
+  expect(wrapLines("abcdefghij", measure, 4)).toEqual(["abcd", "efgh", "ij"]);
+  expect(wrapLines("baris\n\nbaru", measure, 20)).toEqual(["baris", "", "baru"]);
+});
+
+test("page labels and positions", () => {
+  const pn: PageNumbers = { format: "{n} / {total}", position: "bottom-right", start: 1, size: 10, margin: 20, color: "#000000" };
+  expect(pageLabel(pn, 2, 5)).toBe("3 / 5");
+  expect(numberAnchor("bottom-right", [600, 800], 30, 10, 20)).toEqual([550, 780]);
+  expect(numberAnchor("top-center", [600, 800], 30, 10, 20)).toEqual([285, 28]);
+  const [[ax], [bx]] = arrowHead(0, 0, 100, 0, 2);
+  expect(ax).toBeLessThan(100);
+  expect(bx).toBeLessThan(100);
+});
+
+test("draws overlays and adds markup annotations", async () => {
+  const src = await PDFDocument.create();
+  src.addPage([612, 792]);
+  src.addPage([612, 792]).setRotation({ type: "degrees", angle: 90 } as never);
+  const bytes = await src.save();
+  const overlays: Overlay[] = [
+    { id: "t", page: "p1", kind: "text", x: 72, y: 72, w: 200, text: "Halo dunia, ini teks yang cukup panjang", size: 12, color: "#cc0000", rot: 0 },
+    { id: "r", page: "p1", kind: "rect", x: 50, y: 300, w: 100, h: 50, color: "#0000ff", fill: null, width: 2 },
+    { id: "i", page: "p1", kind: "ink", points: [10, 10, 20, 30, 40, 20], color: "#000000", width: 2 },
+    { id: "a", page: "p1", kind: "arrow", x1: 100, y1: 500, x2: 200, y2: 520, color: "#000000", width: 2 },
+    { id: "h", page: "p1", kind: "markup", style: "highlight", rects: [{ x: 72, y: 100, w: 200, h: 14 }], color: "#ffd400" },
+  ];
+  const out = await drawOnPdf(bytes, {
+    pages: [{ overlays, rotation: 0 }, { overlays: [{ id: "u", page: "p2", kind: "markup", style: "underline", rects: [{ x: 10, y: 10, w: 50, h: 10 }], color: "#ff0000" }], rotation: 90 }],
+    watermark: { text: "RAHASIA", size: 60, opacity: 0.2, color: "#888888", angle: 45 },
+    pageNumbers: { format: "{n}", position: "bottom-center", start: 1, size: 10, margin: 24, color: "#000000" },
+    flattenForms: false,
+    fonts,
+  });
+  const doc = await PDFDocument.load(out);
+  expect(doc.getPageCount()).toBe(2);
+  const annots = (i: number) => doc.getPage(i).node.lookup(PDFName.of("Annots"), PDFArray);
+  const first = annots(0).lookup(0, PDFDict);
+  expect(first.get(PDFName.of("Subtype"))?.toString()).toBe("/Highlight");
+  expect(first.lookup(PDFName.of("QuadPoints"), PDFArray).size()).toBe(8);
+  expect(annots(1).lookup(0, PDFDict).get(PDFName.of("Subtype"))?.toString()).toBe("/Underline");
+  // The embedded font is subset Liberation Sans.
+  expect(new TextDecoder("latin1").decode(out)).toContain("LiberationSans");
+});
+
+test("refuses a page count that doesn't match", async () => {
+  const src = await PDFDocument.create();
+  src.addPage();
+  const bytes = await src.save();
+  await expect(drawOnPdf(bytes, { pages: [], watermark: null, pageNumbers: null, flattenForms: false, fonts })).rejects.toThrow("mismatch");
+});
+
+test("flattens filled form fields into page content", async () => {
+  const src = await PDFDocument.create();
+  const page = src.addPage([612, 792]);
+  const form = src.getForm();
+  const name = form.createTextField("name");
+  name.setText("Siti Rahma");
+  name.addToPage(page, { x: 72, y: 600, width: 200, height: 24 });
+  const agree = form.createCheckBox("agree");
+  agree.check();
+  agree.addToPage(page, { x: 72, y: 560, width: 16, height: 16 });
+  const bytes = await src.save();
+
+  const out = await drawOnPdf(bytes, { pages: [{ overlays: [], rotation: 0 }], watermark: null, pageNumbers: null, flattenForms: true, fonts });
+  const doc = await PDFDocument.load(out);
+  expect(doc.getForm().getFields()).toHaveLength(0);
+  const annots = doc.getPage(0).node.lookup(PDFName.of("Annots")) as PDFArray | undefined;
+  expect(annots?.size() ?? 0).toBe(0);
+  // The typed value is now drawn on the page through a form XObject.
+  const xobjects = doc.getPage(0).node.Resources()?.lookup(PDFName.of("XObject"), PDFDict);
+  expect(xobjects?.keys().length).toBeGreaterThan(0);
+});

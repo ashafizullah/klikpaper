@@ -1,0 +1,463 @@
+/* Darkroom, shared with the other Klik apps: warm charcoal surfaces, cream type,
+   tungsten amber, safelight red. Only the pages themselves stay paper white. */
+:root {
+  --bg: #15130f;
+  --panel: #1d1a15;
+  --panel-2: #25211b;
+  --line: #2e2a22;
+  --muted: #9a917f;
+  --text: #ede6d8;
+  --accent: #f0a83a;
+  --accent-2: #d9603b;
+  --danger: #e5484d;
+  --ok: #9bb067;
+  --ink: #1a1208;
+  /* Aliases used across the components. */
+  --sidebar: var(--panel);
+  --canvas: #13110d;
+  --border: var(--line);
+  --hover: var(--panel-2);
+  --accent-text: var(--ink);
+  --selection: color-mix(in srgb, var(--accent) 12%, transparent);
+  --shadow: 0 14px 30px -12px rgb(0 0 0 / 0.8), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+  --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --serif: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Text boxes on pages use the metrics of the font embedded on save (Liberation Sans). */
+  --page-font: Arial, "Liberation Sans", Helvetica, sans-serif;
+  color-scheme: dark;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font: 13px/1.4 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Faint film grain over the chrome. The page view stacks above it (.grain-free). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.grain-free {
+  position: relative;
+  z-index: 41;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a342a;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4236;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+/* ---- buttons ---- */
+
+.btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  font-size: 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    filter 0.15s;
+}
+.btn:hover:not(:disabled) {
+  background: var(--line);
+  border-color: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 1px 2px rgb(0 0 0 / 0.4);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: transparent;
+  filter: brightness(1.1);
+}
+.btn.primary:active:not(:disabled) {
+  filter: brightness(0.95);
+}
+.btn.danger {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
+}
+.btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 25%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn.ghost:hover:not(:disabled) {
+  background: var(--panel-2);
+  border-color: transparent;
+}
+.btn.on {
+  background: var(--selection);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--accent);
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  flex: none;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--panel-2);
+}
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.icon-btn.on {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* ---- fields and labels ---- */
+
+.field {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 12px;
+  min-width: 0;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  -webkit-user-select: text;
+  user-select: text;
+}
+textarea.field {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.field::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+.field:focus {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+select.field {
+  padding-right: 4px;
+}
+
+.label {
+  display: block;
+  margin: 0 0 4px;
+  font: 500 10px/1.4 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.error-text {
+  color: var(--danger);
+  white-space: pre-wrap;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.kbd {
+  font: 11px var(--mono);
+  color: var(--muted);
+}
+
+.sep {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+  margin: 0 6px;
+  flex: none;
+}
+
+label.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Language switch, as in the other Klik apps. */
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 11px;
+  flex: none;
+}
+.segmented button {
+  border: none;
+  background: none;
+  padding: 4px 8px;
+  color: var(--muted);
+}
+.segmented button:hover {
+  color: var(--text);
+}
+.segmented button.on {
+  background: var(--panel-2);
+  color: var(--accent);
+}
+
+/* ---- pdf.js layers (positions come from pdf.js; these rules make them work) ---- */
+
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  transform-origin: 0 0;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  z-index: 1;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.textLayer .markedContent {
+  display: contents;
+}
+.textLayer span[role="img"] {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+.textLayer ::selection {
+  background: rgb(0 90 255 / 0.28);
+  color: transparent;
+}
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.textLayer.selecting .endOfContent {
+  top: 0;
+}
+.textLayer .hit {
+  background: rgb(255 200 0 / 0.45);
+  border-radius: 2px;
+}
+.textLayer .hit.current {
+  background: rgb(255 120 0 / 0.6);
+}
+
+.annotationLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 0 0;
+  z-index: 2;
+}
+.annotationLayer section {
+  position: absolute;
+  text-align: initial;
+  pointer-events: auto;
+  box-sizing: border-box;
+  transform-origin: 0 0;
+}
+.annotationLayer .linkAnnotation > a {
+  position: absolute;
+  inset: 0;
+  font-size: 1em;
+}
+.annotationLayer .linkAnnotation > a:hover {
+  background: rgb(255 210 0 / 0.2);
+}
+.annotationLayer :is(.textWidgetAnnotation, .choiceWidgetAnnotation, .buttonWidgetAnnotation) :is(input, textarea, select) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: rgb(0 54 255 / 0.1);
+  color: #000;
+  font: calc(9px * var(--total-scale-factor)) / 1.15 Helvetica, Arial, sans-serif;
+  padding: 0 3px;
+  vertical-align: top;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.annotationLayer .textWidgetAnnotation textarea {
+  resize: none;
+}
+.annotationLayer :is(input, textarea, select):focus {
+  background: none;
+  border-color: var(--accent);
+  outline: none;
+}
+.annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.annotationLayer .buttonWidgetAnnotation.checkBox input:checked::before,
+.annotationLayer .buttonWidgetAnnotation.radioButton input:checked::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  background: #000;
+  border-radius: 1px;
+}
+.annotationLayer .buttonWidgetAnnotation.radioButton input,
+.annotationLayer .buttonWidgetAnnotation.radioButton input:checked::before {
+  border-radius: 50%;
+}
+.annotationLayer .popupAnnotation,
+.annotationLayer .popup {
+  display: none;
+}

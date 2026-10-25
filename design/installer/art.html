@@ -1,0 +1,112 @@
+<!doctype html>
+<!-- Installer artwork (NSIS, WiX, DMG). Rendered by scripts/installer-art.sh;
+     pick the piece with #k=nsis-sidebar | nsis-header | wix-banner | wix-dialog | dmg -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Fraunces; src: url(../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2); font-weight: 100 900; }
+  @font-face { font-family: Fraunces; src: url(../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-italic.woff2); font-weight: 100 900; font-style: italic; }
+  @font-face { font-family: Plex; src: url(../../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2); }
+  @font-face { font-family: PlexMono; src: url(../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2); }
+  :root { --bg: #15130f; --panel: #1d1a15; --line: #2e2a22; --muted: #9a917f; --text: #ede6d8; --accent: #f0a83a; --accent-2: #d9603b; --paper: #f4efe4; --ink: #1c1913; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { overflow: hidden; background: transparent; }
+  .piece { position: relative; overflow: hidden; font-family: Plex, sans-serif; }
+  body > .piece:not(.on) { display: none !important; }
+  .dark { background: radial-gradient(120% 70% at 15% 0%, rgb(240 168 58 / 0.22), transparent 60%), radial-gradient(90% 60% at 100% 100%, rgb(217 96 59 / 0.16), transparent 60%), linear-gradient(170deg, #1f1b15, var(--bg) 70%); color: var(--text); }
+  .grain::after { content: ""; position: absolute; inset: 0; opacity: 0.06; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .word { font-family: Fraunces, serif; font-weight: 500; letter-spacing: -0.02em; }
+  .word em { color: var(--accent); }
+  .mono { font-family: PlexMono, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .icon { display: block; filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.55)); }
+
+  /* NSIS welcome/finish sidebar, 164×314 */
+  #nsis-sidebar, #wix-side { width: 164px; height: 314px; }
+  .side { display: flex; flex-direction: column; align-items: center; padding: 58px 14px 18px; text-align: center; }
+  .side .icon { width: 76px; height: 76px; }
+  .side .word { font-size: 25px; margin-top: 14px; }
+  .side .mono { font-size: 7.5px; margin-top: 6px; line-height: 1.6; }
+  .side .rule { width: 26px; height: 2px; border-radius: 2px; background: var(--accent); margin: 16px 0 0; }
+  .side .grow { flex: 1; }
+  .side .foot { font-size: 8.5px; color: var(--muted); line-height: 1.5; }
+
+  /* NSIS inner-page header image, 150×57 */
+  #nsis-header { width: 150px; height: 57px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+  #nsis-header .icon { width: 34px; height: 34px; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.5)); }
+  #nsis-header .word { font-size: 18px; }
+  #nsis-header .rule { position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  /* WiX banner, 493×58: the left part carries the dialog's black title text. */
+  #wix-banner { width: 493px; height: 58px; background: #fff; }
+  #wix-banner .art { position: absolute; right: 0; top: 0; bottom: 0; width: 170px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 14px;
+    clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%); }
+  #wix-banner .icon { width: 34px; height: 34px; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.5)); }
+  #wix-banner .word { font-size: 19px; }
+  #wix-banner .rule { position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  /* WiX welcome/finish dialog, 493×312: art on the left 164px, text area stays white. */
+  #wix-dialog { width: 493px; height: 312px; background: #fff; }
+  #wix-dialog > .piece { position: absolute; left: 0; top: 0; height: 312px; }
+
+  /* DMG window background, 660×400 (rendered at 1× and 2×). Light paper, so Finder's labels stay readable. */
+  #dmg { width: 660px; height: 400px; background: radial-gradient(80% 60% at 50% 0%, #fffaf0, transparent 70%), linear-gradient(180deg, #f7f2e8, #ebe4d6); color: var(--ink); text-align: center; }
+  #dmg .title { position: absolute; top: 44px; left: 0; right: 0; font-size: 30px; }
+  #dmg .title em { color: #c47d12; }
+  #dmg .sub { position: absolute; top: 90px; left: 0; right: 0; font-size: 13px; color: #6e6656; }
+  #dmg svg.arrow { position: absolute; left: 262px; top: 190px; width: 136px; height: 40px; }
+  #dmg .foot { position: absolute; bottom: 34px; left: 0; right: 0; font-size: 9.5px; color: #8b8270; }
+  #dmg .foot b { color: #c47d12; font-weight: 500; }
+</style>
+</head>
+<body>
+  <div id="nsis-sidebar" class="piece dark grain side">
+    <img class="icon" src="../icon.png">
+    <div class="word">Klik<em>Paper</em></div>
+    <div class="mono">PDF tool<br>free · open source</div>
+    <div class="rule"></div>
+    <div class="grow"></div>
+    <div class="foot">Your files stay<br>on your computer.</div>
+  </div>
+
+  <div id="nsis-header" class="piece dark grain">
+    <img class="icon" src="../icon.png">
+    <div class="word">Klik<em>Paper</em></div>
+    <div class="rule"></div>
+  </div>
+
+  <div id="wix-banner" class="piece">
+    <div class="art dark grain">
+      <img class="icon" src="../icon.png">
+      <div class="word">Klik<em>Paper</em></div>
+    </div>
+    <div class="rule"></div>
+  </div>
+
+  <div id="wix-dialog" class="piece">
+    <div id="wix-side" class="piece dark grain side">
+      <img class="icon" src="../icon.png">
+      <div class="word">Klik<em>Paper</em></div>
+      <div class="mono">PDF tool<br>free · open source</div>
+      <div class="rule"></div>
+      <div class="grow"></div>
+      <div class="foot">Your files stay<br>on your computer.</div>
+    </div>
+  </div>
+
+  <div id="dmg" class="piece">
+    <div class="title word">Install Klik<em>Paper</em></div>
+    <div class="sub">Drag the icon into the Applications folder</div>
+    <svg class="arrow" viewBox="0 0 136 40" fill="none" stroke="#e0951f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 20 H124" stroke-dasharray="2 12"/><path d="M110 6 L126 20 L110 34"/>
+    </svg>
+    <div class="foot mono">Free &amp; open source · <b>github.com/ashafizullah/klikpaper</b></div>
+  </div>
+
+  <script>
+    // "#k=<piece>" rather than "#<piece>", so the page doesn't scroll to it.
+    const k = location.hash.replace("#k=", "") || "nsis-sidebar";
+    document.getElementById(k).classList.add("on");
+  </script>
+</body>
+</html>

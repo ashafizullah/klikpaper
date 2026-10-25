@@ -1,0 +1,38 @@
+{
+  "name": "klikpaper",
+  "version": "0.1.0",
+  "description": "Free, open-source, lightweight PDF tool: view, organize, compress, sign and chat with your PDFs, offline",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "bun test src",
+    "notices": "bun scripts/notices.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@cantoo/fontkit": "^2.0.12",
+    "@cantoo/pdf-lib": "^2.11.1",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@lucide/svelte": "^1.61.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "pdfjs-dist": "^6.4.299"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tauri-apps/cli": "^2",
+    "@types/bun": "^1.4.4",
+    "@types/node": "^22",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
+    "typescript": "~6.0.3",
+    "vite": "^8"
+  }
+}
