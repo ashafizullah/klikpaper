@@ -10,7 +10,7 @@ mod updater;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager, RunEvent};
+use tauri::{Emitter, Manager};
 
 /// PDFs the OS asked to open (launch arguments, "Open With", Finder) until the frontend takes them.
 #[derive(Default)]
@@ -104,7 +104,7 @@ pub fn run() {
 
     app.run(|app, event| {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
-        if let RunEvent::Opened { urls } = &event {
+        if let tauri::RunEvent::Opened { urls } = &event {
             let paths = urls.iter().filter_map(|u| u.to_file_path().ok()).map(|p| p.display().to_string());
             open_files(app, pdf_paths(paths, None));
         }
