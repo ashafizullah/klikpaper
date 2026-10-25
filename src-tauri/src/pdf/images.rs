@@ -220,4 +220,23 @@ mod tests {
         assert!(images_to_pdf(&bad).is_err());
         let _ = std::fs::remove_dir_all(dir);
     }
+
+    #[test]
+    fn accepts_every_listed_format() {
+        let dir = temp_dir();
+        let img = RgbImage::from_pixel(40, 30, Rgb([10, 120, 200]));
+        let images: Vec<String> = EXTENSIONS
+            .iter()
+            .map(|ext| {
+                let path = dir.join(format!("picture.{ext}"));
+                img.save(&path).unwrap();
+                path.display().to_string()
+            })
+            .collect();
+        let out = dir.join("formats.pdf");
+        let job =
+            ImagesJob { images, output: out.display().to_string(), page_size: PageSize::Fit, orientation: Orientation::Auto, margin: 0.0 };
+        assert_eq!(images_to_pdf(&job).unwrap().pages, EXTENSIONS.len());
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

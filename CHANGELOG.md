@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Third-party notices now carry the full license text for every crate
+- Images to PDF now really accepts GIF, BMP and TIFF, as advertised (only JPEG, PNG and WebP were decoded before)
+- Credit PDF.js for the text and annotation layer styles adapted from its viewer, and state the Liberation Sans font license correctly in the notices
+- README: the undo claim now says what can be undone
+
 ## 0.1.0
 
 - First release: view, organize (reorder, rotate, delete, duplicate, insert, merge, split, extract), compress, convert (images ↔ PDF), annotate (highlight, underline, strike-through, text, drawing, shapes, arrows, white-out, images), sign, watermark, page numbers, password protection (AES-256), metadata removal and form filling

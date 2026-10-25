@@ -210,6 +210,6 @@ if (problems.length) {
 }
 
 // Some license files use CRLF; write LF everywhere so the output is the same on every OS.
-const notices = `# Third-party notices\n\nKlikPaper includes the following third-party software. Each is used under its own license, reproduced below. No third-party source code was copied into KlikPaper's own code.\n\n## Interface (JavaScript)\n\n${npmParts.join("\n\n")}\n\n## Desktop app (Rust crates)\n\n${rustParts.join("\n\n")}\n`;
+const notices = `# Third-party notices\n\nKlikPaper includes the following third-party software. Each is used under its own license, reproduced below. KlikPaper's own code contains no copied third-party source code, except the PDF.js text and annotation layer CSS rules adapted in \`src/app.css\` (Apache-2.0, see pdfjs-dist below). The PDF.js standard fonts include Liberation Sans 1.07, which is shipped unmodified under the Liberation Fonts license (GPL-2.0 with a font embedding exception, see LICENSE_LIBERATION below).\n\n## Interface (JavaScript)\n\n${npmParts.join("\n\n")}\n\n## Desktop app (Rust crates)\n\n${rustParts.join("\n\n")}\n`;
 writeFileSync(join(root, "THIRD_PARTY_NOTICES.md"), notices.replace(/\r\n?/g, "\n"));
 console.log(`THIRD_PARTY_NOTICES.md: ${npm.size} npm packages, ${crates.size} crates`);

@@ -327,7 +327,11 @@ label.row {
   color: var(--accent);
 }
 
-/* ---- pdf.js layers (positions come from pdf.js; these rules make them work) ---- */
+/* ---- pdf.js layers (positions come from pdf.js; these rules make them work) ----
+   The .textLayer and .annotationLayer rules below are adapted from PDF.js
+   (web/pdf_viewer.css, https://github.com/mozilla/pdf.js), Copyright Mozilla
+   Foundation, Apache License 2.0; see THIRD_PARTY_NOTICES.md. Changed by
+   KlikPaper: condensed, unnested, recolored, search-hit and form styles added. */
 
 .textLayer {
   position: absolute;

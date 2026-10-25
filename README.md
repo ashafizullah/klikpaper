@@ -43,7 +43,7 @@
 - **Password and privacy**: open protected PDFs, protect with AES-256, remove a password you know, strip metadata, flatten form fields
 - **Ask this PDF** (optional): chat about the open document, with answers that cite pages you can click. Bring your own key for Anthropic (Claude) or any OpenAI-compatible API (OpenAI, OpenRouter, Gemini, Groq, Ollama...). The AI can also rotate, move or delete pages and add text when you ask. Keys are stored in the OS keychain
 - **Works with Claude Code**: turn on the local MCP server and your own Claude Code can read, search and edit open PDFs, and merge, split, compress, protect or convert files
-- **Undo everything**: edits stay in KlikPaper until you save
+- **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
 - **English and Bahasa Indonesia** interface; **auto-update** from GitHub Releases (signed packages)
 
 ## Privacy
@@ -118,7 +118,7 @@ Add a `## x.y.z` section to `CHANGELOG.md`, bump `version` in `tauri.conf.json`,
 Releases need the `TAURI_SIGNING_PRIVATE_KEY` secret (its public key is in `tauri.conf.json`) plus `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` for macOS signing and notarization.
 
 ```sh
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.1.1 && git push origin v0.1.1
 ```
 
 The Windows installer and DMG artwork in `src-tauri/installer/` is rendered from `design/installer/art.html` with `scripts/installer-art.sh`.

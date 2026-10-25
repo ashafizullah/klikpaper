@@ -1,6 +1,6 @@
 [package]
 name = "klikpaper"
-version = "0.1.0"
+version = "0.1.1"
 description = "Free, open-source, lightweight PDF tool"
 authors = ["Adam Suchi Hafizullah"]
 edition = "2024"
@@ -28,7 +28,7 @@ futures = "0.3"
 thiserror = "2"
 uuid = { version = "1", features = ["v4"] }
 lopdf = { version = "0.46", default-features = false }
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp", "tiff"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
