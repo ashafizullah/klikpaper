@@ -30,7 +30,6 @@
   <img src="design/screenshot.png" width="900" alt="KlikPaper with a highlighted PDF, the page sidebar and the Ask this PDF panel">
 </p>
 
-> **Built on the work of others.** KlikPaper's page rendering is [PDF.js](https://github.com/mozilla/pdf.js) by Mozilla, its drawing and form handling is [pdf-lib](https://github.com/Hopding/pdf-lib) (through the maintained [Cantoo fork](https://github.com/cantoo-scribe/pdf-lib)), and its page assembly, compression and encryption are [lopdf](https://github.com/J-F-Liu/lopdf). If KlikPaper is useful to you, consider starring, reporting bugs to, or sponsoring those projects too. Full credits are [below](#credits-and-references).
 
 ## Features
 
@@ -124,39 +123,6 @@ git tag v0.1.0 && git push origin v0.1.0
 
 The Windows installer and DMG artwork in `src-tauri/installer/` is rendered from `design/installer/art.html` with `scripts/installer-art.sh`.
 
-## Credits and references
-
-KlikPaper's own code was written for this project. It reuses code only from the author's other MIT-licensed Klik apps ([KlikDB](https://github.com/ashafizullah/klikdb) for the app shell and updater, [KlikReel](https://github.com/ashafizullah/klikreel) for the AI client, keychain storage and MCP server, [KlikDesign](https://github.com/ashafizullah/klikdesign) for the "Darkroom" interface style and tooltips). No source code from other projects was copied; third-party code is used only as unmodified dependencies under their licenses.
-
-**Libraries shipped in the app**
-
-| Project | Used for | License |
-|---|---|---|
-| [PDF.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) by Mozilla | Rendering pages, text and form layers, links | Apache-2.0 |
-| PDF.js data files: CMaps, ICC profiles, JPEG 2000 / JBIG2 decoders, Foxit and Liberation fonts | Displaying all kinds of PDFs | see `THIRD_PARTY_NOTICES.md` (BSD, MIT, Apache-2.0, OFL-1.1) |
-| [pdf-lib](https://github.com/Hopding/pdf-lib) via [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) | Drawing annotations, watermarks, page numbers; flattening forms | MIT |
-| [@cantoo/fontkit](https://github.com/cantoo-scribe/fontkit) (fork of [fontkit](https://github.com/foliojs/fontkit)) | Embedding fonts | MIT |
-| [lopdf](https://github.com/J-F-Liu/lopdf) | Merging, splitting, reordering, rotating, compressing, encrypting PDFs | MIT |
-| [image](https://github.com/image-rs/image) | Decoding and re-encoding images | MIT OR Apache-2.0 |
-| [Tauri](https://tauri.app) | Desktop app framework | MIT OR Apache-2.0 |
-| [Svelte](https://svelte.dev) | Interface | MIT |
-| [axum](https://github.com/tokio-rs/axum), [reqwest](https://github.com/seanmonstar/reqwest), [keyring](https://github.com/hwchen/keyring-rs) | Local MCP server, AI requests, keychain | MIT (and Apache-2.0) |
-| [Liberation Sans](https://github.com/liberationfonts/liberation-fonts) (shipped with PDF.js) | Font for text added to PDFs | OFL-1.1 |
-| [Lucide](https://lucide.dev) (`@lucide/svelte`) | Interface icons | ISC |
-| [Fraunces](https://github.com/undercasetype/Fraunces), [IBM Plex](https://github.com/IBM/plex) via [Fontsource](https://fontsource.org) | Interface fonts | OFL-1.1 |
-
-Every package, including transitive npm packages and all 460+ Rust crates, is listed with its license text in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which the app also shows under **Help → Open-Source Licenses**. CI fails if a dependency's license is not on the permissive allow-list (`deny.toml`, `scripts/notices.mjs`). The only file-level copyleft components are five MPL-2.0 crates that come in through Tauri and its dependencies (`cssparser`, `cssparser-macros`, `dtoa-short`, `selectors`, `option-ext`), used unmodified; their source is available on crates.io.
-
-**Specifications and documentation**
-
-- ISO 32000-1:2008 / [PDF 1.7 Reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf) (page tree inheritance, annotations, the AES-256 security handler) and ISO 32000-2 (PDF 2.0)
-- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) for the Claude Code integration
-- [Tauri 2](https://v2.tauri.app) and [PDF.js](https://mozilla.github.io/pdf.js/) documentation
-
-**Inspiration (no code used)**: the everyday workflows of tools like iLovePDF, Smallpdf and PDF Arranger, done offline.
-
-**Development**: KlikPaper is developed with help from AI coding tools (Claude Code) and reviewed by a person. Behavior described here is covered by automated tests or was checked by hand; please [report anything that doesn't work as described](https://github.com/ashafizullah/klikpaper/issues).
-
 ## Support
 
 KlikPaper is free. If it saves you time, **[buy me an AI token on Trakteer](https://trakteer.id/adamshafizullah/tip)** ☕🤖.
@@ -165,4 +131,6 @@ KlikPaper is free. If it saves you time, **[buy me an AI token on Trakteer](http
 
 [MIT](LICENSE)
 
-PDF is an open standard (ISO 32000). Adobe and Acrobat are trademarks of Adobe Inc. Claude and Claude Code are trademarks of Anthropic. KlikPaper is an independent project and is not affiliated with or endorsed by Adobe, Anthropic or Mozilla.
+KlikPaper is built on [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0), [pdf-lib](https://github.com/cantoo-scribe/pdf-lib) (MIT) and [lopdf](https://github.com/J-F-Liu/lopdf) (MIT), and bundles other third-party software, including the interface fonts Fraunces, IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1). Their licenses are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which the app also shows under Settings → About → Open-source licenses. Run `bun run notices` after changing dependencies.
+
+Adobe and Acrobat are trademarks of Adobe Inc. Claude and Claude Code are trademarks of Anthropic. KlikPaper is an independent project and is not affiliated with or endorsed by Adobe, Anthropic or Mozilla.
