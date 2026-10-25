@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Third-party notices now include every license and notice text for packages under more than one license, and a source link for the MPL-2.0 crates
+- The app's copyright line now names its author
+
 ## 0.1.1
 
 - Third-party notices now carry the full license text for every crate
