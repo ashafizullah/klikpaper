@@ -166,14 +166,38 @@ for (const target of ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-
   seen.delete(rootId);
   for (const id of seen) {
     const p = packages.get(id);
-    crates.set(`${p.name}@${p.version}`, { name: p.name, version: p.version, license: p.license ?? "", dir: dirname(p.manifest_path) });
+    crates.set(`${p.name}@${p.version}`, {
+      name: p.name,
+      version: p.version,
+      license: p.license ?? "",
+      dir: dirname(p.manifest_path),
+      authors: p.authors.map((a) => a.replace(/\s*<[^>]*>/, "")),
+      repository: p.repository,
+    });
   }
 }
 
+const sortedCrates = [...crates.values()].sort(byNameVersion);
+for (const c of sortedCrates) c.text = licenseText(c.dir, c.license, c.name);
+
+// License texts that name no copyright holder, so any copy of them is the right one.
+const STANDARD = new Set(["Apache-2.0", "BSL-1.0", "MPL-2.0"]);
+
+/** Text for a crate published without a license file. */
+function fallbackText(c) {
+  // A sibling crate from the same repository under the same license.
+  const sibling = sortedCrates.find((o) => o.text && o.license === c.license && o.repository && o.repository === c.repository);
+  if (sibling) return sibling.text;
+  if (/\bMIT\b/.test(c.license)) return mitText(c.authors.length ? c.authors.join(", ") : `the ${c.name} authors`);
+  const standard = STANDARD.has(c.license) && sortedCrates.find((o) => o.text && o.license === c.license);
+  if (standard) return standard.text;
+  return `Licensed under ${c.license}. See https://crates.io/crates/${c.name}.`;
+}
+
 const groups = new Map();
-for (const c of [...crates.values()].sort(byNameVersion)) {
+for (const c of sortedCrates) {
   if (!c.license || !allowed(c.license)) problems.push(`crate ${c.name}@${c.version}: ${c.license || "no license field"}`);
-  const text = licenseText(c.dir, c.license, c.name) ?? `Licensed under ${c.license}. See https://crates.io/crates/${c.name}.`;
+  const text = c.text ?? fallbackText(c);
   const key = `${c.license}\n${text}`;
   if (!groups.has(key)) groups.set(key, { license: c.license, text, names: [] });
   groups.get(key).names.push(`${c.name} ${c.version}`);
