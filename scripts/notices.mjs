@@ -51,8 +51,18 @@ export function allowed(expr) {
 
 const problems = [];
 
+/** Plain code-point order (not locale-aware), so every machine sorts the same. */
+function byNameVersion(a, b) {
+  const x = `${a.name}@${a.version}`;
+  const y = `${b.name}@${b.version}`;
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
 function licenseFiles(dir) {
-  return readdirSync(dir).filter((f) => /^(licen[cs]e|copying|notice)/i.test(f) && !/\.(rs|js|ts|json)$/i.test(f));
+  // Sorted, so the notices come out the same whatever order the file system lists them in.
+  return readdirSync(dir)
+    .filter((f) => /^(licen[cs]e|copying|notice)/i.test(f) && !/\.(rs|js|ts|json)$/i.test(f))
+    .sort();
 }
 
 /** License text for a package; prefers the MIT file of dual-licensed packages. */
@@ -112,7 +122,7 @@ function walk(name, from) {
 for (const dep of Object.keys(pkg.dependencies)) walk(dep, root);
 
 const npmParts = [];
-for (const p of [...npm.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+for (const p of [...npm.values()].sort(byNameVersion)) {
   if (!allowed(p.license)) problems.push(`npm ${p.name}@${p.version}: ${p.license}`);
   let text = licenseText(p.dir, p.license, p.name);
   // Tauri's plugins ship only an SPDX file; their MIT text is the Tauri project's.
@@ -161,7 +171,7 @@ for (const target of ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-
 }
 
 const groups = new Map();
-for (const c of [...crates.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+for (const c of [...crates.values()].sort(byNameVersion)) {
   if (!c.license || !allowed(c.license)) problems.push(`crate ${c.name}@${c.version}: ${c.license || "no license field"}`);
   const text = licenseText(c.dir, c.license, c.name) ?? `Licensed under ${c.license}. See https://crates.io/crates/${c.name}.`;
   const key = `${c.license}\n${text}`;

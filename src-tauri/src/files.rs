@@ -102,7 +102,7 @@ mod tests {
         assert!(check_readable(&temp, Path::new("/home/me/.ssh/id_ed25519")).is_err());
         assert!(check_writable(Path::new("/home/me/.zshrc")).is_err());
         assert!(check_writable(Path::new("relative.pdf")).is_err());
-        assert!(check_writable(Path::new("/x/out.pdf")).is_ok());
+        assert!(check_writable(&base.join("out.pdf")).is_ok());
 
         let scratch = temp.file("pdf").unwrap();
         std::fs::write(&scratch, b"%PDF-1.7").unwrap();
