@@ -1,4 +1,5 @@
-// Local MCP server so the user's own Claude Code can work with KlikPaper.
+// Local MCP server so the user's own coding agent (Claude Code, Codex, Gemini
+// CLI, Cursor, VS Code...) can work with KlikPaper.
 // The server (Rust) only listens on 127.0.0.1 and needs a secret token; tool
 // calls are answered here with the same tools as the built-in chat.
 import { ipc, type McpInfo } from "./ipc";
@@ -41,7 +42,47 @@ export async function stopMcp() {
   persist();
 }
 
-/** The one-time command that registers KlikPaper with Claude Code. */
-export function addCommand(info: McpInfo): string {
-  return `claude mcp add --transport http --scope user klikpaper ${info.url} --header "Authorization: Bearer ${info.token}"`;
+/** Agents with ready-made setup steps; "other" shows the raw URL and header. */
+export const MCP_CLIENTS = [
+  { id: "claude", label: "Claude Code" },
+  { id: "codex", label: "Codex" },
+  { id: "gemini", label: "Gemini CLI" },
+  { id: "vscode", label: "VS Code" },
+  { id: "cursor", label: "Cursor" },
+  { id: "other", label: "Other" },
+] as const;
+export type McpClientId = (typeof MCP_CLIENTS)[number]["id"];
+
+/** The one-time command or config snippet that registers KlikPaper with an agent. */
+export function setupSnippet(client: McpClientId, info: McpInfo): string {
+  const auth = `Bearer ${info.token}`;
+  const headers = { Authorization: auth };
+  switch (client) {
+    case "claude":
+      return `claude mcp add --transport http --scope user klikpaper ${info.url} --header "Authorization: ${auth}"`;
+    case "codex":
+      return `[mcp_servers.klikpaper]\nurl = "${info.url}"\nhttp_headers = { "Authorization" = "${auth}" }`;
+    case "gemini":
+      return `gemini mcp add --transport http --scope user klikpaper ${info.url} --header "Authorization: ${auth}"`;
+    case "vscode":
+      return `code --add-mcp '${JSON.stringify({ name: "klikpaper", type: "http", url: info.url, headers })}'`;
+    case "cursor":
+      return JSON.stringify({ mcpServers: { klikpaper: { url: info.url, headers } } }, null, 2);
+    case "other":
+      return `URL: ${info.url}\nAuthorization: ${auth}`;
+  }
+}
+
+/** A readable name for the `clientInfo` an agent sent, e.g. "codex-mcp-client 0.50.0" → "Codex". */
+export function clientName(client: string | null | undefined): string {
+  const known: [RegExp, string][] = [
+    [/claude/i, "Claude Code"],
+    [/codex/i, "Codex"],
+    [/gemini/i, "Gemini CLI"],
+    [/cursor/i, "Cursor"],
+    [/visual studio code|vscode|copilot/i, "VS Code"],
+    [/windsurf|codeium/i, "Windsurf"],
+  ];
+  if (!client) return "MCP";
+  return known.find(([re]) => re.test(client))?.[1] ?? client.split(" ")[0];
 }

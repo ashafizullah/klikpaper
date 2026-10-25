@@ -94,8 +94,8 @@
       <button class="nav-item" onclick={() => openDialog("settings", { tab: "mcp" })}>
         <Icon name="plug" size={15} />
         <span class="nav-text">
-          <span>Claude Code</span>
-          <span class="nav-hint">{t("home.claudeHint")}</span>
+          <span>{t("settings.mcp")}</span>
+          <span class="nav-hint">{t("home.mcpHint")}</span>
         </span>
       </button>
     </nav>

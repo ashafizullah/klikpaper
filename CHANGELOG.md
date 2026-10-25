@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- The MCP server now has setup steps for Codex, Gemini CLI, VS Code and Cursor besides Claude Code, plus the raw URL and header for any other client; the title bar shows which agent is connected
+
 ## 0.1.3
 
 - Text added to PDFs now uses Liberation Sans 2 (SIL Open Font License) instead of the GPL-licensed 1.x fonts

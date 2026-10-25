@@ -6,9 +6,9 @@
   import Icon from "../Icon.svelte";
   import { ipc, errorText, type McpLink } from "../../lib/ipc";
   import { addProfile, persist, PROFILE_PRESETS, removeProfile, settings, type AiProfile } from "../../lib/settings.svelte";
-  import { addCommand, mcp, startMcp, stopMcp } from "../../lib/mcp.svelte";
+  import { clientName, mcp, MCP_CLIENTS, setupSnippet, startMcp, stopMcp, type McpClientId } from "../../lib/mcp.svelte";
   import { openDialog, toast } from "../../lib/ui.svelte";
-  import { i18n, setLocale, t } from "../../lib/i18n/index.svelte";
+  import { i18n, setLocale, t, type Key } from "../../lib/i18n/index.svelte";
 
   let { tab: initialTab = "general" }: { tab?: string } = $props();
   let tab = $state(untrack(() => initialTab));
@@ -18,6 +18,8 @@
   let keyInput = $state("");
   let link = $state<McpLink | null>(null);
   let poll: ReturnType<typeof setInterval> | undefined;
+  const client = $derived((MCP_CLIENTS.find((c) => c.id === settings.mcpClient) ?? MCP_CLIENTS[0]).id as McpClientId);
+  const snippet = $derived(mcp.info ? setupSnippet(client, mcp.info) : "");
 
   onMount(async () => {
     version = await getVersion().catch(() => "");
@@ -133,14 +135,21 @@
     </label>
     {#if mcp.error}<p class="error-text">{mcp.error}</p>{/if}
     {#if settings.mcpEnabled && mcp.info}
-      <p class="note">{t("settings.mcpStep")}</p>
+      <div class="clients" role="radiogroup" aria-label={t("settings.mcpClient")}>
+        {#each MCP_CLIENTS as c (c.id)}
+          <button class="client" class:on={client === c.id} role="radio" aria-checked={client === c.id} onclick={() => ((settings.mcpClient = c.id), persist())}>
+            {c.id === "other" ? t("settings.mcpOther") : c.label}
+          </button>
+        {/each}
+      </div>
+      <p class="note">{t(`settings.mcpStep.${client}` as Key)}</p>
       <div class="cmd selectable">
-        <code>{addCommand(mcp.info)}</code>
-        <button class="icon-btn" onclick={() => copy(addCommand(mcp.info!))} title={t("settings.copy")} aria-label={t("settings.copy")}><Icon name="duplicate" /></button>
+        <code>{snippet}</code>
+        <button class="icon-btn" onclick={() => copy(snippet)} title={t("settings.copy")} aria-label={t("settings.copy")}><Icon name="duplicate" /></button>
       </div>
       <p class="status" class:ok={link?.connected}>
         <span class="dot"></span>
-        {link?.connected ? t("settings.mcpConnected", { client: link.client ?? "Claude Code" }) : t("settings.mcpWaiting")}
+        {link?.connected ? t("settings.mcpConnected", { client: link.client ?? clientName(null) }) : t("settings.mcpWaiting")}
       </p>
       <p class="note">{t("settings.mcpSafety")}</p>
     {/if}
@@ -241,7 +250,26 @@
   .cmd code {
     flex: 1;
     font: 11px/1.4 var(--mono);
+    white-space: pre-wrap;
     word-break: break-all;
+  }
+  .clients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .client {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .client.on {
+    border-color: var(--accent);
+    color: var(--text);
+    font-weight: 600;
   }
   .status {
     display: flex;

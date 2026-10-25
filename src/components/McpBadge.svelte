@@ -1,8 +1,9 @@
 <script lang="ts">
-  // Title-bar status of the Claude Code link: green once a client is connected.
+  // Title-bar status of the MCP link: green once an agent is connected.
   import { onDestroy } from "svelte";
   import { ipc, type McpLink } from "../lib/ipc";
   import { settings } from "../lib/settings.svelte";
+  import { clientName } from "../lib/mcp.svelte";
   import { openDialog } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
 
@@ -12,13 +13,13 @@
   }, 2000);
   onDestroy(() => clearInterval(poll));
 
-  const title = $derived(link?.connected ? t("mcp.connectedTitle", { client: link.client ?? "Claude Code" }) : t("mcp.waitingTitle"));
+  const title = $derived(link?.connected ? t("mcp.connectedTitle", { client: link.client ?? clientName(null) }) : t("mcp.waitingTitle"));
 </script>
 
 {#if link?.running}
   <button class="badge" class:connected={link.connected} {title} aria-label={title} onclick={() => openDialog("settings", { tab: "mcp" })}>
     <span class="dot"></span>
-    {link.connected ? t("mcp.connected") : t("mcp.waiting")}
+    {link.connected ? clientName(link.client) : t("mcp.waiting")}
   </button>
 {/if}
 

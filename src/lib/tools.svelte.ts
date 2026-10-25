@@ -1,4 +1,4 @@
-// Actions the AI chat and Claude Code (over MCP) can take. One registry so both
+// Actions the AI chat and external agents (over MCP) can take. One registry so both
 // behave the same. Changes to open documents are ordinary edits: they show up
 // live and can be undone. File tools never overwrite an existing file unless
 // asked to, and only write PDF/PNG/JPEG files (the backend enforces this too).
@@ -18,7 +18,7 @@ export interface ToolSpec {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
-  /** "app": the built-in chat only; "mcp": Claude Code only. */
+  /** "app": the built-in chat only; "mcp": MCP clients only. */
   scope: "both" | "mcp" | "app";
   run(args: Args): Promise<unknown>;
 }

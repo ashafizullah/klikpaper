@@ -36,6 +36,8 @@ interface Stored {
   recent: string[];
   signatures: Signature[];
   mcpEnabled: boolean;
+  /** The agent the MCP setup steps are shown for. */
+  mcpClient: string;
   showSidebar: boolean;
   showChat: boolean;
   /** Color per tool, remembered between sessions. */
@@ -51,6 +53,7 @@ function load(): Stored {
     recent: [],
     signatures: [],
     mcpEnabled: false,
+    mcpClient: "claude",
     showSidebar: true,
     showChat: false,
     colors: {},

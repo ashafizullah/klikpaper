@@ -42,7 +42,7 @@
 - **Watermark and page numbers**, previewed live on every page
 - **Password and privacy**: open protected PDFs, protect with AES-256, remove a password you know, strip metadata, flatten form fields
 - **Ask this PDF** (optional): chat about the open document, with answers that cite pages you can click. Bring your own key for Anthropic (Claude) or any OpenAI-compatible API (OpenAI, OpenRouter, Gemini, Groq, Ollama...). The AI can also rotate, move or delete pages and add text when you ask. Keys are stored in the OS keychain
-- **Works with Claude Code**: turn on the local MCP server and your own Claude Code can read, search and edit open PDFs, and merge, split, compress, protect or convert files
+- **Works with your AI agent**: turn on the local MCP server and Claude Code, Codex, Gemini CLI, VS Code, Cursor or any other MCP client can read, search and edit open PDFs, and merge, split, compress, protect or convert files
 - **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
 - **English and Bahasa Indonesia** interface; **auto-update** from GitHub Releases (signed packages)
 
@@ -73,19 +73,19 @@ curl -fsSL https://raw.githubusercontent.com/ashafizullah/klikpaper/main/install
 
 **Windows:** SmartScreen may warn about an unsigned app. Click **More info → Run anyway**.
 
-## Using Claude Code
+## Using an AI agent (MCP)
 
-1. Open **Settings → Claude Code** and enable the local MCP server.
-2. Copy the `claude mcp add …` command and run it once in a terminal.
-3. Start `claude` and ask, for example, *"merge every PDF in ~/Invoices into one file sorted by date"* or *"in the open document, delete the blank pages and add page numbers"*.
+1. Open **Settings → AI agents (MCP)** and enable the local MCP server.
+2. Pick your agent and copy its setup step: a one-time command for Claude Code (`claude mcp add …`), Gemini CLI (`gemini mcp add …`) and VS Code (`code --add-mcp …`), or a config snippet for Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`). For any other client, choose **Other** to get the server URL and `Authorization` header.
+3. Start your agent and ask, for example, *"merge every PDF in ~/Invoices into one file sorted by date"* or *"in the open document, delete the blank pages and add page numbers"*.
 
-The server only listens on `127.0.0.1` and requires a secret token. KlikPaper never starts Claude Code, sends it prompts or touches your Claude credentials. File tools never overwrite an existing file unless asked to, and only write PDF, PNG and JPEG files.
+The server only listens on `127.0.0.1` and requires a secret token. KlikPaper never starts your agent, sends it prompts or touches its credentials. File tools never overwrite an existing file unless asked to, and only write PDF, PNG and JPEG files.
 
 ## Requirements
 
 - Nothing for the PDF tools: they work offline
 - For **Ask this PDF**: an API key for a chat model (Claude, GPT, Gemini, OpenRouter…), or a local OpenAI-compatible server such as Ollama
-- For **Claude Code**: Claude Code installed and signed in on the same computer
+- For **AI agents**: an MCP client that supports Streamable HTTP (Claude Code, Codex, Gemini CLI, VS Code, Cursor…) installed on the same computer
 
 ## Development
 
