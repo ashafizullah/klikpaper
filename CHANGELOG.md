@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Text added to PDFs now uses Liberation Sans 2 (SIL Open Font License) instead of the GPL-licensed 1.x fonts
+
 ## 0.1.2
 
 - Third-party notices now include every license and notice text for packages under more than one license, and a source link for the MPL-2.0 crates

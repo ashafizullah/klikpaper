@@ -5,7 +5,7 @@ import { baseName, joinPath, stripExt } from "./pagespec";
 
 let fontCache: Promise<{ regular: Uint8Array; bold: Uint8Array }> | null = null;
 
-/** Liberation Sans 1.07 as shipped with pdf.js (Liberation Fonts license: GPL-2.0 with a font embedding exception); metric-compatible with Arial/Helvetica used on screen. */
+/** Liberation Sans 2 (SIL OFL-1.1, from assets/fonts/liberation, copied over pdf.js's 1.07 files by vite.config.ts); metric-compatible with Arial/Helvetica used on screen. */
 export function loadFonts() {
   fontCache ??= Promise.all(
     ["LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf"].map(async (f) => {

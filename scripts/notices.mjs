@@ -1,9 +1,11 @@
 // Writes THIRD_PARTY_NOTICES.md with the license of every third-party package
 // shipped in KlikPaper: the frontend's npm packages (with everything they pull
-// in) and the Rust crates compiled into the app for macOS, Windows and Linux.
+// in), the fonts vendored in assets/fonts and the Rust crates compiled into
+// the app for macOS, Windows and Linux.
 // Fails when a package's license is not on the allow-list below, so a copyleft
 // dependency can't slip in unnoticed. Run with `bun run notices`.
 import { execFileSync } from "node:child_process";
+import fontkit from "@cantoo/fontkit";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -137,12 +139,23 @@ for (const p of [...npm.values()].sort(byNameVersion)) {
     // Fonts, color profiles and image decoders shipped from pdf.js carry their own licenses.
     for (const sub of ["cmaps", "standard_fonts", "iccs", "wasm"]) {
       for (const f of licenseFiles(join(p.dir, sub))) {
+        // vite.config.ts replaces pdf.js's Liberation Sans 1.07 with assets/fonts/liberation.
+        if (f === "LICENSE_LIBERATION") continue;
         section += `\n\n#### pdfjs-dist/${sub}/${f}\n\n\`\`\`\n${readFileSync(join(p.dir, sub, f), "utf8").trim()}\n\`\`\``;
       }
     }
   }
   npmParts.push(section);
 }
+
+// ---- Fonts ----------------------------------------------------------------
+
+// Liberation Sans 2 replaces the copy in pdf.js's standard fonts (see vite.config.ts).
+const liberationDir = join(root, "assets/fonts/liberation");
+const liberationVersion = fontkit.create(readFileSync(join(liberationDir, "LiberationSans-Regular.ttf"))).version.replace(/^Version\s*/, "");
+const fontParts = [
+  `### Liberation Sans ${liberationVersion} (OFL-1.1)\n\nSource: https://github.com/liberationfonts/liberation-fonts\n\n\`\`\`\n${readFileSync(join(liberationDir, "LICENSE"), "utf8").trim()}\n\`\`\``,
+];
 
 // ---- Rust -----------------------------------------------------------------
 
@@ -216,6 +229,6 @@ if (problems.length) {
 }
 
 // Some license files use CRLF; write LF everywhere so the output is the same on every OS.
-const notices = `# Third-party notices\n\nKlikPaper includes the following third-party software. Each is used under its own license, reproduced below. KlikPaper's own code contains no copied third-party source code, except the PDF.js text and annotation layer CSS rules adapted in \`src/app.css\` (Apache-2.0, see pdfjs-dist below). The PDF.js standard fonts include Liberation Sans 1.07, which is shipped unmodified under the Liberation Fonts license (GPL-2.0 with a font embedding exception, see LICENSE_LIBERATION below).\n\n## Interface (JavaScript)\n\n${npmParts.join("\n\n")}\n\n## Desktop app (Rust crates)\n\n${rustParts.join("\n\n")}\n`;
+const notices = `# Third-party notices\n\nKlikPaper includes the following third-party software. Each is used under its own license, reproduced below. KlikPaper's own code contains no copied third-party source code, except the PDF.js text and annotation layer CSS rules adapted in \`src/app.css\` (Apache-2.0, see pdfjs-dist below). The Liberation Sans font in the PDF.js standard fonts is replaced with Liberation Sans 2 (SIL Open Font License 1.1, see Fonts below), which is also embedded in saved PDFs for added text.\n\n## Interface (JavaScript)\n\n${npmParts.join("\n\n")}\n\n## Fonts\n\n${fontParts.join("\n\n")}\n\n## Desktop app (Rust crates)\n\n${rustParts.join("\n\n")}\n`;
 writeFileSync(join(root, "THIRD_PARTY_NOTICES.md"), notices.replace(/\r\n?/g, "\n"));
 console.log(`THIRD_PARTY_NOTICES.md: ${npm.size} npm packages, ${crates.size} crates`);

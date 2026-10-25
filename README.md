@@ -131,7 +131,7 @@ KlikPaper is free. If it saves you time, **[buy me an AI token on Trakteer](http
 
 [MIT](LICENSE)
 
-KlikPaper is built on [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0), [pdf-lib](https://github.com/cantoo-scribe/pdf-lib) (MIT) and [lopdf](https://github.com/J-F-Liu/lopdf) (MIT), and bundles other third-party software, including the interface fonts Fraunces, IBM Plex Sans and IBM Plex Mono (SIL Open Font License 1.1). Their licenses are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which the app also shows under Settings → About → Open-source licenses. Run `bun run notices` after changing dependencies.
+KlikPaper is built on [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0), [pdf-lib](https://github.com/cantoo-scribe/pdf-lib) (MIT) and [lopdf](https://github.com/J-F-Liu/lopdf) (MIT), and bundles other third-party software, including the interface fonts Fraunces, IBM Plex Sans and IBM Plex Mono and the Liberation Sans 2 font used for text added to PDFs (all SIL Open Font License 1.1). Their licenses are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which the app also shows under Settings → About → Open-source licenses. Run `bun run notices` after changing dependencies.
 
 Adobe and Acrobat are trademarks of Adobe Inc. Claude and Claude Code are trademarks of Anthropic. KlikPaper is an independent project and is not affiliated with or endorsed by Adobe, Anthropic or Mozilla.
 

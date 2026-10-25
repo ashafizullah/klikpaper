@@ -1,10 +1,12 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { PDFDocument, PDFName, PDFArray, PDFDict } from "@cantoo/pdf-lib";
+import { PDFDocument, PDFName, PDFArray, PDFDict, StandardFonts } from "@cantoo/pdf-lib";
+import fontkit from "@cantoo/fontkit";
 import { arrowHead, drawOnPdf, numberAnchor, pageLabel, wrapLines } from "./draw";
 import type { Overlay, PageNumbers } from "./doc.svelte";
 
-const fontDir = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).pathname;
+// The fonts the app ships (vite.config.ts copies them over pdf.js's own).
+const fontDir = new URL("../../assets/fonts/liberation/", import.meta.url).pathname;
 const fonts = async () => ({
   regular: new Uint8Array(readFileSync(fontDir + "LiberationSans-Regular.ttf")),
   bold: new Uint8Array(readFileSync(fontDir + "LiberationSans-Bold.ttf")),
@@ -84,4 +86,44 @@ test("flattens filled form fields into page content", async () => {
   // The typed value is now drawn on the page through a form XObject.
   const xobjects = doc.getPage(0).node.Resources()?.lookup(PDFName.of("XObject"), PDFDict);
   expect(xobjects?.keys().length).toBeGreaterThan(0);
+});
+
+test("ships Liberation Sans 2 under the SIL Open Font License", () => {
+  for (const style of ["Regular", "Bold", "Italic", "BoldItalic"]) {
+    const font = fontkit.create(readFileSync(`${fontDir}LiberationSans-${style}.ttf`)) as { familyName: string; version: string };
+    expect(font.familyName).toBe("Liberation Sans");
+    expect(font.version).toMatch(/^Version 2\./);
+  }
+  expect(readFileSync(fontDir + "LICENSE", "utf8")).toContain("SIL OPEN FONT LICENSE Version 1.1");
+});
+
+test("added text embeds Liberation Sans 2 with Helvetica metrics and stays extractable", async () => {
+  const src = await PDFDocument.create();
+  src.addPage([612, 792]);
+  const text = "Halo dunia, The quick brown fox 0123456789";
+  const out = await drawOnPdf(await src.save(), {
+    pages: [{ overlays: [{ id: "t", page: "p1", kind: "text", x: 72, y: 72, w: 400, text, size: 12, color: "#000000", rot: 0 }], rotation: 0 }],
+    watermark: null,
+    pageNumbers: null,
+    flattenForms: false,
+    fonts,
+  });
+
+  // Same advance widths as Helvetica for printable ASCII, so text laid out on screen fits on paper.
+  const doc = await PDFDocument.load(out);
+  doc.registerFontkit(fontkit);
+  const { regular, bold } = await fonts();
+  const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ascii = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i));
+  for (const [ttf, std] of [[await doc.embedFont(regular), helvetica], [await doc.embedFont(bold), helveticaBold]] as const) {
+    for (const ch of ascii) expect(ttf.widthOfTextAtSize(ch, 1000)).toBeCloseTo(std.widthOfTextAtSize(ch, 1000), 0);
+  }
+
+  // pdf.js reads the text back through the embedded font's ToUnicode map.
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const task = pdfjs.getDocument({ data: out, useSystemFonts: false });
+  const content = await (await (await task.promise).getPage(1)).getTextContent();
+  expect(content.items.map((i) => ("str" in i ? i.str : "")).join("")).toContain(text);
+  await task.destroy();
 });

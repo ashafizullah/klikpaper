@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
@@ -18,6 +18,13 @@ function copyPdfjsAssets() {
       cpSync(`${from}/${dir}/${f}`, `${out}/${f}`);
     }
   }
+  // pdf.js's Liberation Sans 1.07 is GPL-2.0 (with a font exception); ship the
+  // OFL-1.1 Liberation Sans 2 under the same file names instead. pdf.js uses it
+  // for unembedded Helvetica/Arial, and it is embedded for text added on save.
+  for (const f of readdirSync("assets/fonts/liberation")) {
+    if (f.endsWith(".ttf")) cpSync(`assets/fonts/liberation/${f}`, `public/pdfjs/standard_fonts/${f}`);
+  }
+  rmSync("public/pdfjs/standard_fonts/LICENSE_LIBERATION", { force: true });
 }
 copyPdfjsAssets();
 
