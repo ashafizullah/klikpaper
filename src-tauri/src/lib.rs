@@ -106,6 +106,9 @@ pub fn run() {
             commands::terminal_resize,
             commands::terminal_close,
             commands::check_updates,
+            commands::set_update_mode,
+            commands::pending_update,
+            commands::install_update,
             commands::dev_autostart_mcp,
         ])
         .build(tauri::generate_context!())
@@ -116,6 +119,9 @@ pub fn run() {
         if let tauri::RunEvent::Opened { urls } = &event {
             let paths = urls.iter().filter_map(|u| u.to_file_path().ok()).map(|p| p.display().to_string());
             open_files(app, pdf_paths(paths, None));
+        }
+        if let tauri::RunEvent::Exit = event {
+            updater::install_on_exit();
         }
         let _ = (app, event);
     });

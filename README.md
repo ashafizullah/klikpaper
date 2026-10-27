@@ -44,13 +44,13 @@
 - **Ask this PDF** (optional): chat about the open document, with answers that cite pages you can click. Bring your own key for Anthropic (Claude) or any OpenAI-compatible API (OpenAI, OpenRouter, Gemini, Groq, Ollama...). The AI can also rotate, move or delete pages and add text when you ask. Keys are stored in the OS keychain
 - **Works with your AI agent**: turn on the local MCP server and any MCP client (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode and other agent harnesses) can read and search open PDFs, highlight, add text, shapes, images and signatures, rearrange pages, and merge, split, compress, protect or convert files. A built-in terminal runs your agent right next to your documents
 - **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
-- **English and Bahasa Indonesia** interface; **auto-update** from GitHub Releases (signed packages)
+- **English and Bahasa Indonesia** interface; **automatic updates** from GitHub Releases (signed packages), which you can set to install by themselves, ask first or stay off
 
 ## Privacy
 
 KlikPaper works offline. Your files never leave your computer, with two exceptions you control:
 
-- **Update checks** ask GitHub Releases for a newer version.
+- **Update checks** ask GitHub Releases for a newer version (once a day, or only when you ask if you turn automatic checks off).
 - **AI chat**, when you set it up and use it, sends the open document's text and your question to the AI provider you chose, with your own API key. Nothing is sent to KlikPaper or its author.
 
 There is no account, no telemetry and no analytics.

@@ -193,6 +193,24 @@ pub fn mcp_reply(id: u64, result: serde_json::Value, state: State<'_, Mcp>) {
     state.reply(id, result);
 }
 
+// ---- updates --------------------------------------------------------------
+
+/// "auto", "notify" or "off"; the frontend sends the user's choice at launch and on change.
+#[tauri::command]
+pub fn set_update_mode(mode: String) {
+    updater::set_mode(&mode);
+}
+
+#[tauri::command]
+pub fn pending_update() -> Option<updater::Ready> {
+    updater::pending()
+}
+
+#[tauri::command]
+pub fn install_update(app: AppHandle) -> AppResult<()> {
+    updater::install_now(&app).map_err(AppError::msg)
+}
+
 // ---- fonts ----------------------------------------------------------------
 
 #[tauri::command]

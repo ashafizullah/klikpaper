@@ -1,28 +1,124 @@
 //! Self-update from GitHub Releases. The release workflow publishes a signed
 //! `latest.json`; the updater only installs packages signed with our key.
+//!
+//! The user picks how (Settings → General): "auto" downloads new versions in
+//! the background and installs them when the app quits or the user restarts
+//! from the notice; "notify" asks first; "off" only checks on request.
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::time::{Duration, Instant};
 
-use tauri::AppHandle;
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{Update, UpdaterExt};
 
 const STARTUP_DELAY: Duration = Duration::from_secs(10);
 const INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
+/// How often the background thread looks at the mode, so turning updates on takes effect soon.
+const TICK: Duration = Duration::from_secs(60);
 
 static CHECKING: AtomicBool = AtomicBool::new(false);
 
-/// Checks shortly after launch and then once a day.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Mode {
+    /// The frontend hasn't said yet (it does right after launch).
+    Unset,
+    Auto,
+    Notify,
+    Off,
+}
+
+static MODE: AtomicU8 = AtomicU8::new(0);
+/// A downloaded, verified update waiting to be installed.
+static PENDING: Mutex<Option<(Update, Vec<u8>)>> = Mutex::new(None);
+
+fn mode() -> Mode {
+    match MODE.load(Ordering::SeqCst) {
+        1 => Mode::Auto,
+        2 => Mode::Notify,
+        3 => Mode::Off,
+        _ => Mode::Unset,
+    }
+}
+
+pub fn set_mode(mode: &str) {
+    let m = match mode {
+        "auto" => 1,
+        "notify" => 2,
+        _ => 3,
+    };
+    MODE.store(m, Ordering::SeqCst);
+    // Only "auto" installs without asking.
+    if m != 1 {
+        PENDING.lock().unwrap().take();
+    }
+}
+
+/// What the frontend shows once an update is ready to install.
+#[derive(Serialize, Clone)]
+pub struct Ready {
+    version: String,
+    notes: String,
+}
+
+pub fn pending() -> Option<Ready> {
+    PENDING.lock().unwrap().as_ref().map(|(u, _)| Ready { version: u.version.clone(), notes: changelog(u.body.as_deref().unwrap_or("")) })
+}
+
+/// Checks shortly after launch and then once a day, as the chosen mode says.
 pub fn start_background_checks(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(STARTUP_DELAY);
+        let mut last: Option<Instant> = None;
         loop {
-            tauri::async_runtime::block_on(check(app.clone(), false));
-            std::thread::sleep(INTERVAL);
+            let due = last.is_none_or(|t| t.elapsed() >= INTERVAL);
+            match mode() {
+                Mode::Auto if due => {
+                    last = Some(Instant::now());
+                    tauri::async_runtime::block_on(download(app.clone()));
+                }
+                Mode::Notify if due => {
+                    last = Some(Instant::now());
+                    tauri::async_runtime::block_on(check(app.clone(), false));
+                }
+                _ => {}
+            }
+            std::thread::sleep(TICK);
         }
     });
+}
+
+/// Downloads a new version quietly and tells the frontend it is ready.
+async fn download(app: AppHandle) {
+    if PENDING.lock().unwrap().is_some() || CHECKING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    if let Ok(Some(update)) = async { app.updater()?.check().await }.await {
+        if let Ok(bytes) = update.download(|_, _| {}, || {}).await {
+            *PENDING.lock().unwrap() = Some((update, bytes));
+            if let Some(ready) = pending() {
+                let _ = app.emit("update-ready", ready);
+            }
+        }
+    }
+    CHECKING.store(false, Ordering::SeqCst);
+}
+
+/// Installs the downloaded update and restarts into it.
+pub fn install_now(app: &AppHandle) -> Result<(), String> {
+    let (update, bytes) = PENDING.lock().unwrap().take().ok_or("No update has been downloaded")?;
+    update.install(bytes).map_err(|e| e.to_string())?;
+    app.restart()
+}
+
+/// Installs a downloaded update as the app quits, so the next launch runs it.
+pub fn install_on_exit() {
+    if let Some((update, bytes)) = PENDING.lock().unwrap().take() {
+        let _ = update.install(bytes);
+    }
 }
 
 /// The changelog part of the release notes as plain text: the dialog can't

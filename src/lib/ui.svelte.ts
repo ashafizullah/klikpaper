@@ -68,10 +68,11 @@ export function toolColor(tool: string): string {
 }
 
 let nextToast = 1;
-export function toast(text: string, kind: Toast["kind"] = "info", action?: Toast["action"]) {
+/** `ms` = 0 keeps the toast until the user closes it or takes its action. */
+export function toast(text: string, kind: Toast["kind"] = "info", action?: Toast["action"], ms = kind === "error" ? 9000 : 4500) {
   const id = nextToast++;
   ui.toasts.push({ id, text, kind, action });
-  setTimeout(() => dismissToast(id), kind === "error" ? 9000 : 4500);
+  if (ms > 0) setTimeout(() => dismissToast(id), ms);
 }
 
 export function dismissToast(id: number) {

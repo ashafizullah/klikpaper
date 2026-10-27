@@ -90,6 +90,10 @@ export interface FileStat {
   exists: boolean;
   bytes: number;
 }
+export interface UpdateReady {
+  version: string;
+  notes: string;
+}
 export interface SystemFont {
   family: string;
   /** Has an upright bold face. */
@@ -154,6 +158,9 @@ export const ipc = {
   terminalResize: (id: string, cols: number, rows: number) => invoke<void>("terminal_resize", { id, cols, rows }),
   terminalClose: (id: string) => invoke<void>("terminal_close", { id }),
   checkUpdates: () => invoke<void>("check_updates"),
+  setUpdateMode: (mode: string) => invoke<void>("set_update_mode", { mode }),
+  pendingUpdate: () => invoke<UpdateReady | null>("pending_update"),
+  installUpdate: () => invoke<void>("install_update"),
   devAutostartMcp: () => invoke<boolean>("dev_autostart_mcp"),
 };
 

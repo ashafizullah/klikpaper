@@ -30,6 +30,9 @@ export interface Signature {
   height: number;
 }
 
+/** auto: download in the background and install on quit; notify: ask first; off: only on request. */
+export type UpdateMode = "auto" | "notify" | "off";
+
 interface Stored {
   profiles: AiProfile[];
   activeProfileId: string;
@@ -44,6 +47,7 @@ interface Stored {
   colors: Record<string, string>;
   /** Installed font family for new text boxes; "" = the default. */
   textFont: string;
+  updateMode: UpdateMode;
 }
 
 const KEY = "klikpaper.settings";
@@ -60,6 +64,7 @@ function load(): Stored {
     showChat: false,
     colors: {},
     textFont: "",
+    updateMode: "auto",
   };
   try {
     const raw = localStorage.getItem(KEY);

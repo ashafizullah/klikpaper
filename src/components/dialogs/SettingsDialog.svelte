@@ -8,6 +8,8 @@
   import { addProfile, persist, PROFILE_PRESETS, removeProfile, settings, type AiProfile } from "../../lib/settings.svelte";
   import { clientName, mcp, MCP_CLIENTS, setupSnippet, startMcp, stopMcp, type McpClientId } from "../../lib/mcp.svelte";
   import { openDialog, toast } from "../../lib/ui.svelte";
+  import { restartToUpdate, setUpdateMode, updates } from "../../lib/updates.svelte";
+  import type { UpdateMode } from "../../lib/settings.svelte";
   import { i18n, setLocale, t, type Key } from "../../lib/i18n/index.svelte";
 
   let { tab: initialTab = "general" }: { tab?: string } = $props();
@@ -78,10 +80,26 @@
         <option value="id">Bahasa Indonesia</option>
       </select>
     </label>
-    <div class="form-row">
+    <label class="form-row">
       <span>{t("settings.updates")}</span>
-      <div><button class="btn" onclick={() => ipc.checkUpdates()}>{t("settings.checkUpdates")}</button></div>
+      <select class="field" value={settings.updateMode} onchange={(e) => setUpdateMode(e.currentTarget.value as UpdateMode)}>
+        <option value="auto">{t("settings.updateAuto")}</option>
+        <option value="notify">{t("settings.updateNotify")}</option>
+        <option value="off">{t("settings.updateOff")}</option>
+      </select>
+    </label>
+    <div class="form-row">
+      <span></span>
+      <div class="update-actions">
+        {#if updates.ready}
+          <button class="btn primary" onclick={restartToUpdate}>{t("update.restart")}</button>
+          <span class="muted">{t("update.ready", { version: updates.ready.version })}</span>
+        {:else}
+          <button class="btn" onclick={() => ipc.checkUpdates()}>{t("settings.checkUpdates")}</button>
+        {/if}
+      </div>
     </div>
+    <p class="note">{t(`settings.updateHint.${settings.updateMode}` as Key)}</p>
     <p class="note">{t("settings.privacy")}</p>
   {:else if tab === "ai"}
     <p class="note">{t("settings.aiIntro")}</p>
@@ -172,6 +190,12 @@
 </Dialog>
 
 <style>
+  .update-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
   .tabs {
     display: flex;
     gap: 2px;
