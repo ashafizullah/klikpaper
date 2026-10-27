@@ -2,7 +2,7 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.9
 
 - Ubah ukuran halaman kini menampilkan pratinjau langsung: halaman di atas kertas yang Anda pilih, lengkap dengan margin dan seberapa besar isinya diskalakan, sebelum diterapkan
 

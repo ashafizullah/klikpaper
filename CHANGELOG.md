@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.9
 
 - Resize pages shows a live preview: the page on the paper you pick, with the margin and how much the content is scaled, before you apply
 
