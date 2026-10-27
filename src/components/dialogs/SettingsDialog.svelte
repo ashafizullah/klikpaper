@@ -183,7 +183,6 @@
     <div class="choice">
       <button class="btn" onclick={() => openUrl("https://github.com/ashafizullah/klikpaper")}><Icon name="external" />GitHub</button>
       <button class="btn" onclick={() => openDialog("licenses")}>{t("about.licenses")}</button>
-      <button class="btn" onclick={() => openUrl("https://trakteer.id/adamshafizullah/tip")}>{t("about.support")}</button>
     </div>
     <p class="note">{t("about.ai")}</p>
   {/if}

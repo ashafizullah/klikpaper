@@ -311,7 +311,6 @@ const en = {
   "about.body": "A free, open-source PDF tool. MIT license.",
   "about.builtOn": "Built on PDF.js (Mozilla), pdf-lib (Cantoo fork) and lopdf, with Tauri and Svelte. Thank you to their authors.",
   "about.licenses": "Open-source licenses",
-  "about.support": "Support on Trakteer",
   "about.ai": "Developed with help from AI coding tools and reviewed by a person.",
   "licenses.intro": "KlikPaper includes the following open-source software.",
 } as const;

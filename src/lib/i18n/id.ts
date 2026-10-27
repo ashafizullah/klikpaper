@@ -313,7 +313,6 @@ const id: Record<Key, string> = {
   "about.body": "Alat PDF gratis dan open source. Lisensi MIT.",
   "about.builtOn": "Dibangun dengan PDF.js (Mozilla), pdf-lib (fork Cantoo), dan lopdf, memakai Tauri dan Svelte. Terima kasih kepada para pembuatnya.",
   "about.licenses": "Lisensi open source",
-  "about.support": "Dukung di Trakteer",
   "about.ai": "Dikembangkan dengan bantuan alat coding AI dan direview oleh manusia.",
   "licenses.intro": "KlikPaper memuat perangkat lunak open source berikut.",
 };
