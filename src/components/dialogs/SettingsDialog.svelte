@@ -9,6 +9,7 @@
   import { clientName, mcp, MCP_CLIENTS, setupSnippet, startMcp, stopMcp, type McpClientId } from "../../lib/mcp.svelte";
   import { openDialog, toast } from "../../lib/ui.svelte";
   import { restartToUpdate, setUpdateMode, updates } from "../../lib/updates.svelte";
+  import { relabelShellMenu, setShellMenu, shellMenu } from "../../lib/shell.svelte";
   import type { UpdateMode } from "../../lib/settings.svelte";
   import { i18n, setLocale, t, type Key } from "../../lib/i18n/index.svelte";
 
@@ -75,7 +76,7 @@
   {#if tab === "general"}
     <label class="form-row">
       <span>{t("settings.language")}</span>
-      <select class="field" value={i18n.locale} onchange={(e) => setLocale(e.currentTarget.value as "en" | "id")}>
+      <select class="field" value={i18n.locale} onchange={(e) => (setLocale(e.currentTarget.value as "en" | "id"), relabelShellMenu())}>
         <option value="en">English</option>
         <option value="id">Bahasa Indonesia</option>
       </select>
@@ -100,6 +101,16 @@
       </div>
     </div>
     <p class="note">{t(`settings.updateHint.${settings.updateMode}` as Key)}</p>
+    {#if shellMenu.available}
+      <div class="form-row">
+        <span>{t("settings.shellMenu")}</span>
+        <label class="row">
+          <input type="checkbox" checked={settings.shellMenu} onchange={(e) => setShellMenu(e.currentTarget.checked)} />
+          {t("settings.shellMenuToggle")}
+        </label>
+      </div>
+      <p class="note">{t("settings.shellMenuHint")}</p>
+    {/if}
     <p class="note">{t("settings.privacy")}</p>
   {:else if tab === "ai"}
     <p class="note">{t("settings.aiIntro")}</p>

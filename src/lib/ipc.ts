@@ -92,6 +92,11 @@ export interface FileStat {
   exists: boolean;
   bytes: number;
 }
+/** A right-click action from Windows Explorer: merge, compress, images or to-pdf. */
+export interface ShellAction {
+  action: string;
+  paths: string[];
+}
 export interface UpdateReady {
   version: string;
   notes: string;
@@ -130,6 +135,10 @@ export const ipc = {
   moveFile: (from: string, to: string) => invoke<void>("move_file", { from, to }),
   discardTemp: (path: string) => invoke<void>("discard_temp", { path }),
   takeOpenedFiles: () => invoke<string[]>("take_opened_files"),
+  takeShellActions: () => invoke<ShellAction[]>("take_shell_actions"),
+  shellMenu: () => invoke<boolean | null>("shell_menu"),
+  setShellMenu: (enabled: boolean, labels: { merge: string; compress: string; images: string; toPdf: string }) =>
+    invoke<void>("set_shell_menu", { enabled, labels }),
   pdfInfo: (path: string, password?: string | null) => invoke<PdfInfo>("pdf_info", { path, password: password ?? null }),
   assemble: (job: AssembleJob) => invoke<AssembleResult>("pdf_assemble", { job }),
   imagesToPdf: (job: ImagesJob) => invoke<{ pages: number; bytes: number }>("images_to_pdf", { job }),

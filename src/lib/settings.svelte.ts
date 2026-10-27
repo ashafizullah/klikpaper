@@ -48,6 +48,8 @@ interface Stored {
   /** Installed font family for new text boxes; "" = the default. */
   textFont: string;
   updateMode: UpdateMode;
+  /** Windows: KlikPaper's actions in Explorer's right-click menu. */
+  shellMenu: boolean;
 }
 
 const KEY = "klikpaper.settings";
@@ -65,6 +67,7 @@ function load(): Stored {
     colors: {},
     textFont: "",
     updateMode: "auto",
+    shellMenu: false,
   };
   try {
     const raw = localStorage.getItem(KEY);

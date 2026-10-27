@@ -6,6 +6,7 @@
 - Text boxes can use any font installed on your computer (pick it next to the font size); the saved PDF embeds that font, so it looks the same everywhere. Fonts whose license forbids embedding are refused
 - Automatic updates: new versions download in the background and install when you quit, or right away with Restart to update. Settings → General lets you switch to asking first or to checking only on request
 - Compress shows the resulting file size for every level before you save, and has a Custom quality slider (also `quality` in the `compress_pdf` MCP tool)
+- Windows: an option in Settings → General adds Merge, Compress and Convert to images with KlikPaper to File Explorer's right-click menu for PDFs, and Convert to PDF with KlikPaper for images (under Show more options on Windows 11)
 - Compress and Export as images are on the toolbar
 - The + next to the tabs (or Ctrl/⌘+T, File → New Tab) opens a Home tab instead of going straight to the file picker; opening a file from it takes that tab's place
 - Highlights no longer hide the text under them on screen (saved files were already right)

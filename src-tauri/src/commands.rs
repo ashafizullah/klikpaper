@@ -109,6 +109,22 @@ pub fn take_opened_files(opened: State<'_, Opened>) -> Vec<String> {
     std::mem::take(&mut *opened.0.lock().unwrap())
 }
 
+#[tauri::command]
+pub fn take_shell_actions(actions: State<'_, crate::shell::ShellActions>) -> Vec<crate::shell::ShellAction> {
+    std::mem::take(&mut *actions.0.lock().unwrap())
+}
+
+/// Whether the Explorer right-click entries are installed; None off Windows.
+#[tauri::command]
+pub fn shell_menu() -> Option<bool> {
+    crate::shell::menu_installed()
+}
+
+#[tauri::command]
+pub fn set_shell_menu(enabled: bool, labels: crate::shell::Labels) -> AppResult<()> {
+    Ok(crate::shell::set_menu(enabled, &labels)?)
+}
+
 // ---- PDF ------------------------------------------------------------------
 
 #[tauri::command]

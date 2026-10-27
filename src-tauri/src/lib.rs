@@ -6,6 +6,7 @@ mod fonts;
 mod keys;
 mod mcp;
 mod menu;
+mod shell;
 pub mod pdf;
 mod terminal;
 mod updater;
@@ -33,6 +34,23 @@ fn pdf_paths(args: impl IntoIterator<Item = String>, cwd: Option<&str>) -> Vec<S
         .collect()
 }
 
+/// A launch from the OS: a right-click action (Windows Explorer), or PDFs to open.
+fn handle_launch(app: &tauri::AppHandle, args: Vec<String>, cwd: Option<&str>) {
+    let Some(action) = shell::parse(args.iter().cloned(), cwd) else {
+        return open_files(app, pdf_paths(args, cwd));
+    };
+    app.state::<shell::ShellActions>().0.lock().unwrap().push(action.clone());
+    let _ = app.emit("shell-action", action);
+    focus(app);
+}
+
+fn focus(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+
 /// Queues the files and tells a running frontend about them.
 fn open_files(app: &tauri::AppHandle, paths: Vec<String>) {
     if paths.is_empty() {
@@ -40,30 +58,21 @@ fn open_files(app: &tauri::AppHandle, paths: Vec<String>) {
     }
     app.state::<Opened>().0.lock().unwrap().extend(paths.iter().cloned());
     let _ = app.emit("open-files", paths);
-    if let Some(w) = app.get_webview_window("main") {
-        let _ = w.unminimize();
-        let _ = w.set_focus();
-    }
+    focus(app);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            let paths = pdf_paths(args.into_iter().skip(1), Some(&cwd));
-            if paths.is_empty() {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.unminimize();
-                    let _ = w.set_focus();
-                }
-            } else {
-                open_files(app, paths);
-            }
+            focus(app);
+            handle_launch(app, args.into_iter().skip(1).collect(), Some(&cwd));
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Opened::default())
+        .manage(shell::ShellActions::default())
         .manage(terminal::Terminals::default())
         .setup(|app| {
             app.set_menu(menu::build(app.handle())?)?;
@@ -72,8 +81,11 @@ pub fn run() {
             keys::init(data.clone());
             app.manage(mcp::Mcp::new(data));
             app.manage(files::Temp::new(app.path().app_cache_dir()?));
-            let launch = pdf_paths(std::env::args().skip(1), None);
-            app.state::<Opened>().0.lock().unwrap().extend(launch);
+            let args: Vec<String> = std::env::args().skip(1).collect();
+            match shell::parse(args.iter().cloned(), None) {
+                Some(action) => app.state::<shell::ShellActions>().0.lock().unwrap().push(action),
+                None => app.state::<Opened>().0.lock().unwrap().extend(pdf_paths(args, None)),
+            }
             // Debug builds are not released, so they have nothing to update to.
             if !cfg!(debug_assertions) {
                 updater::start_background_checks(app.handle());
@@ -88,6 +100,9 @@ pub fn run() {
             commands::move_file,
             commands::discard_temp,
             commands::take_opened_files,
+            commands::take_shell_actions,
+            commands::shell_menu,
+            commands::set_shell_menu,
             commands::pdf_info,
             commands::pdf_assemble,
             commands::images_to_pdf,

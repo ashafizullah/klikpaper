@@ -9,6 +9,7 @@
   import { settings } from "./lib/settings.svelte";
   import { startMcp } from "./lib/mcp.svelte";
   import { initUpdates } from "./lib/updates.svelte";
+  import { initShell } from "./lib/shell.svelte";
   import { ui } from "./lib/ui.svelte";
   import { i18n, t } from "./lib/i18n/index.svelte";
   import TitleBar from "./components/TitleBar.svelte";
@@ -56,6 +57,7 @@
       if (paths.length) openPaths(paths);
     });
     initUpdates().catch(() => {});
+    initShell().catch(() => {});
     if (settings.mcpEnabled) startMcp();
     else
       ipc.devAutostartMcp().then((on) => {
