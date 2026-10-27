@@ -90,6 +90,11 @@ export interface FileStat {
   exists: boolean;
   bytes: number;
 }
+export interface SystemFont {
+  family: string;
+  /** Has an upright bold face. */
+  bold: boolean;
+}
 export interface McpCall {
   id: number;
   name: string;
@@ -138,6 +143,8 @@ export const ipc = {
   mcpStop: () => invoke<void>("mcp_stop"),
   mcpLink: () => invoke<McpLink>("mcp_link"),
   mcpReply: (id: number, result: unknown) => invoke<void>("mcp_reply", { id, result }),
+  systemFonts: () => invoke<SystemFont[]>("system_fonts"),
+  fontFace: async (family: string, bold: boolean) => new Uint8Array(await invoke<ArrayBuffer>("font_face", { family, bold })),
   terminalOpen: (cwd: string, cols: number, rows: number, onEvent: (e: TerminalEvent) => void) => {
     const ch = new Channel<TerminalEvent>();
     ch.onmessage = onEvent;

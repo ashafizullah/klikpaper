@@ -9,6 +9,7 @@ import { baseName, formatPages, joinPath, parsePages, splitGroups, stripExt } fr
 import { newId, settings } from "./settings.svelte";
 import { displayRectToPage, displaySize, displayToPage, normRect, pageRectToDisplay, type Rect } from "./geometry";
 import { normalizeImage } from "./images";
+import { fonts, loadSystemFonts, showFont } from "./fonts.svelte";
 import { textRects } from "./pdfjs";
 import { DEFAULT_COLORS } from "./ui.svelte";
 import { activate, activeDoc, closeDoc, insertFiles, openPaths, saveDoc, ws } from "./workspace.svelte";
@@ -153,8 +154,17 @@ function describe(doc: Doc, o: Overlay) {
     width: round(b.w),
     height: round(b.h),
     ...("color" in o ? { color: o.color } : {}),
-    ...(o.kind === "text" ? { text: o.text, size: o.size } : {}),
+    ...(o.kind === "text" ? { text: o.text, size: o.size, font: o.font ?? "Liberation Sans" } : {}),
   };
+}
+
+/** An installed family by name (any case), checked to be embeddable. */
+async function installedFont(name: string): Promise<string> {
+  await loadSystemFonts();
+  const family = fonts.list.find((f) => f.family.toLowerCase() === name.trim().toLowerCase())?.family;
+  if (!family) throw new Error(`The font "${name}" is not installed; list_fonts lists the installed ones`);
+  await showFont(family);
+  return family;
 }
 
 const POS = "In points from the top-left corner of the page as displayed (1 inch = 72 points).";
@@ -331,6 +341,7 @@ export const TOOLS: ToolSpec[] = [
         text: { type: "string" },
         size: { type: "number", description: "Font size in points (default 12)." },
         color: { type: "string", description: "Hex color like #1b1916." },
+        font: { type: "string", description: "An installed font family (see list_fonts). Default: Liberation Sans, which looks like Arial." },
       },
       ["page", "x", "y", "text"],
     ),
@@ -345,9 +356,21 @@ export const TOOLS: ToolSpec[] = [
       const rot = doc.rotation(page);
       const [dw] = displaySize(page.w, page.h, rot);
       const [x, y] = displayToPage(num(args, "x"), num(args, "y"), rot, page.w, page.h);
+      const font = typeof args.font === "string" && args.font.trim() ? await installedFont(args.font) : undefined;
       const id = newId("o");
-      doc.addOverlay({ id, page: page.id, kind: "text", x, y, w: Math.max(40, dw - num(args, "x") - 24), text: str(args, "text"), size, color, rot });
+      doc.addOverlay({ id, page: page.id, kind: "text", x, y, w: Math.max(40, dw - num(args, "x") - 24), text: str(args, "text"), size, color, rot, ...(font ? { font } : {}) });
       return `Added text on page ${n} (id ${id})`;
+    },
+  },
+  {
+    name: "list_fonts",
+    description: "Lists the font families installed on this computer, for add_text. Pass query to filter by name.",
+    parameters: obj({ query: { type: "string" } }),
+    scope: "both",
+    async run(args) {
+      const q = typeof args.query === "string" ? args.query.trim().toLowerCase() : "";
+      const list = (await loadSystemFonts()).map((f) => f.family).filter((f) => f.toLowerCase().includes(q));
+      return list.length ? list : `No installed font matches "${args.query}"`;
     },
   },
   {

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { PDFDocument, PDFName, PDFArray, PDFDict, StandardFonts } from "@cantoo/pdf-lib";
 import fontkit from "@cantoo/fontkit";
 import { arrowHead, drawOnPdf, numberAnchor, pageLabel, wrapLines } from "./draw";
+import { FIRST_BASELINE, firstBaseline } from "./layout";
 import type { Overlay, PageNumbers } from "./doc.svelte";
 
 // The fonts the app ships (vite.config.ts copies them over pdf.js's own).
@@ -57,6 +58,33 @@ test("draws overlays and adds markup annotations", async () => {
   expect(annots(1).lookup(0, PDFDict).get(PDFName.of("Subtype"))?.toString()).toBe("/Underline");
   // The embedded font is subset Liberation Sans.
   expect(new TextDecoder("latin1").decode(out)).toContain("LiberationSans");
+});
+
+test("the first baseline follows the font's metrics", () => {
+  // Liberation Sans (hhea 1854 / -434 per 2048) gives the constant used for the default font.
+  expect(firstBaseline(1854, -434, 2048)).toBeCloseTo(FIRST_BASELINE, 3);
+  // A font taller than the line box still puts the baseline below its ascent's half-leading.
+  expect(firstBaseline(1000, -366, 1000)).toBeCloseTo(0.917, 3);
+});
+
+test("text in an installed font embeds that font's file", async () => {
+  const src = await PDFDocument.create();
+  src.addPage([612, 792]);
+  const asked: string[] = [];
+  const out = await drawOnPdf(await src.save(), {
+    pages: [{ overlays: [{ id: "t", page: "p1", kind: "text", x: 72, y: 72, w: 300, text: "Halo", size: 14, color: "#000000", rot: 0, font: "Some Font", bold: true }], rotation: 0 }],
+    watermark: null,
+    pageNumbers: null,
+    flattenForms: false,
+    fonts,
+    // Stands in for the installed font: any TrueType file works.
+    systemFont: async (family, bold) => {
+      asked.push(`${family}/${bold}`);
+      return (await fonts()).bold;
+    },
+  });
+  expect(asked).toEqual(["Some Font/true"]);
+  expect(new TextDecoder("latin1").decode(out)).toContain("LiberationSans-Bold");
 });
 
 test("refuses a page count that doesn't match", async () => {

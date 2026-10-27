@@ -2,6 +2,7 @@
 import type { Doc } from "./doc.svelte";
 import { ipc, type AssembleResult, type CompressLevel, type PageSpec, type SourceSpec } from "./ipc";
 import { baseName, joinPath, stripExt } from "./pagespec";
+import { fontFile } from "./fonts.svelte";
 
 let fontCache: Promise<{ regular: Uint8Array; bold: Uint8Array }> | null = null;
 
@@ -51,6 +52,7 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
     pageNumbers: $state.snapshot(doc.pageNumbers),
     flattenForms: doc.flattenForms,
     fonts: loadFonts,
+    systemFont: fontFile,
   });
   const merged = await ipc.tempFile("pdf");
   temps.push(merged);

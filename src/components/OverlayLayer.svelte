@@ -5,7 +5,8 @@
   import { tick } from "svelte";
   import type { Doc, Overlay, PageItem } from "../lib/doc.svelte";
   import { displayRectToPage, displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
-  import { newId } from "../lib/settings.svelte";
+  import { newId, settings } from "../lib/settings.svelte";
+  import { fontStack, showFont } from "../lib/fonts.svelte";
   import { toolColor, ui } from "../lib/ui.svelte";
   import { arrowHead, LINE_HEIGHT } from "../lib/layout";
 
@@ -47,7 +48,7 @@
     const color = toolColor(ui.tool);
     switch (ui.tool) {
       case "text": {
-        const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x, y: Math.max(0, y - ui.fontSize * 0.6), w: Math.min(240, page.w - x - 8), text: "", size: ui.fontSize, color, rot: rotation };
+        const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x, y: Math.max(0, y - ui.fontSize * 0.6), w: Math.min(240, page.w - x - 8), text: "", size: ui.fontSize, color, rot: rotation, ...(settings.textFont ? { font: settings.textFont } : {}) };
         if (o.w < 40) o.w = 40;
         doc.addOverlay(o);
         createdId = o.id;
@@ -278,7 +279,31 @@
   }
 
   const all = $derived(draft ? [...items, draft] : items);
+  // Installed fonts load into the page when a text box uses them.
+  $effect(() => {
+    for (const o of items) if (o.kind === "text" && o.font) showFont(o.font, !!o.bold).catch(() => {});
+  });
+  const highlights = $derived(items.filter((o): o is Extract<Overlay, { kind: "markup" }> => o.kind === "markup" && o.style === "highlight"));
 </script>
+
+<!-- Highlight colors get their own layer: the main layer is a stacking context, so a blend
+     mode inside it would only mix with the layer itself and paint over the text. -->
+{#if highlights.length}
+  <div
+    class="layer paint"
+    style:width="{page.w * scale}px"
+    style:height="{page.h * scale}px"
+    style:transform={layerTransform(rotation, page.w, page.h, scale)}
+  >
+    <svg class="shapes" width={page.w * scale} height={page.h * scale} viewBox="0 0 {page.w} {page.h}">
+      {#each highlights as o (o.id)}
+        {#each o.rects as r, i (i)}
+          <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={o.color} />
+        {/each}
+      {/each}
+    </svg>
+  </div>
+{/if}
 
 <div
   class="layer"
@@ -292,10 +317,9 @@
       {#if o.kind === "markup"}
         <g class="hit" role="button" tabindex="-1" class:selected={doc.selectedOverlay === o.id} onpointerdown={(e) => onItemDown(e, o)}>
           {#each o.rects as r, i (i)}
-            {#if o.style === "highlight"}
-              <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={o.color} style="mix-blend-mode: multiply" />
-            {:else}
-              <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="transparent" />
+            <!-- Highlight colors are drawn by the paint layer; this rect is the click target. -->
+            <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="transparent" />
+            {#if o.style !== "highlight"}
               <line x1={r.x} x2={r.x + r.w} y1={o.style === "underline" ? r.y + r.h - Math.max(0.6, r.h / 14) : r.y + r.h / 2} y2={o.style === "underline" ? r.y + r.h - Math.max(0.6, r.h / 14) : r.y + r.h / 2} stroke={o.color} stroke-width={Math.max(0.6, r.h / 14)} />
             {/if}
           {/each}
@@ -346,6 +370,7 @@
         style:line-height={LINE_HEIGHT}
         style:color={o.color}
         style:font-weight={o.bold ? 700 : 400}
+        style:font-family={fontStack(o.font)}
         onpointerdown={(e) => onItemDown(e, o)}
         ondblclick={() => ui.tool === "select" && startEditing(o.id)}
       >
@@ -412,6 +437,9 @@
     transform-origin: 0 0;
     z-index: 4;
     pointer-events: none;
+  }
+  .layer.paint {
+    mix-blend-mode: multiply;
   }
   .shapes {
     position: absolute;

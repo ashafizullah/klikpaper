@@ -42,6 +42,8 @@ const en = {
   "toolbar.color": "Color",
   "toolbar.stroke": "Line width",
   "toolbar.fontSize": "Font size",
+  "toolbar.font": "Font",
+  "toolbar.fontDefault": "Default (Liberation Sans)",
   "toolbar.fill": "Fill",
   "toolbar.deleteAnnotation": "Delete annotation",
   "toolbar.page": "Page",

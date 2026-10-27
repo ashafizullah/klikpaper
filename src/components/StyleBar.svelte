@@ -2,7 +2,9 @@
   // Color, stroke and size for the active tool or the selected annotation.
   import type { Doc } from "../lib/doc.svelte";
   import { settings, persist } from "../lib/settings.svelte";
-  import { SWATCHES, toolColor, ui } from "../lib/ui.svelte";
+  import { SWATCHES, toast, toolColor, ui } from "../lib/ui.svelte";
+  import { errorText } from "../lib/ipc";
+  import { fonts, loadSystemFonts, showFont } from "../lib/fonts.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
 
@@ -38,6 +40,28 @@
     if (selected?.kind === "text") doc.change(() => ((selected as { size: number }).size = s));
   }
 
+  // The installed fonts are listed the first time a text style is shown.
+  $effect(() => {
+    if (showSize) loadSystemFonts().catch((e) => toast(errorText(e), "error"));
+  });
+
+  const currentFont = $derived(selected?.kind === "text" ? (selected.font ?? "") : settings.textFont);
+
+  async function setFont(select: HTMLSelectElement) {
+    const family = select.value;
+    const target = selected?.kind === "text" ? selected : null;
+    try {
+      // Fails early for fonts whose license forbids embedding, before the user types with one.
+      if (family) await showFont(family, !!target?.bold);
+    } catch (e) {
+      select.value = currentFont;
+      return toast(errorText(e), "error");
+    }
+    settings.textFont = family;
+    persist();
+    if (target) doc.change(() => (target.font = family || undefined));
+  }
+
   function toggleFill() {
     if (selected && (selected.kind === "rect" || selected.kind === "ellipse")) {
       const fill = selected.fill ? null : selected.color;
@@ -61,6 +85,13 @@
         </select>
       {/if}
       {#if showSize}
+        <select class="field small font" value={currentFont} onchange={(e) => setFont(e.currentTarget)} aria-label={t("toolbar.font")} title={t("toolbar.font")}>
+          <option value="">{t("toolbar.fontDefault")}</option>
+          {#if currentFont && !fonts.list.some((f) => f.family === currentFont)}
+            <option value={currentFont}>{currentFont}</option>
+          {/if}
+          {#each fonts.list as f (f.family)}<option value={f.family}>{f.family}</option>{/each}
+        </select>
         <select class="field small" value={selected?.kind === "text" ? selected.size : ui.fontSize} onchange={(e) => setSize(Number(e.currentTarget.value))} aria-label={t("toolbar.fontSize")}>
           {#each [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64] as s (s)}<option value={s}>{s}</option>{/each}
         </select>
@@ -117,5 +148,8 @@
   .small {
     height: 26px;
     font-size: 12px;
+  }
+  .font {
+    max-width: 170px;
   }
 </style>

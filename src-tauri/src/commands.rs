@@ -193,6 +193,19 @@ pub fn mcp_reply(id: u64, result: serde_json::Value, state: State<'_, Mcp>) {
     state.reply(id, result);
 }
 
+// ---- fonts ----------------------------------------------------------------
+
+#[tauri::command]
+pub async fn system_fonts() -> AppResult<Vec<crate::fonts::SystemFont>> {
+    blocking(|| Ok(crate::fonts::list())).await
+}
+
+/// A font file sent raw, like read_file.
+#[tauri::command]
+pub async fn font_face(family: String, bold: bool) -> AppResult<Response> {
+    Ok(Response::new(blocking(move || crate::fonts::face(&family, bold)).await?))
+}
+
 // ---- terminal -------------------------------------------------------------
 
 #[tauri::command]

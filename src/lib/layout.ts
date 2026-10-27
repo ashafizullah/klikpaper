@@ -8,6 +8,11 @@ export const LINE_HEIGHT = 1.2;
 /** Baseline of the first line below the box top, for Liberation Sans/Arial at line-height 1.2. */
 export const FIRST_BASELINE = 0.9465;
 
+/** Baseline of the first line below the box top for a font's hhea metrics (as browsers lay it out). */
+export function firstBaseline(ascent: number, descent: number, unitsPerEm: number): number {
+  return (LINE_HEIGHT - (ascent - descent) / unitsPerEm) / 2 + ascent / unitsPerEm;
+}
+
 export function wrapLines(text: string, measure: (s: string) => number, width: number): string[] {
   const out: string[] = [];
   for (const para of text.split("\n")) {

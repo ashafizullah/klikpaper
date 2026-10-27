@@ -31,7 +31,7 @@ export type MarkupKind = "highlight" | "underline" | "strike";
 
 /** Coordinates are in page space: points from the unrotated page's top-left, y down. */
 export type Overlay =
-  | { id: string; page: string; kind: "text"; x: number; y: number; w: number; text: string; size: number; color: string; rot: number; bold?: boolean }
+  | { id: string; page: string; kind: "text"; x: number; y: number; w: number; text: string; size: number; color: string; rot: number; bold?: boolean; font?: string }
   | { id: string; page: string; kind: "image"; x: number; y: number; w: number; h: number; src: string; rot: number }
   | { id: string; page: string; kind: "rect" | "ellipse"; x: number; y: number; w: number; h: number; color: string; fill: string | null; width: number }
   | { id: string; page: string; kind: "line" | "arrow"; x1: number; y1: number; x2: number; y2: number; color: string; width: number }

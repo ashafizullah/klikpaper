@@ -2,6 +2,7 @@ mod ai;
 mod commands;
 mod error;
 mod files;
+mod fonts;
 mod keys;
 mod mcp;
 mod menu;
@@ -98,6 +99,8 @@ pub fn run() {
             commands::mcp_stop,
             commands::mcp_link,
             commands::mcp_reply,
+            commands::system_fonts,
+            commands::font_face,
             commands::terminal_open,
             commands::terminal_write,
             commands::terminal_resize,

@@ -6,7 +6,7 @@ import { PDFDocument, PDFName, PDFString, LineCapStyle, degrees, rgb, type PDFFo
 import fontkit from "@cantoo/fontkit";
 import type { Overlay, PageNumbers, Watermark } from "./doc.svelte";
 import { displaySize, displayToPage, rotateOffset, type Rotation } from "./geometry";
-import { arrowHead, FIRST_BASELINE, LINE_HEIGHT, numberAnchor, pageLabel, wrapLines } from "./layout";
+import { arrowHead, FIRST_BASELINE, firstBaseline, LINE_HEIGHT, numberAnchor, pageLabel, wrapLines } from "./layout";
 
 export { arrowHead, numberAnchor, pageLabel, wrapLines };
 
@@ -22,6 +22,8 @@ export interface DrawJob {
   flattenForms: boolean;
   /** TrueType fonts for text (Liberation Sans, metric-compatible with Arial/Helvetica). */
   fonts: () => Promise<{ regular: Uint8Array; bold: Uint8Array }>;
+  /** The file of an installed font, for text boxes that use one. */
+  systemFont?: (family: string, bold: boolean) => Promise<Uint8Array>;
 }
 
 export function hexToRgb(hex: string) {
@@ -55,6 +57,25 @@ export async function drawOnPdf(input: Uint8Array, job: DrawJob): Promise<Uint8A
     }
     return bold ? fonts.bold : fonts.regular;
   };
+  const custom = new Map<string, Promise<{ font: PDFFont; baseline: number }>>();
+  const textFont = (o: Extract<Overlay, { kind: "text" }>) => {
+    const family = o.font;
+    if (!family) return font(o.bold).then((f) => ({ font: f, baseline: FIRST_BASELINE }));
+    const key = `${family}\n${!!o.bold}`;
+    let hit = custom.get(key);
+    if (!hit) {
+      hit = (async () => {
+        if (!job.systemFont) throw new Error(`No font source for ${family}`);
+        const bytes = await job.systemFont(family, !!o.bold);
+        const metrics = fontkit.create(bytes) as unknown as { ascent: number; descent: number; unitsPerEm: number };
+        // Subsetting keeps files small; a few fonts only embed whole.
+        const embedded = await pdf.embedFont(bytes, { subset: true }).catch(() => pdf.embedFont(bytes));
+        return { font: embedded, baseline: firstBaseline(metrics.ascent, metrics.descent, metrics.unitsPerEm) };
+      })();
+      custom.set(key, hit);
+    }
+    return hit;
+  };
   const images = new Map<string, PDFImage>();
   const image = async (src: string) => {
     let img = images.get(src);
@@ -81,11 +102,11 @@ export async function drawOnPdf(input: Uint8Array, job: DrawJob): Promise<Uint8A
     for (const o of spec.overlays) {
       switch (o.kind) {
         case "text": {
-          const f = await font(o.bold);
+          const { font: f, baseline } = await textFont(o);
           const lines = wrapLines(o.text, (s) => f.widthOfTextAtSize(s, o.size), o.w);
           lines.forEach((line, n) => {
             if (!line) return;
-            const [dx, dy] = rotateOffset(0, o.size * (FIRST_BASELINE + n * LINE_HEIGHT), o.rot);
+            const [dx, dy] = rotateOffset(0, o.size * (baseline + n * LINE_HEIGHT), o.rot);
             page.drawText(line, { x: X(o.x + dx), y: Y(o.y + dy), size: o.size, font: f, color: hexToRgb(o.color), rotate: degrees(o.rot) });
           });
           break;

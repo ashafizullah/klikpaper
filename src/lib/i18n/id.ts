@@ -44,6 +44,8 @@ const id: Record<Key, string> = {
   "toolbar.color": "Warna",
   "toolbar.stroke": "Tebal garis",
   "toolbar.fontSize": "Ukuran huruf",
+  "toolbar.font": "Font",
+  "toolbar.fontDefault": "Bawaan (Liberation Sans)",
   "toolbar.fill": "Isi",
   "toolbar.deleteAnnotation": "Hapus anotasi",
   "toolbar.page": "Halaman",

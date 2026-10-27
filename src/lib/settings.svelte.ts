@@ -42,6 +42,8 @@ interface Stored {
   showChat: boolean;
   /** Color per tool, remembered between sessions. */
   colors: Record<string, string>;
+  /** Installed font family for new text boxes; "" = the default. */
+  textFont: string;
 }
 
 const KEY = "klikpaper.settings";
@@ -57,6 +59,7 @@ function load(): Stored {
     showSidebar: true,
     showChat: false,
     colors: {},
+    textFont: "",
   };
   try {
     const raw = localStorage.getItem(KEY);
