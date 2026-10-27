@@ -34,7 +34,7 @@
     "targets": ["app", "dmg", "nsis", "msi", "deb", "rpm", "appimage"],
     "category": "Productivity",
     "shortDescription": "Free, open-source, lightweight PDF tool",
-    "longDescription": "View, organize, compress, convert, annotate, sign and protect PDFs on your own computer, with optional AI chat using your own API key.",
+    "longDescription": "View, organize, compress, convert, annotate, sign and protect PDFs on your own computer, with optional AI chat using your own API key, and an MCP server for the AI agent you already use.",
     "copyright": "Copyright © 2026 Adam Suchi Hafizullah. MIT License.",
     "icon": [
       "icons/32x32.png",

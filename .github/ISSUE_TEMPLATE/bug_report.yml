@@ -58,7 +58,7 @@ body:
         - Annotate / sign / forms
         - Security (password, metadata)
         - AI chat
-        - Claude Code (MCP)
+        - AI agents (MCP: Claude Code, Codex, Gemini CLI, Cursor…)
         - Other
     validations:
       required: true

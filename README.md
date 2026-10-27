@@ -5,7 +5,7 @@
 <h1 align="center">KlikPaper</h1>
 
 <p align="center">
-  A free, open-source PDF tool for the desktop. View, organize, compress, convert, annotate, sign and protect PDFs on your own computer, and ask questions about them with your own AI key. Small, fast and offline.
+  A free, open-source PDF tool for the desktop. View, organize, compress, convert, annotate, sign and protect PDFs on your own computer, ask questions about them with your own AI key, or let the AI agent you already use work on them over MCP. Small, fast and offline.
 </p>
 
 <p align="center">
@@ -42,7 +42,7 @@
 - **Watermark and page numbers**, previewed live on every page
 - **Password and privacy**: open protected PDFs, protect with AES-256, remove a password you know, strip metadata, flatten form fields
 - **Ask this PDF** (optional): chat about the open document, with answers that cite pages you can click. Bring your own key for Anthropic (Claude) or any OpenAI-compatible API (OpenAI, OpenRouter, Gemini, Groq, Ollama...). The AI can also rotate, move or delete pages and add text when you ask. Keys are stored in the OS keychain
-- **Works with your AI agent**: turn on the local MCP server and Claude Code, Codex, Gemini CLI, VS Code, Cursor or any other MCP client can read, search and edit open PDFs, and merge, split, compress, protect or convert files
+- **Works with your AI agent**: turn on the local MCP server and any MCP client (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode and other agent harnesses) can read and search open PDFs, highlight, add text, shapes, images and signatures, rearrange pages, and merge, split, compress, protect or convert files. A built-in terminal runs your agent right next to your documents
 - **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
 - **English and Bahasa Indonesia** interface; **auto-update** from GitHub Releases (signed packages)
 
@@ -76,7 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/ashafizullah/klikpaper/main/install
 ## Using an AI agent (MCP)
 
 1. Open **Settings → AI agents (MCP)** and enable the local MCP server.
-2. Pick your agent and copy its setup step: a one-time command for Claude Code (`claude mcp add …`), Gemini CLI (`gemini mcp add …`) and VS Code (`code --add-mcp …`), or a config snippet for Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`). For any other client, choose **Other** to get the server URL and `Authorization` header.
+2. Pick your agent and copy its setup step: a one-time command for Claude Code (`claude mcp add …`), Gemini CLI (`gemini mcp add …`) and VS Code (`code --add-mcp …`), or a config snippet for Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`). KlikPaper is a standard MCP server (Streamable HTTP with a bearer token), so any other agent or harness works too: choose **Other** to get the server URL and `Authorization` header.
 3. Start your agent (KlikPaper's built-in terminal, **Ctrl+`**, opens in the document's folder) and ask, for example, *"merge every PDF in ~/Invoices into one file sorted by date"* or *"in the open document, delete the blank pages and add page numbers"* or *"highlight every mention of the deadline"*.
 
 The server only listens on `127.0.0.1` and requires a secret token. KlikPaper never starts your agent, sends it prompts or touches its credentials. File tools never overwrite an existing file unless asked to, and only write PDF, PNG and JPEG files.
@@ -85,7 +85,7 @@ The server only listens on `127.0.0.1` and requires a secret token. KlikPaper ne
 
 - Nothing for the PDF tools: they work offline
 - For **Ask this PDF**: an API key for a chat model (Claude, GPT, Gemini, OpenRouter…), or a local OpenAI-compatible server such as Ollama
-- For **AI agents**: an MCP client that supports Streamable HTTP (Claude Code, Codex, Gemini CLI, VS Code, Cursor…) installed on the same computer
+- For **AI agents**: any MCP client or agent harness that supports Streamable HTTP (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode…) on the same computer
 
 ## Development
 
@@ -133,7 +133,7 @@ KlikPaper is free. If it saves you time, **[buy me an AI token on Trakteer](http
 
 KlikPaper is built on [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0), [pdf-lib](https://github.com/cantoo-scribe/pdf-lib) (MIT) and [lopdf](https://github.com/J-F-Liu/lopdf) (MIT), and bundles other third-party software, including the interface fonts Fraunces, IBM Plex Sans and IBM Plex Mono and the Liberation Sans 2 font used for text added to PDFs (all SIL Open Font License 1.1). Their licenses are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), which the app also shows under Settings → About → Open-source licenses. Run `bun run notices` after changing dependencies.
 
-Adobe and Acrobat are trademarks of Adobe Inc. Claude and Claude Code are trademarks of Anthropic. KlikPaper is an independent project and is not affiliated with or endorsed by Adobe, Anthropic or Mozilla.
+Adobe and Acrobat are trademarks of Adobe Inc. Claude and Claude Code are trademarks of Anthropic; Codex is a trademark of OpenAI; other product names are trademarks of their owners. KlikPaper is an independent project and is not affiliated with or endorsed by Adobe, Anthropic, OpenAI, Google or Mozilla.
 
 <p>
   <a href="https://github.com/ashafizullah"><img src="https://github.com/ashafizullah.png?size=64" width="32" height="32" alt="" align="left" style="border-radius:50%"></a>
