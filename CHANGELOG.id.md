@@ -2,15 +2,15 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.6
 
-- Pesan soal pembaruan (versi baru, sudah versi terbaru, galat) kini tampil sebagai alert di dalam aplikasi dalam bahasa antarmuka, bukan dialog sistem, lengkap dengan perubahan di versi barunya. Setelah pembaruan, alert "Yang baru" menampilkan daftar perubahannya sekali
-- Pengaturan → Tentang punya tombol Cek pembaruan
-- Bilah menu mengikuti bahasa antarmuka (English atau Bahasa Indonesia)
-- File terakhir dibuka di Beranda bisa ditampilkan sebagai ubin atau daftar
-- Kompres menjelaskan saat PDF tidak punya foto yang bisa dikecilkan, alih-alih menampilkan ukuran yang sama di semua tingkat tanpa keterangan
-- Tanda dari `highlight_text` kini pas tepat dengan teksnya: posisi di dalam baris diukur dengan font PDF itu sendiri
-- Kotak ukuran huruf menampilkan ukuran yang diatur agen, tidak lagi kosong
+- Pesan pembaruan kini muncul di dalam KlikPaper, dalam bahasa Anda, dan menampilkan apa yang baru sebelum dipasang. Setelah diperbarui, KlikPaper menunjukkan sekali apa saja yang berubah
+- Cek pembaruan kini juga bisa dari Pengaturan → Tentang
+- Bilah menu berbahasa Indonesia jika Anda memilih bahasa itu
+- File terakhir dibuka di Beranda bisa ditampilkan sebagai ubin besar atau daftar ringkas
+- Kompres kini memberi tahu saat PDF tidak berisi foto yang bisa dikecilkan (PDF seperti itu memang tidak bisa jauh lebih kecil)
+- Saat agen AI menandai teks untuk Anda, tandanya kini pas menutupi kata-kata yang tepat
+- Memperbaiki kotak ukuran huruf yang kosong untuk beberapa ukuran
 
 ## 0.1.5
 

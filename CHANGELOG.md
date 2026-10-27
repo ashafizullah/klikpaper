@@ -1,14 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.6
 
-- Messages about updates (a new version, up to date, errors) are in-app alerts in the interface language instead of system dialogs, and show what changed in the new version. After an update, a "What's new" alert lists the changes once
-- Settings → About has a Check for updates button
-- The menu bar follows the interface language (English or Bahasa Indonesia)
-- Recent files on Home can be shown as tiles or as a list
-- Compress explains when a PDF has no photos to shrink, instead of showing the same size for every level without a word
-- Highlights from `highlight_text` line up with the text exactly: positions inside a line are measured with the PDF's own font
-- The font size box shows sizes set by an agent instead of going blank
+- Update messages now appear inside KlikPaper, in your language, and show what's new before you install. After an update, KlikPaper shows you once what changed
+- You can check for updates from Settings → About too
+- The menu bar is in Bahasa Indonesia when you choose that language
+- Recent files on the Home screen can be shown as large tiles or as a compact list
+- Compress now tells you when a PDF has no photos to make smaller (such a PDF can't get much smaller)
+- When an AI agent highlights text for you, the highlight now covers exactly the right words
+- Fixed the font size box going blank for some sizes
 
 ## 0.1.5
 
