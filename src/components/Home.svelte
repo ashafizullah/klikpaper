@@ -3,7 +3,8 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { command, imagesToPdf } from "../lib/commands.svelte";
   import { openPaths } from "../lib/workspace.svelte";
-  import { removeRecent, settings } from "../lib/settings.svelte";
+  import { persist, removeRecent, settings } from "../lib/settings.svelte";
+  import { checkForUpdates, updates } from "../lib/updates.svelte";
   import { baseName, dirName, formatBytes } from "../lib/pagespec";
   import { ipc, type FileStat } from "../lib/ipc";
   import { recentPreview } from "../lib/recent";
@@ -13,7 +14,6 @@
   import LanguageToggle from "./LanguageToggle.svelte";
 
   let version = $state("");
-  let checking = $state(false);
   let stats = $state<Record<string, FileStat>>({});
   let previews = $state<Record<string, string | null>>({});
 
@@ -45,13 +45,9 @@
     };
   });
 
-  async function checkUpdates() {
-    checking = true;
-    try {
-      await ipc.checkUpdates();
-    } finally {
-      checking = false;
-    }
+  function setView(view: "tiles" | "list") {
+    settings.recentView = view;
+    persist();
   }
 
   const TOOLS = [
@@ -106,9 +102,9 @@
       <button class="btn ghost settings" onclick={() => command("settings")}><Icon name="settings" size={14} />{t("settings.title")}</button>
       <LanguageToggle />
     </div>
-    <button class="version" onclick={checkUpdates} disabled={checking} title={t("settings.checkUpdates")}>
+    <button class="version" onclick={checkForUpdates} disabled={updates.checking} title={t("settings.checkUpdates")}>
       <span>KlikPaper {version && `v${version}`}</span>
-      <span class="check"><Icon name="refresh" size={10} class={checking ? "spin" : ""} />{t("settings.checkUpdates")}</span>
+      <span class="check"><Icon name="refresh" size={10} class={updates.checking ? "spin" : ""} />{t("settings.checkUpdates")}</span>
     </button>
   </aside>
 
@@ -135,9 +131,21 @@
       </section>
 
       <section>
-        <h2 class="label">{t("home.recent")}</h2>
+        <div class="recent-head">
+          <h2 class="label">{t("home.recent")}</h2>
+          {#if settings.recent.length}
+            <div class="views" role="radiogroup" aria-label={t("home.view")}>
+              <button class="icon-btn" class:on={settings.recentView !== "list"} role="radio" aria-checked={settings.recentView !== "list"} onclick={() => setView("tiles")} title={t("home.viewTiles")} aria-label={t("home.viewTiles")}>
+                <Icon name="tiles" size={14} />
+              </button>
+              <button class="icon-btn" class:on={settings.recentView === "list"} role="radio" aria-checked={settings.recentView === "list"} onclick={() => setView("list")} title={t("home.viewList")} aria-label={t("home.viewList")}>
+                <Icon name="list" size={14} />
+              </button>
+            </div>
+          {/if}
+        </div>
         {#if settings.recent.length}
-          <div class="grid">
+          <div class="grid" class:list={settings.recentView === "list"}>
             {#each settings.recent as path, i (path)}
               {@const stat = stats[path]}
               {@const missing = stat && !stat.exists}
@@ -397,8 +405,63 @@
     flex: none;
   }
 
-  section h2.label {
+  .recent-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 12px;
+  }
+  .views {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .views .icon-btn {
+    width: 26px;
+    height: 24px;
+    color: var(--muted);
+  }
+  .views .icon-btn.on {
+    color: var(--accent);
+  }
+
+  /* List view: one row per file, with a small first-page preview. */
+  .grid.list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .list .card:hover:not(.missing) {
+    transform: none;
+  }
+  .list .card-main {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 40px;
+  }
+  .list .preview {
+    flex: none;
+    width: 52px;
+    height: 60px;
+    aspect-ratio: auto;
+    padding: 6px;
+    background-size: 10px 10px;
+  }
+  .list .preview img,
+  .list .sheet {
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+  }
+  .list .meta {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+  }
+  .list .forget {
+    top: 50%;
+    transform: translateY(-50%);
   }
   .grid {
     display: grid;

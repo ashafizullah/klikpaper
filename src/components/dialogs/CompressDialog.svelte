@@ -39,6 +39,8 @@
 
   const keyOf = (c: Compression) => String(c);
   const current = $derived(results[keyOf(choice)]);
+  /** Every preset measured, none re-encoded an image: there is nothing for compression to shrink. */
+  const nothingToShrink = $derived(PRESETS.every((p) => results[p.id]?.images === 0));
 
   onMount(() => {
     if (doc.path && !doc.dirty) ipc.fileStats([doc.path]).then(([s]) => (before = s.exists ? s.bytes : null));
@@ -169,10 +171,16 @@
       {#if typeof choice === "number"}{@render size(choice)}{/if}
     </label>
   </div>
+  {#if nothingToShrink}
+    <div class="nothing">
+      <Icon name="info" size={15} />
+      <p>{t("compress.nothingToShrink")}</p>
+    </div>
+  {/if}
   {#if before != null}<p class="note">{t("compress.current", { size: formatBytes(before) })}</p>{/if}
   {#if current}
     <p class="note">
-      {current.images ? t("compress.images", { n: current.images }) : t("compress.noImages")}
+      {current.images ? t("compress.images", { n: current.images }) : nothingToShrink ? "" : t("compress.noImages")}
     </p>
   {/if}
   {#if errors[keyOf(choice)]}<p class="error-text">{errors[keyOf(choice)]}</p>{/if}
@@ -236,6 +244,26 @@
   .slider input {
     flex: 1;
     accent-color: var(--accent);
+  }
+  .nothing {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--text);
+  }
+  .nothing :global(svg) {
+    flex: none;
+    margin-top: 1px;
+    color: var(--accent);
+  }
+  .nothing p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
   }
   .good {
     color: var(--ok);

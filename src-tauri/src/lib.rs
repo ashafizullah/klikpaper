@@ -75,7 +75,7 @@ pub fn run() {
         .manage(shell::ShellActions::default())
         .manage(terminal::Terminals::default())
         .setup(|app| {
-            app.set_menu(menu::build(app.handle())?)?;
+            app.set_menu(menu::build(app.handle(), "en")?)?;
             app.on_menu_event(|app, event| menu::handle(app, event.id().as_ref()));
             let data = app.path().app_data_dir()?;
             keys::init(data.clone());
@@ -121,9 +121,11 @@ pub fn run() {
             commands::terminal_resize,
             commands::terminal_close,
             commands::check_updates,
+            commands::install_available_update,
+            commands::update_changelog,
+            commands::set_menu_locale,
             commands::set_update_mode,
             commands::pending_update,
-            commands::install_update,
             commands::dev_autostart_mcp,
         ])
         .build(tauri::generate_context!())

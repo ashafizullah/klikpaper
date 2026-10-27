@@ -4,6 +4,8 @@
 
 <h1 align="center">KlikPaper</h1>
 
+<p align="center"><b>English</b> · <a href="README.id.md">Bahasa Indonesia</a></p>
+
 <p align="center">
   A free, open-source PDF tool for the desktop. View, organize, compress, convert, annotate, sign and protect PDFs on your own computer, ask questions about them with your own AI key, or let the AI agent you already use work on them over MCP. Small, fast and offline.
 </p>
@@ -35,9 +37,9 @@
 
 - **Viewer**: fast continuous scrolling, zoom and fit width, text selection, find in document, clickable links, fillable forms, tabs for several PDFs
 - **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF
-- **Compress**: three levels that downscale and re-encode photos; text, vector graphics and fonts are untouched. The dialog shows the new size before you save
+- **Compress**: three levels or a custom quality slider that downscale and re-encode photos; text, vector graphics and fonts are untouched. Every level shows its resulting file size before you save
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
-- **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes, freehand drawing, rectangles, ellipses, arrows, white-out, images
+- **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes in any font installed on your computer (embedded when you save), freehand drawing, rectangles, ellipses, arrows, white-out, images
 - **Sign**: draw, type or upload a signature, place and resize it. This is a picture of your signature, not a certificate-based digital signature
 - **Watermark and page numbers**, previewed live on every page
 - **Password and privacy**: open protected PDFs, protect with AES-256, remove a password you know, strip metadata, flatten form fields
@@ -45,13 +47,13 @@
 - **Works with your AI agent**: turn on the local MCP server and any MCP client (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode and other agent harnesses) can read and search open PDFs, highlight, add text, shapes, images and signatures, rearrange pages, and merge, split, compress, protect or convert files. A built-in terminal runs your agent right next to your documents
 - **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
 - **Right-click actions** (optional): merge, compress or convert PDFs, or turn images into a PDF, straight from the Windows File Explorer menu or macOS Finder Quick Actions
-- **English and Bahasa Indonesia** interface; **automatic updates** from GitHub Releases (signed packages), which you can set to install by themselves, ask first or stay off
+- **English and Bahasa Indonesia** throughout: the interface, the menu bar, update messages and the "What's new" notes; **automatic updates** from GitHub Releases (signed packages), which you can set to install by themselves, ask first or stay off
 
 ## Privacy
 
 KlikPaper works offline. Your files never leave your computer, with two exceptions you control:
 
-- **Update checks** ask GitHub Releases for a newer version (once a day, or only when you ask if you turn automatic checks off).
+- **Update checks** ask GitHub Releases for a newer version and, when there is one, fetch its changelog from GitHub (once a day, or only when you ask if you turn automatic checks off).
 - **AI chat**, when you set it up and use it, sends the open document's text and your question to the AI provider you chose, with your own API key. Nothing is sent to KlikPaper or its author.
 
 There is no account, no telemetry and no analytics.
@@ -114,7 +116,7 @@ Issues and pull requests are welcome. CI runs type checks, tests, `cargo fmt`, `
 
 ### Releasing
 
-Add a `## x.y.z` section to `CHANGELOG.md`, bump `version` in `tauri.conf.json`, `Cargo.toml` and `package.json`, then push a tag. CI builds the signed and notarized macOS DMG, the Windows installers and the Linux packages, signs the update packages and attaches everything (including `latest.json` for the in-app updater) to a draft release. Publish the draft to roll it out.
+Add a `## x.y.z` section to `CHANGELOG.md` and the same section in Indonesian to `CHANGELOG.id.md` (the app shows the one for the interface language after an update), bump `version` in `tauri.conf.json`, `Cargo.toml` and `package.json`, then push a tag. CI builds the signed and notarized macOS DMG, the Windows installers and the Linux packages, signs the update packages and attaches everything (including `latest.json` for the in-app updater) to a draft release. Publish the draft to roll it out.
 
 Releases need the `TAURI_SIGNING_PRIVATE_KEY` secret (its public key is in `tauri.conf.json`) plus `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` for macOS signing and notarization.
 

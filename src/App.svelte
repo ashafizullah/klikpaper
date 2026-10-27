@@ -66,6 +66,11 @@
     return () => offs.forEach((o) => o.then((f) => f()));
   });
 
+  // The menu bar follows the interface language.
+  $effect(() => {
+    ipc.setMenuLocale(i18n.locale).catch(() => {});
+  });
+
   // The window title follows the active document.
   $effect(() => {
     const title = doc ? `${doc.dirty ? "• " : ""}${doc.name} — KlikPaper` : "KlikPaper";

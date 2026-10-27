@@ -218,13 +218,8 @@ pub fn set_update_mode(mode: String) {
 }
 
 #[tauri::command]
-pub fn pending_update() -> Option<updater::Ready> {
+pub fn pending_update() -> Option<updater::Release> {
     updater::pending()
-}
-
-#[tauri::command]
-pub fn install_update(app: AppHandle) -> AppResult<()> {
-    updater::install_now(&app).map_err(AppError::msg)
 }
 
 // ---- fonts ----------------------------------------------------------------
@@ -277,10 +272,29 @@ pub fn dev_autostart_mcp() -> bool {
     cfg!(debug_assertions) && std::env::var("KLIKPAPER_DEV_MCP").is_ok_and(|v| v == "1")
 }
 
+/// A check the user asked for; the frontend shows the outcome.
 #[tauri::command]
-pub fn check_updates(app: AppHandle) {
-    // The update dialogs block, so keep them off the main thread.
-    std::thread::spawn(move || tauri::async_runtime::block_on(updater::check(app, true)));
+pub async fn check_updates(app: AppHandle) -> AppResult<updater::Check> {
+    updater::check(&app).await.map_err(AppError::msg)
+}
+
+/// Installs the version the last check found, then restarts.
+#[tauri::command]
+pub async fn install_available_update(app: AppHandle) -> AppResult<()> {
+    updater::install_available(&app).await.map_err(AppError::msg)
+}
+
+/// A version's changelog file in the interface language ("en" or "id").
+#[tauri::command]
+pub async fn update_changelog(version: String, locale: String) -> AppResult<String> {
+    updater::changelog(&version, &locale).await.map_err(AppError::msg)
+}
+
+/// Rebuilds the menu bar in the interface language.
+#[tauri::command]
+pub fn set_menu_locale(app: AppHandle, locale: String) -> AppResult<()> {
+    app.set_menu(crate::menu::build(&app, &locale)?)?;
+    Ok(())
 }
 
 #[cfg(test)]

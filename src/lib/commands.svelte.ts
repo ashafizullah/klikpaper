@@ -6,6 +6,7 @@ import { viewer } from "./viewer.svelte";
 import { activeDoc, closeDoc, closeHomeTab, IMAGE_FILTER, openHomeTab, pickAndOpen, saveDoc, ws } from "./workspace.svelte";
 import { t } from "./i18n/index.svelte";
 import { ipc } from "./ipc";
+import { checkForUpdates } from "./updates.svelte";
 
 export const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
@@ -49,7 +50,7 @@ export async function command(id: string) {
     case "licenses":
       return openDialog("licenses");
     case "check-updates":
-      return ipc.checkUpdates();
+      return checkForUpdates();
     case "close-dialog":
       return closeDialog(null);
     case "toggle-ai":

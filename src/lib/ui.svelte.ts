@@ -79,6 +79,28 @@ export function dismissToast(id: number) {
   ui.toasts = ui.toasts.filter((t) => t.id !== id);
 }
 
+export type AlertTone = "info" | "success" | "error" | "update";
+export interface AlertAction {
+  label: string;
+  value: string;
+  primary?: boolean;
+  danger?: boolean;
+}
+export interface AlertOptions {
+  title: string;
+  message?: string;
+  /** Shown below the message, e.g. a changelog; rendered with the safe Markdown subset. */
+  markdown?: string;
+  tone?: AlertTone;
+  /** Buttons in order (the primary one last); just OK when omitted. */
+  actions?: AlertAction[];
+}
+
+/** The in-app alert (AlertDialog); resolves with the chosen action's value, or null when dismissed. */
+export function showAlert(options: AlertOptions): Promise<string | null> {
+  return openDialog<string>("alert", { ...options });
+}
+
 /** Shows a dialog component (by kind) and resolves with its result, or null when cancelled. */
 export function openDialog<T = unknown>(kind: string, props: Record<string, unknown> = {}): Promise<T | null> {
   return new Promise((resolve) => {

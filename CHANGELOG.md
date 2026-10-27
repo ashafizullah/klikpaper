@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Messages about updates (a new version, up to date, errors) are in-app alerts in the interface language instead of system dialogs, and show what changed in the new version. After an update, a "What's new" alert lists the changes once
+- Settings → About has a Check for updates button
+- The menu bar follows the interface language (English or Bahasa Indonesia)
+- Recent files on Home can be shown as tiles or as a list
+- Compress explains when a PDF has no photos to shrink, instead of showing the same size for every level without a word
 - Highlights from `highlight_text` line up with the text exactly: positions inside a line are measured with the PDF's own font
 - The font size box shows sizes set by an agent instead of going blank
 

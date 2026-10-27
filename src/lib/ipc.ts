@@ -97,10 +97,13 @@ export interface ShellAction {
   action: string;
   paths: string[];
 }
-export interface UpdateReady {
+/** A newer version: its number, the running one, and its release notes (Markdown, English). */
+export interface Release {
   version: string;
+  current: string;
   notes: string;
 }
+export type UpdateCheck = ({ status: "available" } & Release) | { status: "upToDate"; current: string } | { status: "busy" };
 export interface SystemFont {
   family: string;
   /** Has an upright bold face. */
@@ -168,10 +171,12 @@ export const ipc = {
   terminalWrite: (id: string, data: string) => invoke<void>("terminal_write", { id, data }),
   terminalResize: (id: string, cols: number, rows: number) => invoke<void>("terminal_resize", { id, cols, rows }),
   terminalClose: (id: string) => invoke<void>("terminal_close", { id }),
-  checkUpdates: () => invoke<void>("check_updates"),
+  checkUpdates: () => invoke<UpdateCheck>("check_updates"),
+  installAvailableUpdate: () => invoke<void>("install_available_update"),
+  updateChangelog: (version: string, locale: string) => invoke<string>("update_changelog", { version, locale }),
+  setMenuLocale: (locale: string) => invoke<void>("set_menu_locale", { locale }),
   setUpdateMode: (mode: string) => invoke<void>("set_update_mode", { mode }),
-  pendingUpdate: () => invoke<UpdateReady | null>("pending_update"),
-  installUpdate: () => invoke<void>("install_update"),
+  pendingUpdate: () => invoke<Release | null>("pending_update"),
   devAutostartMcp: () => invoke<boolean>("dev_autostart_mcp"),
 };
 

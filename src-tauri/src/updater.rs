@@ -3,7 +3,8 @@
 //!
 //! The user picks how (Settings → General): "auto" downloads new versions in
 //! the background and installs them when the app quits or the user restarts
-//! from the notice; "notify" asks first; "off" only checks on request.
+//! from the notice; "notify" asks first; "off" only checks on request. The
+//! frontend shows every message, in the interface language.
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
@@ -11,7 +12,6 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const STARTUP_DELAY: Duration = Duration::from_secs(10);
@@ -56,15 +56,42 @@ pub fn set_mode(mode: &str) {
     }
 }
 
-/// What the frontend shows once an update is ready to install.
+/// A new version the frontend can show: its number, the running one, and the release notes.
 #[derive(Serialize, Clone)]
-pub struct Ready {
+#[serde(rename_all = "camelCase")]
+pub struct Release {
     version: String,
+    current: String,
     notes: String,
 }
 
-pub fn pending() -> Option<Ready> {
-    PENDING.lock().unwrap().as_ref().map(|(u, _)| Ready { version: u.version.clone(), notes: changelog(u.body.as_deref().unwrap_or("")) })
+impl Release {
+    fn of(update: &Update) -> Self {
+        Release {
+            version: update.version.clone(),
+            current: update.current_version.clone(),
+            notes: notes(update.body.as_deref().unwrap_or("")),
+        }
+    }
+}
+
+/// The outcome of a check the user asked for.
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum Check {
+    Available(Release),
+    UpToDate {
+        current: String,
+    },
+    /// A check or download is already running.
+    Busy,
+}
+
+/// A version found by a check, waiting for the user to agree to install it.
+static AVAILABLE: Mutex<Option<Update>> = Mutex::new(None);
+
+pub fn pending() -> Option<Release> {
+    PENDING.lock().unwrap().as_ref().map(|(u, _)| Release::of(u))
 }
 
 /// Checks shortly after launch and then once a day, as the chosen mode says.
@@ -82,7 +109,9 @@ pub fn start_background_checks(app: &AppHandle) {
                 }
                 Mode::Notify if due => {
                     last = Some(Instant::now());
-                    tauri::async_runtime::block_on(check(app.clone(), false));
+                    if let Ok(Check::Available(release)) = tauri::async_runtime::block_on(check(&app)) {
+                        let _ = app.emit("update-available", release);
+                    }
                 }
                 _ => {}
             }
@@ -107,6 +136,37 @@ async fn download(app: AppHandle) {
     CHECKING.store(false, Ordering::SeqCst);
 }
 
+/// Looks for a newer version and keeps it for `install_available`.
+pub async fn check(app: &AppHandle) -> Result<Check, String> {
+    if let Some(ready) = pending() {
+        // Already downloaded in the background: offer that one.
+        return Ok(Check::Available(ready));
+    }
+    if CHECKING.swap(true, Ordering::SeqCst) {
+        return Ok(Check::Busy);
+    }
+    let result = async { app.updater()?.check().await }.await;
+    CHECKING.store(false, Ordering::SeqCst);
+    match result.map_err(|e| e.to_string())? {
+        Some(update) => {
+            let release = Release::of(&update);
+            *AVAILABLE.lock().unwrap() = Some(update);
+            Ok(Check::Available(release))
+        }
+        None => Ok(Check::UpToDate { current: app.package_info().version.to_string() }),
+    }
+}
+
+/// Installs what `check` found (or what was downloaded already) and restarts into it.
+pub async fn install_available(app: &AppHandle) -> Result<(), String> {
+    if PENDING.lock().unwrap().is_some() {
+        return install_now(app);
+    }
+    let update = AVAILABLE.lock().unwrap().take().ok_or("No update to install; check again")?;
+    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
+    app.restart()
+}
+
 /// Installs the downloaded update and restarts into it.
 pub fn install_now(app: &AppHandle) -> Result<(), String> {
     let (update, bytes) = PENDING.lock().unwrap().take().ok_or("No update has been downloaded")?;
@@ -121,111 +181,33 @@ pub fn install_on_exit() {
     }
 }
 
-/// The changelog part of the release notes as plain text: the dialog can't
-/// render markdown, and the install instructions after "## Download" are for
-/// people downloading from the release page.
-fn changelog(notes: &str) -> String {
-    let mut out = Vec::new();
-    for line in notes.lines() {
-        let line = line.trim_end();
-        if line.trim_start().starts_with("## Download") {
-            break;
-        }
-        let line = if let Some(heading) = line.trim_start().strip_prefix('#') {
-            heading.trim_start_matches('#').trim().to_string()
-        } else if let Some(item) = line.strip_prefix("- ").or(line.strip_prefix("* ")) {
-            format!("• {item}")
-        } else {
-            line.to_string()
-        };
-        out.push(strip_inline(&line));
-    }
-    // Collapse runs of blank lines and trim the ends.
-    let mut text = String::new();
-    for line in out {
-        if line.is_empty() && (text.is_empty() || text.ends_with("\n\n")) {
-            continue;
-        }
-        text.push_str(&line);
-        text.push('\n');
-    }
-    text.trim().to_string()
+/// The changelog part of the release notes (Markdown): the install
+/// instructions after "## Download" are for people on the release page.
+fn notes(body: &str) -> String {
+    let end = body.lines().position(|l| l.trim_start().starts_with("## Download")).unwrap_or(usize::MAX);
+    body.lines().take(end).collect::<Vec<_>>().join("\n").trim().to_string()
 }
 
-/// Drops `**`, `__` and backticks, and turns `[text](url)` into `text`.
-fn strip_inline(line: &str) -> String {
-    let line = line.replace("**", "").replace("__", "").replace('`', "");
-    let mut out = String::new();
-    let mut rest = line.as_str();
-    while let Some(open) = rest.find('[') {
-        let Some(close) = rest[open..].find("](").map(|i| open + i) else {
-            break;
-        };
-        let Some(end) = rest[close..].find(')').map(|i| close + i) else {
-            break;
-        };
-        out.push_str(&rest[..open]);
-        out.push_str(&rest[open + 1..close]);
-        rest = &rest[end + 1..];
+/// A version's changelog in the interface language, from the repository at that
+/// version's tag (the release notes on GitHub are English only).
+pub async fn changelog(version: &str, locale: &str) -> Result<String, String> {
+    if version.is_empty() || !version.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-') {
+        return Err("Invalid version".into());
     }
-    out.push_str(rest);
-    out
-}
-
-fn notify(app: &AppHandle, kind: MessageDialogKind, message: String) {
-    app.dialog().message(message).title("KlikPaper").kind(kind).blocking_show();
-}
-
-/// `manual` checks also report "up to date" and errors; background checks stay quiet.
-pub async fn check(app: AppHandle, manual: bool) {
-    if CHECKING.swap(true, Ordering::SeqCst) {
-        return;
-    }
-    let result = match app.updater() {
-        Ok(updater) => updater.check().await,
-        Err(e) => Err(e),
-    };
-    match result {
-        Ok(Some(update)) => {
-            let notes = changelog(update.body.as_deref().unwrap_or(""));
-            let notes = if notes.chars().count() > 900 { format!("{}…", notes.chars().take(900).collect::<String>()) } else { notes };
-            let message = format!("KlikPaper {} is available. You have {}.\n\n{notes}", update.version, update.current_version);
-            let install = app
-                .dialog()
-                .message(message.trim_end())
-                .title("Update available")
-                .buttons(MessageDialogButtons::OkCancelCustom("Install and Restart".into(), "Later".into()))
-                .blocking_show();
-            if install {
-                match update.download_and_install(|_, _| {}, || {}).await {
-                    Ok(()) => app.restart(),
-                    Err(e) => notify(&app, MessageDialogKind::Error, format!("The update could not be installed.\n\n{e}")),
-                }
-            }
-        }
-        Ok(None) if manual => notify(
-            &app,
-            MessageDialogKind::Info,
-            format!("You're up to date. KlikPaper {} is the latest version.", app.package_info().version),
-        ),
-        Err(e) if manual => notify(&app, MessageDialogKind::Error, format!("Couldn't check for updates.\n\n{e}")),
-        _ => {}
-    }
-    CHECKING.store(false, Ordering::SeqCst);
+    let file = if locale == "id" { "CHANGELOG.id.md" } else { "CHANGELOG.md" };
+    let url = format!("https://raw.githubusercontent.com/ashafizullah/klikpaper/v{version}/{file}");
+    let res = reqwest::get(url).await.map_err(|e| e.to_string())?;
+    res.error_for_status().map_err(|e| e.to_string())?.text().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::changelog;
+    use super::notes;
 
     #[test]
-    fn keeps_the_changelog_as_plain_text() {
-        let notes = "\n### New\n\n- **QR** scanning in `Copy Text` mode\n* See [the docs](https://x.y)\n\n\n### Fixes\n\n- OCR on macOS 27\n\n## Download\n\n**macOS**: download `KlikPaper.dmg`";
-        assert_eq!(changelog(notes), "New\n\n• QR scanning in Copy Text mode\n• See the docs\n\nFixes\n\n• OCR on macOS 27");
-    }
-
-    #[test]
-    fn is_empty_without_a_changelog() {
-        assert_eq!(changelog("## Download\n\n**Windows**: download it"), "");
+    fn keeps_the_changelog_part_of_the_notes() {
+        let body = "\n- **QR** scanning in `Copy Text` mode\n- OCR on macOS 27\n\n## Download\n\n**macOS**: download `KlikPaper.dmg`";
+        assert_eq!(notes(body), "- **QR** scanning in `Copy Text` mode\n- OCR on macOS 27");
+        assert_eq!(notes("## Download\n\n**Windows**: download it"), "");
     }
 }

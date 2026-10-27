@@ -8,7 +8,7 @@
   import { addProfile, persist, PROFILE_PRESETS, removeProfile, settings, type AiProfile } from "../../lib/settings.svelte";
   import { clientName, mcp, MCP_CLIENTS, setupSnippet, startMcp, stopMcp, type McpClientId } from "../../lib/mcp.svelte";
   import { isMac, openDialog, toast } from "../../lib/ui.svelte";
-  import { restartToUpdate, setUpdateMode, updates } from "../../lib/updates.svelte";
+  import { checkForUpdates, installUpdate, setUpdateMode, updates } from "../../lib/updates.svelte";
   import { relabelShellMenu, setShellMenu, shellMenu } from "../../lib/shell.svelte";
   import type { UpdateMode } from "../../lib/settings.svelte";
   import { i18n, setLocale, t, type Key } from "../../lib/i18n/index.svelte";
@@ -93,10 +93,10 @@
       <span></span>
       <div class="update-actions">
         {#if updates.ready}
-          <button class="btn primary" onclick={restartToUpdate}>{t("update.restart")}</button>
+          <button class="btn primary" onclick={installUpdate}>{t("update.restart")}</button>
           <span class="muted">{t("update.ready", { version: updates.ready.version })}</span>
         {:else}
-          <button class="btn" onclick={() => ipc.checkUpdates()}>{t("settings.checkUpdates")}</button>
+          <button class="btn" disabled={updates.checking} onclick={checkForUpdates}>{updates.checking ? t("update.checking") : t("settings.checkUpdates")}</button>
         {/if}
       </div>
     </div>
@@ -194,6 +194,7 @@
     <div class="choice">
       <button class="btn" onclick={() => openUrl("https://github.com/ashafizullah/klikpaper")}><Icon name="external" />GitHub</button>
       <button class="btn" onclick={() => openDialog("licenses")}>{t("about.licenses")}</button>
+      <button class="btn" disabled={updates.checking} onclick={checkForUpdates}>{updates.checking ? t("update.checking") : t("settings.checkUpdates")}</button>
     </div>
     <p class="note">{t("about.ai")}</p>
   {/if}

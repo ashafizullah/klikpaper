@@ -8,6 +8,7 @@
     ChevronRight,
     ChevronUp,
     Circle,
+    CircleAlert,
     Clock,
     Copy,
     Droplet,
@@ -28,6 +29,8 @@
     Image,
     Images,
     Info,
+    LayoutGrid,
+    List,
     KeyRound,
     LoaderCircle,
     Lock,
@@ -133,6 +136,9 @@
     clock: Clock,
     fit: Maximize,
     home: House,
+    alert: CircleAlert,
+    tiles: LayoutGrid,
+    list: List,
     terminal: SquareTerminal,
   };
 </script>

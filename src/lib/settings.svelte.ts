@@ -50,9 +50,16 @@ interface Stored {
   updateMode: UpdateMode;
   /** KlikPaper's actions in the Explorer right-click menu (Windows) or Finder Quick Actions (macOS). */
   shellMenu: boolean;
+  /** The version that last ran, to show what's new once after an update. */
+  lastVersion: string;
+  /** How Home shows recent files. */
+  recentView: "tiles" | "list";
 }
 
 const KEY = "klikpaper.settings";
+
+/** Whether settings were already saved before this launch (the app has been used), read once at startup. */
+export let hadSettings = false;
 
 function load(): Stored {
   const fallback: Stored = {
@@ -68,9 +75,12 @@ function load(): Stored {
     textFont: "",
     updateMode: "auto",
     shellMenu: false,
+    lastVersion: "",
+    recentView: "tiles",
   };
   try {
     const raw = localStorage.getItem(KEY);
+    hadSettings = !!raw;
     if (raw) return { ...fallback, ...JSON.parse(raw) };
   } catch {}
   return fallback;

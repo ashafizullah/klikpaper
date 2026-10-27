@@ -16,6 +16,8 @@ pub enum AppError {
     Pdf(#[from] lopdf::Error),
     #[error("Image: {0}")]
     Image(#[from] image::ImageError),
+    #[error(transparent)]
+    Tauri(#[from] tauri::Error),
 }
 
 impl AppError {
