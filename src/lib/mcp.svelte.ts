@@ -4,7 +4,7 @@
 // calls are answered here with the same tools as the built-in chat.
 import { ipc, type McpInfo } from "./ipc";
 import { persist, settings } from "./settings.svelte";
-import { runTool, toolsFor } from "./tools.svelte";
+import { runTool, toolsFor } from "./tools";
 
 export const mcp = $state({ info: null as McpInfo | null, error: null as string | null });
 

@@ -3,7 +3,7 @@ import type { Doc } from "./doc.svelte";
 import { t } from "./i18n/index.svelte";
 import { ipc, type Message, type Part } from "./ipc";
 import { activeProfile } from "./settings.svelte";
-import { runTool, toolsFor } from "./tools.svelte";
+import { runTool, toolsFor } from "./tools";
 
 export interface ChatEntry {
   role: "user" | "assistant" | "tool";
