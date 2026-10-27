@@ -132,6 +132,12 @@
   <button class="icon-btn" class:on={ui.findOpen} onclick={() => command("find")} title="{t('find.title')} ({mod}F)" aria-label={t("find.title")}>
     <Icon name="search" />
   </button>
+  <button class="icon-btn" onclick={() => command("compress")} title={t("menu.compress")} aria-label={t("menu.compress")}>
+    <Icon name="compress" />
+  </button>
+  <button class="icon-btn" onclick={() => command("export-images")} title={t("menu.exportImages")} aria-label={t("menu.exportImages")}>
+    <Icon name="images" />
+  </button>
   <Popover bind:open={moreOpen}>
     {#snippet anchor()}
       <button class="icon-btn" class:on={moreOpen} onclick={() => (moreOpen = !moreOpen)} title={t("toolbar.more")} aria-label={t("toolbar.more")}>
