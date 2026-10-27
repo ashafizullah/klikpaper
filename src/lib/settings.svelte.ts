@@ -43,6 +43,9 @@ interface Stored {
   mcpClient: string;
   showSidebar: boolean;
   showChat: boolean;
+  showComments: boolean;
+  /** The name comments are signed with; "" = the computer account's name. */
+  commentAuthor: string;
   /** Color per tool, remembered between sessions. */
   colors: Record<string, string>;
   /** Installed font family for new text boxes; "" = the default. */
@@ -71,6 +74,8 @@ function load(): Stored {
     mcpClient: "claude",
     showSidebar: true,
     showChat: false,
+    showComments: false,
+    commentAuthor: "",
     colors: {},
     textFont: "",
     updateMode: "auto",

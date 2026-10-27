@@ -44,6 +44,9 @@
     <button class="icon-btn" class:on={ui.terminal} onclick={() => command("toggle-terminal")} title={t("terminal.title") + " (Ctrl+`)"} aria-label={t("terminal.title")}>
       <Icon name="terminal" />
     </button>
+    <button class="icon-btn" class:on={settings.showComments} onclick={() => command("toggle-comments")} title={t("comments.title")} aria-label={t("comments.title")}>
+      <Icon name="comments" />
+    </button>
     <button class="icon-btn" class:on={settings.showChat} onclick={() => command("toggle-ai")} title="{t('ai.title')} ({mod}J)" aria-label={t("ai.title")}>
       <Icon name="chat" />
     </button>

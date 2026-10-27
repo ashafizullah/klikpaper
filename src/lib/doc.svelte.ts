@@ -2,6 +2,7 @@
 // files, plus the annotations drawn on them. Nothing touches the files until
 // the user saves; every edit can be undone.
 import { displaySize, normRotation, type Rotation } from "./geometry";
+import type { CommentReply, CommentThread } from "./ipc";
 import type { Sheet } from "./paper";
 import { newId } from "./settings.svelte";
 import { closePdf, pageText, type PDFDocumentProxy } from "./pdfjs";
@@ -43,6 +44,9 @@ export type Overlay =
 
 export type OverlayKind = Overlay["kind"];
 
+/** A comment thread on a page: a note and its replies, kept in the PDF as standard notes. */
+export type Comment = CommentThread & { page: string };
+
 export interface Watermark {
   text: string;
   size: number;
@@ -69,6 +73,7 @@ interface Snapshot {
   overlays: Overlay[];
   watermark: Watermark | null;
   pageNumbers: PageNumbers | null;
+  comments: Comment[];
 }
 
 const MAX_HISTORY = 100;
@@ -81,6 +86,11 @@ export class Doc {
   sources = new Map<string, Source>();
   pages = $state<PageItem[]>([]);
   overlays = $state<Overlay[]>([]);
+  comments = $state<Comment[]>([]);
+  /** Sources whose comments were read; pages of the others keep the file's comments untouched when saved. */
+  commentSources = new Set<string>();
+  /** When the file at `path` last changed, as last seen (to notice changes made elsewhere). */
+  stamp = 0;
   watermark = $state<Watermark | null>(null);
   pageNumbers = $state<PageNumbers | null>(null);
   /** The password Save protects with; prefilled with the file's own password. */
@@ -96,6 +106,7 @@ export class Doc {
   current = $state(0);
   selectedPages = $state<string[]>([]);
   selectedOverlay = $state<string | null>(null);
+  selectedComment = $state<string | null>(null);
 
   #undo: Snapshot[] = [];
   #redo: Snapshot[] = [];
@@ -154,7 +165,7 @@ export class Doc {
   // ---- history ------------------------------------------------------------
 
   #snapshot(): Snapshot {
-    return $state.snapshot({ pages: this.pages, overlays: this.overlays, watermark: this.watermark, pageNumbers: this.pageNumbers });
+    return $state.snapshot({ pages: this.pages, overlays: this.overlays, watermark: this.watermark, pageNumbers: this.pageNumbers, comments: this.comments });
   }
 
   #restore(s: Snapshot) {
@@ -162,9 +173,11 @@ export class Doc {
     this.overlays = s.overlays;
     this.watermark = s.watermark;
     this.pageNumbers = s.pageNumbers;
+    this.comments = s.comments;
     this.current = Math.min(this.current, Math.max(0, this.pages.length - 1));
     this.selectedPages = this.selectedPages.filter((id) => this.pages.some((p) => p.id === id));
     if (this.selectedOverlay && !this.overlays.some((o) => o.id === this.selectedOverlay)) this.selectedOverlay = null;
+    if (this.selectedComment && !this.comments.some((c) => c.id === this.selectedComment)) this.selectedComment = null;
   }
 
   /** Records the current state so the next change can be undone. */
@@ -219,6 +232,7 @@ export class Doc {
     this.change(() => {
       this.pages = this.pages.filter((p) => !ids.includes(p.id));
       this.overlays = this.overlays.filter((o) => !ids.includes(o.page));
+      this.comments = this.comments.filter((c) => !ids.includes(c.page));
       this.selectedPages = [];
       this.current = Math.min(this.current, this.pages.length - 1);
     });
@@ -286,6 +300,69 @@ export class Doc {
       this.overlays = this.overlays.filter((o) => o.id !== id);
     });
     if (this.selectedOverlay === id) this.selectedOverlay = null;
+  }
+
+  // ---- comments -----------------------------------------------------------
+
+  comment(id: string): Comment | undefined {
+    return this.comments.find((c) => c.id === id);
+  }
+
+  addComment(page: string, x: number, y: number, text: string, author: string): Comment {
+    const c: Comment = { id: newId("c"), page, x, y, author, date: new Date().toISOString(), text, replies: [], resolved: false };
+    this.change(() => {
+      this.comments.push(c);
+    });
+    this.selectedComment = c.id;
+    return c;
+  }
+
+  reply(threadId: string, text: string, author: string): CommentReply {
+    const r: CommentReply = { id: newId("r"), author, date: new Date().toISOString(), text };
+    const c = this.comment(threadId);
+    if (!c) throw new Error("That comment no longer exists");
+    this.change(() => {
+      c.replies.push(r);
+    });
+    return r;
+  }
+
+  /** Changes a thread's first note, or one of its replies. */
+  editComment(threadId: string, replyId: string | null, text: string) {
+    const c = this.comment(threadId);
+    const target = replyId ? c?.replies.find((r) => r.id === replyId) : c;
+    if (!target || target.text === text) return;
+    this.change(() => {
+      target.text = text;
+    });
+  }
+
+  /** Removes a whole thread, or one reply. */
+  deleteComment(threadId: string, replyId: string | null = null) {
+    this.change(() => {
+      if (replyId) {
+        const c = this.comment(threadId);
+        if (c) c.replies = c.replies.filter((r) => r.id !== replyId);
+      } else this.comments = this.comments.filter((c) => c.id !== threadId);
+    });
+    if (!replyId && this.selectedComment === threadId) this.selectedComment = null;
+  }
+
+  setResolved(threadId: string, resolved: boolean) {
+    const c = this.comment(threadId);
+    if (!c || c.resolved === resolved) return;
+    this.change(() => {
+      c.resolved = resolved;
+    });
+  }
+
+  moveComment(threadId: string, x: number, y: number) {
+    const c = this.comment(threadId);
+    if (!c) return;
+    this.change(() => {
+      c.x = x;
+      c.y = y;
+    });
   }
 
   // ---- saving -------------------------------------------------------------

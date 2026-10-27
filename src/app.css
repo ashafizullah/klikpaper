@@ -412,6 +412,17 @@ label.row {
   box-sizing: border-box;
   transform-origin: 0 0;
 }
+/* Annotations pdf.js draws on a canvas of their own (read-only fields, check boxes). */
+.annotationLayer canvas.annotationContent {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.annotationLayer .hasOwnCanvas:not(.sandboxModified) :is(input, textarea) {
+  display: none;
+}
 .annotationLayer .linkAnnotation > a {
   position: absolute;
   inset: 0;

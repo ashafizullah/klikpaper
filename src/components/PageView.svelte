@@ -9,6 +9,7 @@
   import { viewer } from "../lib/viewer.svelte";
   import { numberAnchor, pageLabel } from "../lib/layout";
   import OverlayLayer from "./OverlayLayer.svelte";
+  import CommentLayer from "./CommentLayer.svelte";
 
   let { doc, page, index, scale, visible }: { doc: Doc; page: PageItem; index: number; scale: number; visible: boolean } = $props();
 
@@ -61,7 +62,11 @@
     pdfPage ??= await doc.pdfPage(page);
     if (gen !== generation) return;
     const p = pdfPage;
-    const task = await renderToCanvas(p, canvas, s, rot);
+    // Annotations drawn on canvases of their own (notes, some form fields) are
+    // put in place by the annotation layer; notes are left out there, since
+    // KlikPaper shows them as comment pins.
+    const ownCanvases = new Map<string, HTMLCanvasElement>();
+    const task = await renderToCanvas(p, canvas, s, rot, { ownCanvases });
     cancelRender = task.cancel;
     try {
       await task.done;
@@ -83,7 +88,9 @@
       doc.formsEdited = true;
       doc.dirty = true;
     };
-    const annotations = await p.getAnnotations({ intent: "display" });
+    const annotations = (await p.getAnnotations({ intent: "display" })).filter(
+      (a: { annotationType: number; parentType?: string }) => a.annotationType !== pdfjs.AnnotationType.TEXT && !(a.annotationType === pdfjs.AnnotationType.POPUP && a.parentType === "Text"),
+    );
     if (gen !== generation || !annotations.length) return;
     const links = linkService(source.pdf, {
       goToPage: (i) => {
@@ -95,7 +102,7 @@
     const params = {
       div: annotDiv,
       accessibilityManager: null,
-      annotationCanvasMap: null,
+      annotationCanvasMap: ownCanvases,
       annotationEditorUIManager: null,
       page: p,
       viewport: viewport.clone({ dontFlip: true }),
@@ -197,6 +204,7 @@
       <div class="pn" style:left="{numberPos.left}px" style:top="{numberPos.top}px" style:font-size="{pn.size * contentScale}px" style:color={pn.color}>{numberLabel}</div>
     {/if}
     <OverlayLayer {doc} {page} scale={contentScale} {rotation} {pageEl} />
+    <CommentLayer {doc} {page} scale={contentScale} {rotation} />
   </div>
 </div>
 

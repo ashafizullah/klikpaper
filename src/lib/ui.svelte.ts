@@ -13,7 +13,8 @@ export type Tool =
   | "ellipse"
   | "arrow"
   | "image"
-  | "whiteout";
+  | "whiteout"
+  | "comment";
 
 export const DEFAULT_COLORS: Record<string, string> = {
   text: "#1b1916",
@@ -62,6 +63,8 @@ export const ui = $state({
   findQuery: "",
   findPage: -1,
   pendingImage: null as PendingImage | null,
+  /** A comment being written: where it was placed (page id, page-space point). */
+  commentDraft: null as { page: string; x: number; y: number } | null,
 });
 
 export function toolColor(tool: string): string {

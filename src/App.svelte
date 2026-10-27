@@ -3,7 +3,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { activeDoc, openPaths, ws } from "./lib/workspace.svelte";
+  import { activeDoc, openPaths, watchFiles, ws } from "./lib/workspace.svelte";
   import { command, imagesToPdf, onKeydown } from "./lib/commands.svelte";
   import { ipc } from "./lib/ipc";
   import { settings } from "./lib/settings.svelte";
@@ -18,6 +18,7 @@
   import Sidebar from "./components/Sidebar.svelte";
   import Viewer from "./components/Viewer.svelte";
   import ChatPanel from "./components/ChatPanel.svelte";
+  import CommentsPanel from "./components/CommentsPanel.svelte";
   import Toasts from "./components/Toasts.svelte";
   import Dialogs from "./components/Dialogs.svelte";
   import FindBar from "./components/FindBar.svelte";
@@ -57,6 +58,7 @@
       if (paths.length) openPaths(paths);
     });
     initUpdates().catch(() => {});
+    watchFiles();
     initShell().catch(() => {});
     if (settings.mcpEnabled) startMcp();
     else
@@ -101,6 +103,9 @@
           {/if}
           <Viewer {doc} />
         </div>
+        {#if settings.showComments}
+          <CommentsPanel {doc} />
+        {/if}
         {#if settings.showChat}
           <ChatPanel {doc} />
         {/if}

@@ -12,10 +12,12 @@
   import { relabelShellMenu, setShellMenu, shellMenu } from "../../lib/shell.svelte";
   import type { UpdateMode } from "../../lib/settings.svelte";
   import { i18n, setLocale, t, type Key } from "../../lib/i18n/index.svelte";
+  import { setCommentAuthor } from "../../lib/comments.svelte";
 
   let { tab: initialTab = "general" }: { tab?: string } = $props();
   let tab = $state(untrack(() => initialTab));
   let version = $state("");
+  let osName = $state("");
   let keyStatus = $state<Record<string, boolean>>({});
   let editing = $state<AiProfile | null>(null);
   let keyInput = $state("");
@@ -25,6 +27,7 @@
   const snippet = $derived(mcp.info ? setupSnippet(client, mcp.info) : "");
 
   onMount(async () => {
+    ipc.userName().then((n) => (osName = n), () => {});
     version = await getVersion().catch(() => "");
     refreshKeys();
     poll = setInterval(async () => (link = settings.mcpEnabled ? await ipc.mcpLink().catch(() => null) : null), 1500);
@@ -81,6 +84,11 @@
         <option value="id">Bahasa Indonesia</option>
       </select>
     </label>
+    <label class="form-row">
+      <span>{t("settings.commentAuthor")}</span>
+      <input class="field" value={settings.commentAuthor} placeholder={osName} onchange={(e) => setCommentAuthor(e.currentTarget.value)} />
+    </label>
+    <p class="note">{t("settings.commentAuthorHint")}</p>
     <label class="form-row">
       <span>{t("settings.updates")}</span>
       <select class="field" value={settings.updateMode} onchange={(e) => setUpdateMode(e.currentTarget.value as UpdateMode)}>

@@ -56,6 +56,9 @@ export async function command(id: string) {
     case "toggle-ai":
       settings.showChat = !settings.showChat;
       return persist();
+    case "toggle-comments":
+      settings.showComments = !settings.showComments;
+      return persist();
     case "toggle-sidebar":
       settings.showSidebar = !settings.showSidebar;
       return persist();
@@ -126,6 +129,7 @@ export async function command(id: string) {
         return;
       }
       ui.pendingImage = null;
+      ui.commentDraft = null;
       if (ui.tool !== "select") ui.tool = "select";
       else doc.selectedOverlay = null;
       return;
@@ -142,7 +146,7 @@ export function onKeydown(e: KeyboardEvent) {
   else if ((e.target as HTMLElement | null)?.closest?.(".xterm")) return;
   else if (e.key === "Escape") id = ui.dialogs.length ? "close-dialog" : "escape";
   else if (mod && !e.altKey) {
-    if (e.shiftKey) id = { s: "save-as", z: "redo" }[key] ?? null;
+    if (e.shiftKey) id = { s: "save-as", z: "redo", k: "toggle-comments" }[key] ?? null;
     else
       id =
         {

@@ -105,6 +105,8 @@ pub fn run() {
             commands::set_shell_menu,
             commands::pdf_info,
             commands::pdf_assemble,
+            commands::pdf_comments,
+            commands::user_name,
             commands::images_to_pdf,
             commands::api_keys_status,
             commands::api_key_set,

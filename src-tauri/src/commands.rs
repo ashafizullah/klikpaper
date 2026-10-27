@@ -69,9 +69,11 @@ pub struct FileStat {
     path: String,
     exists: bool,
     bytes: u64,
+    /// Last change, in milliseconds since 1970 (0 when unknown).
+    modified: u64,
 }
 
-/// Existence and size of PDFs and images (other files are reported as missing).
+/// Existence, size and last change of PDFs and images (other files are reported as missing).
 #[tauri::command]
 pub fn file_stats(paths: Vec<String>, temp: State<'_, Temp>) -> Vec<FileStat> {
     paths
@@ -79,9 +81,21 @@ pub fn file_stats(paths: Vec<String>, temp: State<'_, Temp>) -> Vec<FileStat> {
         .map(|path| {
             let allowed = files::check_readable(&temp, Path::new(&path)).is_ok();
             let meta = std::fs::metadata(&path).ok().filter(|m| allowed && m.is_file());
-            FileStat { exists: meta.is_some(), bytes: meta.map_or(0, |m| m.len()), path }
+            let modified = meta.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok());
+            FileStat {
+                exists: meta.is_some(),
+                bytes: meta.as_ref().map_or(0, |m| m.len()),
+                modified: modified.map_or(0, |d| d.as_millis() as u64),
+                path,
+            }
         })
         .collect()
+}
+
+/// The signed-in user's account name, offered as the name comments are signed with.
+#[tauri::command]
+pub fn user_name() -> String {
+    std::env::var("USER").or_else(|_| std::env::var("USERNAME")).unwrap_or_default()
 }
 
 /// A fresh path in the scratch folder.
@@ -131,6 +145,12 @@ pub fn set_shell_menu(app: AppHandle, enabled: bool, labels: crate::shell::Label
 pub async fn pdf_info(path: String, password: Option<String>, temp: State<'_, Temp>) -> AppResult<PdfInfo> {
     files::check_readable(&temp, Path::new(&path))?;
     blocking(move || pdf::info(Path::new(&path), password.as_deref())).await
+}
+
+#[tauri::command]
+pub async fn pdf_comments(path: String, password: Option<String>, temp: State<'_, Temp>) -> AppResult<Vec<pdf::comments::PageThreads>> {
+    files::check_readable(&temp, Path::new(&path))?;
+    blocking(move || pdf::comments::read_file(Path::new(&path), password.as_deref())).await
 }
 
 #[tauri::command]

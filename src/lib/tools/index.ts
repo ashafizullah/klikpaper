@@ -5,12 +5,13 @@
 import { errorText } from "../ipc";
 import type { Args, ToolSpec } from "./args";
 import { ANNOTATION_TOOLS } from "./annotations";
+import { COMMENT_TOOLS } from "./comments";
 import { DOCUMENT_TOOLS } from "./documents";
 import { FILE_TOOLS } from "./files";
 
 export type { ToolSpec };
 
-export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...FILE_TOOLS];
+export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...COMMENT_TOOLS, ...FILE_TOOLS];
 
 export function toolsFor(scope: "app" | "mcp"): ToolSpec[] {
   return TOOLS.filter((t) => t.scope === "both" || t.scope === scope);

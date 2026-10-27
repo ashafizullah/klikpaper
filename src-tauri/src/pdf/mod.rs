@@ -2,6 +2,7 @@
 //! extract, reorder, rotate, delete) is one `assemble` call that builds a new
 //! file from pages of one or more source files, so the open document is only
 //! rewritten when the user saves.
+pub mod comments;
 pub mod compress;
 pub mod images;
 pub mod sheet;
@@ -41,6 +42,9 @@ pub struct PageRef {
     /// Another paper size to fit the page onto (see `sheet`).
     #[serde(default)]
     pub sheet: Option<sheet::Sheet>,
+    /// The page's comment threads, replacing the ones in the file; None leaves them as they are.
+    #[serde(default)]
+    pub comments: Option<Vec<comments::Thread>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -186,7 +190,7 @@ impl PdfInfo {
 
 /// A PDF text string: UTF-16BE with a byte order mark, or PDFDocEncoding
 /// (read as Latin-1, which matches it for printable characters).
-fn text_string(doc: &Document, obj: &Object) -> Option<String> {
+pub(crate) fn text_string(doc: &Document, obj: &Object) -> Option<String> {
     let (_, obj) = doc.dereference(obj).ok()?;
     let bytes = obj.as_str().ok()?;
     let s = if bytes.starts_with(&[0xFE, 0xFF]) {
@@ -266,11 +270,15 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
         let rotation = (dict.get(b"Rotate").and_then(Object::as_i64).unwrap_or(0) + p.rotate).rem_euclid(360);
         dict.set("Rotate", rotation - rotation % 90);
         dict.set("Parent", pages_id);
+        // A page used twice becomes a second page object sharing the same content.
+        let id = if used.insert(orig) { orig } else { doc.new_object_id() };
+        if let Some(threads) = &p.comments {
+            comments::write(&mut doc, &mut dict, id, threads)?;
+        }
+        // After the comments, so they move with the content.
         if let Some(paper) = &p.sheet {
             sheet::fit_page(&mut doc, &mut dict, paper, &mut moved_annots)?;
         }
-        // A page used twice becomes a second page object sharing the same content.
-        let id = if used.insert(orig) { orig } else { doc.new_object_id() };
         doc.objects.insert(id, Object::Dictionary(dict));
         kids.push(id.into());
     }
@@ -300,7 +308,7 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
 
 /// The page dictionary with inherited attributes copied onto it, so it can be
 /// moved under a new parent.
-fn flattened_page(doc: &Document, id: ObjectId) -> AppResult<Dictionary> {
+pub(crate) fn flattened_page(doc: &Document, id: ObjectId) -> AppResult<Dictionary> {
     let mut dict = doc.get_dictionary(id)?.clone();
     let mut parent = dict.get(b"Parent").and_then(Object::as_reference).ok();
     let mut seen = HashSet::new();
@@ -560,7 +568,7 @@ pub(crate) mod tests {
     }
 
     fn page(source: &str, index: u32, rotate: i64) -> PageRef {
-        PageRef { source: source.into(), index, rotate, sheet: None }
+        PageRef { source: source.into(), index, rotate, sheet: None, comments: None }
     }
 
     fn src(id: &str, path: &str) -> Source {

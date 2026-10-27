@@ -45,6 +45,24 @@ export interface PageSpec {
   rotate: number;
   /** Another paper size to fit the page onto (points, unrotated). */
   sheet?: { w: number; h: number; margin: number } | null;
+  /** The page's comment threads, replacing the ones in the file; null leaves them as they are. */
+  comments?: CommentThread[] | null;
+}
+
+export interface CommentReply {
+  id: string;
+  author: string;
+  /** ISO 8601; empty when unknown. */
+  date: string;
+  text: string;
+}
+
+export interface CommentThread extends CommentReply {
+  /** Points from the page's top-left corner (unrotated, y down). */
+  x: number;
+  y: number;
+  replies: CommentReply[];
+  resolved: boolean;
 }
 export type CompressLevel = "low" | "medium" | "high";
 /** A preset, or a custom quality from 10 (smallest file) to 100 (best quality). */
@@ -93,6 +111,8 @@ export interface FileStat {
   path: string;
   exists: boolean;
   bytes: number;
+  /** Last change, in milliseconds since 1970 (0 when unknown). */
+  modified: number;
 }
 /** A right-click action from Explorer or Finder: merge, compress, images or to-pdf. */
 export interface ShellAction {
@@ -145,6 +165,8 @@ export const ipc = {
   setShellMenu: (enabled: boolean, labels: { merge: string; compress: string; images: string; toPdf: string }) =>
     invoke<void>("set_shell_menu", { enabled, labels }),
   pdfInfo: (path: string, password?: string | null) => invoke<PdfInfo>("pdf_info", { path, password: password ?? null }),
+  pdfComments: (path: string, password?: string | null) => invoke<{ index: number; threads: CommentThread[] }[]>("pdf_comments", { path, password: password ?? null }),
+  userName: () => invoke<string>("user_name"),
   assemble: (job: AssembleJob) => invoke<AssembleResult>("pdf_assemble", { job }),
   imagesToPdf: (job: ImagesJob) => invoke<{ pages: number; bytes: number }>("images_to_pdf", { job }),
   keysStatus: (profileIds: string[]) => invoke<Record<string, boolean>>("api_keys_status", { profileIds }),

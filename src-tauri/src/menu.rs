@@ -32,6 +32,7 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Find…" => "Cari…",
         "Show/Hide Pages" => "Tampilkan/Sembunyikan Halaman",
         "Show/Hide AI Chat" => "Tampilkan/Sembunyikan Chat AI",
+        "Show/Hide Comments" => "Tampilkan/Sembunyikan Komentar",
         "Show/Hide Terminal" => "Tampilkan/Sembunyikan Terminal",
         "About KlikPaper" => "Tentang KlikPaper",
         "Check for Updates…" => "Cek Pembaruan…",
@@ -110,6 +111,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .separator()
         .item(&item(app, "find", t("Find…"), Some("CmdOrCtrl+F"))?)
         .item(&item(app, "toggle-sidebar", t("Show/Hide Pages"), Some("CmdOrCtrl+B"))?)
+        .item(&item(app, "toggle-comments", t("Show/Hide Comments"), Some("CmdOrCtrl+Shift+K"))?)
         .item(&item(app, "toggle-ai", t("Show/Hide AI Chat"), Some("CmdOrCtrl+J"))?)
         .item(&item(app, "toggle-terminal", t("Show/Hide Terminal"), None)?)
         .build()?;

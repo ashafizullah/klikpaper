@@ -41,12 +41,13 @@
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
 - **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact)
 - **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes in any font installed on your computer (embedded when you save), freehand drawing, rectangles, ellipses, arrows, white-out, images
+- **Comments**: pin a comment to any spot on a page, reply, and mark threads done in the Comments panel. Comments are saved inside the PDF as standard notes, so whoever you send the file to can read and answer them in KlikPaper, Acrobat or Preview. Keep the file in a shared folder (Google Drive, Dropbox, OneDrive) and KlikPaper shows new replies as soon as someone saves; no account or server
 - **Sign**: draw, type or upload a signature, place and resize it. This is a picture of your signature, not a certificate-based digital signature
 - **Watermark and page numbers**, previewed live on every page
 - **Password and privacy**: open protected PDFs, protect with AES-256, remove a password you know, strip metadata, flatten form fields
 - **Ask this PDF** (optional): chat about the open document, with answers that cite pages you can click. Bring your own key for Anthropic (Claude) or any OpenAI-compatible API (OpenAI, OpenRouter, Gemini, Groq, Ollama...). The AI can also rotate, move or delete pages and add text when you ask. Keys are stored in the OS keychain
-- **Works with your AI agent**: turn on the local MCP server and any MCP client (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode and other agent harnesses) can read and search open PDFs, highlight, add text, shapes, images and signatures, rearrange pages, and merge, split, compress, protect or convert files. A built-in terminal runs your agent right next to your documents
-- **Undo and redo** for page changes, annotations, watermarks and page numbers; nothing is written to the file until you save
+- **Works with your AI agent**: turn on the local MCP server and any MCP client (Claude Code, Codex, Gemini CLI, VS Code, Cursor, Windsurf, opencode and other agent harnesses) can read and search open PDFs, highlight, add text, shapes, images and signatures, read and reply to comments, rearrange pages, and merge, split, compress, protect or convert files. A built-in terminal runs your agent right next to your documents
+- **Undo and redo** for page changes, annotations, comments, watermarks and page numbers; nothing is written to the file until you save
 - **Right-click actions** (optional): merge, compress or convert PDFs, or turn images into a PDF, straight from the Windows File Explorer menu or macOS Finder Quick Actions
 - **English and Bahasa Indonesia** throughout: the interface, the menu bar, update messages and the "What's new" notes; **automatic updates** from GitHub Releases (signed packages), which you can set to install by themselves, ask first or stay off
 

@@ -56,7 +56,7 @@ export async function renderToCanvas(
   canvas: HTMLCanvasElement,
   scale: number,
   rotation: number,
-  opts: { maxPixels?: number; printForms?: boolean } = {},
+  opts: { maxPixels?: number; printForms?: boolean; ownCanvases?: Map<string, HTMLCanvasElement> } = {},
 ): Promise<{ cancel(): void; done: Promise<void> }> {
   const viewport = page.getViewport({ scale, rotation });
   let ratio = window.devicePixelRatio || 1;
@@ -72,6 +72,8 @@ export async function renderToCanvas(
     transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
     // Form fields are drawn by the annotation layer on screen; when exporting images, paint their values.
     annotationMode: opts.printForms ? pdfjs.AnnotationMode.ENABLE_STORAGE : pdfjs.AnnotationMode.ENABLE_FORMS,
+    // Annotations that pdf.js draws on their own canvas go here instead of onto the page.
+    annotationCanvasMap: opts.ownCanvases,
   });
   return {
     cancel: () => task.cancel(),

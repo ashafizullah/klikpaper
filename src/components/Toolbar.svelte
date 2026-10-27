@@ -27,6 +27,7 @@
     { id: "ellipse", icon: "ellipse", label: "tool.ellipse" },
     { id: "arrow", icon: "arrow", label: "tool.arrow" },
     { id: "whiteout", icon: "whiteout", label: "tool.whiteout" },
+    { id: "comment", icon: "comment", label: "comments.tool" },
   ];
 
   function choose(tool: Tool) {

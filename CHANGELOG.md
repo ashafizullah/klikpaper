@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Comments: pick the comment tool and click a spot on a page to leave a comment, then reply, mark it done or drag its pin in the new Comments panel (Cmd/Ctrl+Shift+K). Comments are saved inside the PDF as standard notes, so the people you send the file to can read and answer them in KlikPaper, Acrobat or Preview
+- When an open file changes elsewhere (say, a colleague saves it in a shared Google Drive, Dropbox or OneDrive folder), KlikPaper reloads it; if you have unsaved changes, it adds their new comments so saving keeps both
+- Set the name your comments are signed with in Settings
+- AI agents can read and write comments too (`list_comments`, `add_comment`, `reply_comment`, `resolve_comment`, `delete_comment`)
+
 ## 0.1.9
 
 - Resize pages shows a live preview: the page on the paper you pick, with the margin and how much the content is scaled, before you apply

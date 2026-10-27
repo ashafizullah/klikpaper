@@ -1,13 +1,14 @@
 // Open documents (tabs) and the file-level actions on them.
 import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
 import { Doc } from "./doc.svelte";
+import { loadComments, mergeComments, readComments } from "./comments.svelte";
 import { t } from "./i18n/index.svelte";
 import { errorText, ipc } from "./ipc";
 import { baseName, stripExt } from "./pagespec";
 import { PasswordNeeded, closePdf, openPdf, type PDFDocumentProxy } from "./pdfjs";
 import { defaultName, writePdf } from "./save.svelte";
 import { addRecent, newId, removeRecent } from "./settings.svelte";
-import { busy, openDialog, toast } from "./ui.svelte";
+import { busy, openDialog, toast, ui } from "./ui.svelte";
 
 export const ws = $state({
   docs: [] as Doc[],
@@ -82,6 +83,8 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
       doc.pages = await doc.pagesOf(id);
       doc.protect = loaded.password ?? null;
+      await loadComments(doc, id, doc.pages);
+      doc.stamp = await stampOf(path);
       show(doc);
       addRecent(path);
     } catch (e) {
@@ -107,7 +110,9 @@ export async function mergePaths(paths: string[]) {
       if (!loaded) continue;
       const id = newId("s");
       doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
-      doc.pages = [...doc.pages, ...(await doc.pagesOf(id))];
+      const items = await doc.pagesOf(id);
+      doc.pages = [...doc.pages, ...items];
+      await loadComments(doc, id, items);
     }
   } catch (e) {
     doc.destroy();
@@ -140,6 +145,7 @@ export async function insertFiles(doc: Doc, at: number, paths?: string[]) {
     doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
     const items = await doc.pagesOf(id);
     doc.insertPages(items, pos);
+    await loadComments(doc, id, items);
     pos += items.length;
   }
 }
@@ -154,6 +160,11 @@ async function reload(doc: Doc, path: string, password: string | null) {
   doc.addSource({ id, path, password: password ?? undefined, pdf });
   const current = doc.current;
   doc.pages = await doc.pagesOf(id);
+  doc.comments = [];
+  doc.commentSources.clear();
+  await loadComments(doc, id, doc.pages);
+  doc.selectedComment = doc.selectedComment && doc.comment(doc.selectedComment) ? doc.selectedComment : null;
+  doc.stamp = await stampOf(path);
   doc.overlays = [];
   doc.watermark = null;
   doc.pageNumbers = null;
@@ -166,6 +177,59 @@ async function reload(doc: Doc, path: string, password: string | null) {
   doc.path = path;
   doc.name = baseName(path);
   doc.dirty = false;
+}
+
+/** When the file last changed (0 when unknown). */
+async function stampOf(path: string): Promise<number> {
+  return (await ipc.fileStats([path]).catch(() => []))[0]?.modified ?? 0;
+}
+
+/**
+ * The file of an open document was changed elsewhere (another KlikPaper on a
+ * shared folder, Acrobat, a sync app). Without unsaved edits it is reopened;
+ * with them, only the new comments are taken in, to be saved together.
+ */
+async function changedElsewhere(doc: Doc, path: string, stamp: number) {
+  if (!doc.dirty) {
+    await reload(doc, path, doc.protect);
+    toast(t("comments.reloaded", { file: doc.name }), "info");
+    return;
+  }
+  const main = [...doc.sources.values()].find((s) => s.path === path);
+  if (!main || !doc.commentSources.has(main.id)) return;
+  const incoming = await readComments(doc, main.id, doc.pages);
+  doc.stamp = stamp;
+  const isNew = (c: (typeof incoming)[number]) => {
+    const mine = doc.comment(c.id);
+    return !mine || c.replies.some((r) => !mine.replies.some((x) => x.id === r.id));
+  };
+  if (!incoming.some(isNew)) return;
+  let added = 0;
+  doc.change(() => (added = mergeComments(doc, incoming)));
+  toast(t("comments.merged", { n: added, file: doc.name }), "info");
+}
+
+let watching = false;
+
+/** Checks every few seconds whether open files changed on disk. */
+export function watchFiles() {
+  setInterval(async () => {
+    if (watching || ui.busy) return;
+    const docs = ws.docs.filter((d) => d.path && d.stamp);
+    if (!docs.length) return;
+    watching = true;
+    try {
+      const stats = await ipc.fileStats(docs.map((d) => d.path!));
+      for (const doc of docs) {
+        const st = stats.find((s) => s.path === doc.path);
+        if (!st?.exists || !st.modified || st.modified === doc.stamp || ui.busy) continue;
+        // A file still being written (by a sync app) fails to read; the next check retries.
+        await changedElsewhere(doc, doc.path!, st.modified).catch(() => {});
+      }
+    } finally {
+      watching = false;
+    }
+  }, 3000);
 }
 
 export async function saveDoc(doc: Doc, as = false): Promise<boolean> {

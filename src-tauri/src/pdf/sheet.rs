@@ -37,7 +37,7 @@ fn number(o: &Object) -> Option<f64> {
 }
 
 /// The visible box of a page dictionary (crop box, else media box), normalized.
-fn visible_box(dict: &Dictionary) -> Option<[f64; 4]> {
+pub(crate) fn visible_box(dict: &Dictionary) -> Option<[f64; 4]> {
     let arr = dict.get(b"CropBox").or_else(|_| dict.get(b"MediaBox")).and_then(Object::as_array).ok()?;
     let v: Vec<f64> = arr.iter().filter_map(number).collect();
     let [a, b, c, d] = v[..] else { return None };

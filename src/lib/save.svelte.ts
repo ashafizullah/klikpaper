@@ -1,5 +1,5 @@
 // Writing documents: page work goes to Rust (lopdf), drawing to pdf-lib.
-import type { Doc } from "./doc.svelte";
+import type { Doc, PageItem } from "./doc.svelte";
 import { ipc, type AssembleResult, type Compression, type PageSpec, type SourceSpec } from "./ipc";
 import { baseName, joinPath, stripExt } from "./pagespec";
 import { fontFile } from "./fonts.svelte";
@@ -40,7 +40,9 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
     sources.push({ id, path, password: src.password ?? null });
   }
   const pages = doc.pages.map((p) => ({ source: p.source, index: p.index, rotate: p.rotate }));
-  if (!doc.needsDrawing) return { sources, pages };
+  // Comments are written as the file's own notes, replacing the ones it had.
+  const comments = (p: PageItem) => (doc.commentSources.has(p.source) ? $state.snapshot(doc.comments.filter((c) => c.page === p.id)).map(({ page: _, ...thread }) => thread) : null);
+  if (!doc.needsDrawing) return { sources, pages: pages.map((spec, i) => ({ ...spec, comments: comments(doc.pages[i]) })) };
 
   const plain = await ipc.tempFile("pdf");
   temps.push(plain);
@@ -57,7 +59,7 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
   const merged = await ipc.tempFile("pdf");
   temps.push(merged);
   await ipc.writeFile(merged, drawn);
-  return { sources: [{ id: "drawn", path: merged }], pages: doc.pages.map((_, i) => ({ source: "drawn", index: i, rotate: 0 })) };
+  return { sources: [{ id: "drawn", path: merged }], pages: doc.pages.map((p, i) => ({ source: "drawn", index: i, rotate: 0, comments: comments(p) })) };
 }
 
 export interface WriteOptions {
