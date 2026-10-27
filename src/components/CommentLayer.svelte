@@ -9,6 +9,7 @@
   import { persist, settings } from "../lib/settings.svelte";
   import { ui } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
+  import { openMenu } from "../lib/contextmenu.svelte";
   import Icon from "./Icon.svelte";
 
   let { doc, page, scale, rotation }: { doc: Doc; page: PageItem; scale: number; rotation: Rotation } = $props();
@@ -46,6 +47,29 @@
     }
   }
 
+  function openThread(id: string, reply = false) {
+    doc.selectedComment = id;
+    ui.commentDraft = null;
+    if (!settings.showComments) {
+      settings.showComments = true;
+      persist();
+    }
+    // Once the panel shows the thread, put the cursor in its reply box.
+    if (reply) setTimeout(() => document.querySelector<HTMLTextAreaElement>(`[data-comment="${id}"] .reply-box textarea`)?.focus(), 60);
+  }
+
+  function onPinMenu(e: MouseEvent, id: string) {
+    const c = doc.comment(id);
+    if (!c) return;
+    openThread(id);
+    openMenu(e, [
+      !c.resolved && { label: t("comments.reply"), icon: "note", run: () => openThread(id, true) },
+      { label: t(c.resolved ? "comments.reopen" : "comments.resolve"), icon: c.resolved ? "refresh" : "resolved", run: () => doc.setResolved(id, !c.resolved) },
+      "sep",
+      { label: t("comments.delete"), icon: "trash", danger: true, run: () => doc.deleteComment(id) },
+    ]);
+  }
+
   // ---- dragging a pin ----
   let drag = $state<{ id: string; sx: number; sy: number; x: number; y: number; moved: boolean } | null>(null);
 
@@ -78,12 +102,7 @@
     drag = null;
     if (!d) return;
     if (d.moved) doc.moveComment(d.id, d.x, d.y);
-    doc.selectedComment = d.id;
-    ui.commentDraft = null;
-    if (!settings.showComments) {
-      settings.showComments = true;
-      persist();
-    }
+    openThread(d.id);
   }
 </script>
 
@@ -102,6 +121,7 @@
       onpointermove={onPinMove}
       onpointerup={onPinUp}
       onpointercancel={() => (drag = null)}
+      oncontextmenu={(e) => onPinMenu(e, c.id)}
     >
       {#if c.resolved}<Icon name="check" size={11} />{:else}{numbers.get(c.id) ?? ""}{/if}
     </button>

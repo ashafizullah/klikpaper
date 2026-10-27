@@ -1,17 +1,35 @@
 <script lang="ts">
-  import { activate, closeDoc, closeHomeTab, docTitle, ws } from "../lib/workspace.svelte";
+  import type { Doc } from "../lib/doc.svelte";
+  import { activate, closeDoc, closeHomeTab, closeOthers, docTitle, saveDoc, ws } from "../lib/workspace.svelte";
+  import { copyText, openMenu, revealFile, revealLabel } from "../lib/contextmenu.svelte";
   import { command } from "../lib/commands.svelte";
   import { settings } from "../lib/settings.svelte";
   import { isMac, mod, ui } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
   import McpBadge from "./McpBadge.svelte";
+
+  function tabMenu(e: MouseEvent, d: Doc) {
+    const i = ws.docs.indexOf(d);
+    openMenu(e, [
+      { label: t("common.save"), icon: "save", shortcut: `${mod}S`, run: () => saveDoc(d) },
+      d.path && { label: t(revealLabel), icon: "folder", run: () => revealFile(d.path!) },
+      d.path && { label: t("ctx.copyPath"), icon: "duplicate", run: () => copyText(d.path!) },
+      "sep",
+      { label: t("tab.new"), icon: "plus", shortcut: `${mod}T`, run: () => command("new-tab") },
+      "sep",
+      { label: t("tab.close"), icon: "close", shortcut: `${mod}W`, run: () => closeDoc(d) },
+      { label: t("ctx.closeOthers"), disabled: ws.docs.length < 2, run: () => closeOthers(d) },
+      { label: t("ctx.closeRight"), disabled: i === ws.docs.length - 1, run: () => closeOthers(d, true) },
+    ]);
+  }
 </script>
 
 <header class="titlebar" class:mac={isMac} data-tauri-drag-region>
   <div class="tabs" data-tauri-drag-region>
     {#each ws.docs as d (d.id)}
-      <div class="tab" class:active={d.id === ws.activeId} title={d.path ?? d.name}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="tab" class:active={d.id === ws.activeId} title={d.path ?? d.name} oncontextmenu={(e) => tabMenu(e, d)}>
         <button class="tab-main" onclick={() => activate(d)}>
           <Icon name="file" size={13} />
           {#if d.dirty}<span class="dot" aria-label={t("tab.unsaved")}></span>{/if}

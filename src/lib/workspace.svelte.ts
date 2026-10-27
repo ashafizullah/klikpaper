@@ -273,6 +273,14 @@ export async function closeDoc(doc: Doc): Promise<boolean> {
   return true;
 }
 
+/** Closes the other tabs (or only those after `doc`), stopping if one is kept open. */
+export async function closeOthers(doc: Doc, onlyAfter = false) {
+  const i = ws.docs.indexOf(doc);
+  const others = ws.docs.filter((d, j) => d !== doc && (!onlyAfter || j > i));
+  activate(doc);
+  for (const d of others) if (!(await closeDoc(d))) return;
+}
+
 export function docTitle(doc: Doc): string {
   return stripExt(doc.name);
 }

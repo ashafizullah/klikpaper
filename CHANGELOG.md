@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Right-click menus: right-click a page, selected text, an annotation, a comment pin, a page thumbnail, a tab or a recent file to get the actions for it, such as highlight or copy the selected text, add a comment or text right where you clicked, duplicate or delete an annotation, rotate, insert or delete pages, close other tabs, or show the file in Finder/Explorer
+
 ## 0.1.10
 
 - Comments: pick the comment tool and click a spot on a page to leave a comment, then reply, mark it done or drag its pin in the new Comments panel (Cmd/Ctrl+Shift+K). Comments are saved inside the PDF as standard notes, so the people you send the file to can read and answer them in KlikPaper, Acrobat or Preview

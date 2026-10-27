@@ -3,14 +3,19 @@
   // and edits them. Items are stored in page space and drawn inside a layer
   // turned with the page, so they rotate along with it.
   import { tick } from "svelte";
+  import { on } from "svelte/events";
   import type { Doc, Overlay, PageItem } from "../lib/doc.svelte";
   import { displayRectToPage, displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
   import { newId, settings } from "../lib/settings.svelte";
   import { fontStack, showFont } from "../lib/fonts.svelte";
   import { replaceLine } from "../lib/edittext";
   import { textLines, type PageLine } from "../lib/pdfjs";
-  import { toolColor, ui } from "../lib/ui.svelte";
+  import { isMac, mod, toolColor, ui } from "../lib/ui.svelte";
   import { arrowHead, LINE_HEIGHT } from "../lib/layout";
+  import { copyText, openMenu } from "../lib/contextmenu.svelte";
+  import { command } from "../lib/commands.svelte";
+  import { persist } from "../lib/settings.svelte";
+  import { t } from "../lib/i18n/index.svelte";
 
   let { doc, page, scale, rotation, pageEl }: { doc: Doc; page: PageItem; scale: number; rotation: Rotation; pageEl: HTMLDivElement } = $props();
 
@@ -54,15 +59,9 @@
     }
     const color = toolColor(ui.tool);
     switch (ui.tool) {
-      case "text": {
-        const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x, y: Math.max(0, y - ui.fontSize * 0.6), w: Math.min(240, page.w - x - 8), text: "", size: ui.fontSize, color, rot: rotation, ...(settings.textFont ? { font: settings.textFont } : {}) };
-        if (o.w < 40) o.w = 40;
-        doc.addOverlay(o);
-        createdId = o.id;
-        startEditing(o.id);
-        ui.tool = "select";
+      case "text":
+        addText(x, y);
         return;
-      }
       case "image": {
         const img = ui.pendingImage!;
         const o: Overlay = { id: newId("o"), page: page.id, kind: "image", x: x - img.width / 2, y: y - img.height / 2, w: img.width, h: img.height, src: img.src, rot: rotation };
@@ -132,6 +131,16 @@
     doc.addOverlay(d);
   }
 
+  /** A new text box at a page-space point, ready for typing. */
+  function addText(x: number, y: number) {
+    const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x, y: Math.max(0, y - ui.fontSize * 0.6), w: Math.min(240, page.w - x - 8), text: "", size: ui.fontSize, color: toolColor("text"), rot: rotation, ...(settings.textFont ? { font: settings.textFont } : {}) };
+    if (o.w < 40) o.w = 40;
+    doc.addOverlay(o);
+    createdId = o.id;
+    startEditing(o.id);
+    ui.tool = "select";
+  }
+
   // ---- editing the page's own text (cover it, then type over it) --------
 
   let lines = $state<PageLine[]>([]);
@@ -172,7 +181,13 @@
   // ---- highlight / underline / strike from a text selection ------------
 
   function onMarkupUp() {
-    if (!markupTool) return;
+    if (markupTool) markSelection(ui.tool as MarkupStyle);
+  }
+
+  type MarkupStyle = "highlight" | "underline" | "strike";
+
+  /** Marks this page's part of the text selection. */
+  function markSelection(style: MarkupStyle) {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) return;
     const bounds = pageEl.getBoundingClientRect();
@@ -190,11 +205,104 @@
       }
     }
     if (!rects.length) return;
-    doc.addOverlay({ id: newId("o"), page: page.id, kind: "markup", style: ui.tool as "highlight", rects, color: toolColor(ui.tool) });
+    doc.addOverlay({ id: newId("o"), page: page.id, kind: "markup", style, rects, color: toolColor(style) });
     doc.selectedOverlay = null;
     // Every page sees this mouse-up; clear the selection only after all of them
     // had their turn, so a selection across two pages marks both.
     setTimeout(() => sel.removeAllRanges(), 0);
+  }
+
+  // From the right-click menu: every page marks its part, then the selection goes.
+  $effect(() => {
+    const onMark = (e: Event) => markSelection((e as CustomEvent<MarkupStyle>).detail);
+    window.addEventListener("klikpaper:mark", onMark);
+    return () => window.removeEventListener("klikpaper:mark", onMark);
+  });
+
+  function markFromMenu(style: MarkupStyle) {
+    window.dispatchEvent(new CustomEvent("klikpaper:mark", { detail: style }));
+  }
+
+  // ---- right-click menus ------------------------------------------------
+
+  function onPageMenu(e: MouseEvent) {
+    const [x, y] = toPage(e);
+    const sel = window.getSelection();
+    const text = sel && !sel.isCollapsed ? sel.toString().trim() : "";
+    const short = text.length > 28 ? `${text.slice(0, 27).trimEnd()}…` : text;
+    openMenu(e, [
+      text && { label: t("ctx.copy"), icon: "duplicate", shortcut: `${mod}C`, run: () => copyText(text) },
+      text && { label: t("ctx.highlight"), icon: "highlight", run: () => markFromMenu("highlight") },
+      text && { label: t("ctx.underline"), icon: "underline", run: () => markFromMenu("underline") },
+      text && { label: t("ctx.strike"), icon: "strike", run: () => markFromMenu("strike") },
+      text && {
+        label: t("ctx.findText", { text: short.replace(/\s+/g, " ") }),
+        icon: "search",
+        run: () => {
+          ui.findQuery = text.replace(/\s+/g, " ");
+          ui.findOpen = true;
+        },
+      },
+      "sep",
+      { label: t("ctx.addComment"), icon: "comment", run: () => addCommentAt(x, y) },
+      { label: t("ctx.addText"), icon: "text", run: () => addText(x, y) },
+      "sep",
+      { label: t("pages.rotateLeft"), icon: "rotate-ccw", run: () => doc.rotatePages([page.id], -90) },
+      { label: t("pages.rotateRight"), icon: "rotate-cw", run: () => doc.rotatePages([page.id], 90) },
+      "sep",
+      { label: t("ctx.zoomIn"), icon: "zoom-in", shortcut: `${mod}+`, run: () => command("zoom-in") },
+      { label: t("ctx.zoomOut"), icon: "zoom-out", shortcut: `${mod}-`, run: () => command("zoom-out") },
+      { label: t("ctx.fitWidth"), icon: "fit", shortcut: `${mod}0`, run: () => command("zoom-fit") },
+    ]);
+  }
+
+  function addCommentAt(x: number, y: number) {
+    const ICON = 20;
+    ui.tool = "select";
+    doc.selectedComment = null;
+    ui.commentDraft = { page: page.id, x: Math.max(0, Math.min(page.w - ICON, x)), y: Math.max(0, Math.min(page.h - ICON, y)) };
+    if (!settings.showComments) {
+      settings.showComments = true;
+      persist();
+    }
+  }
+
+  // Through svelte/events, so the menus of annotations and comment pins (attribute handlers) come first.
+  $effect(() => {
+    const el = pageEl;
+    if (el) return on(el, "contextmenu", onPageMenu);
+  });
+
+  /** A copy of an item moved by (dx, dy) points. */
+  function shifted(o: Overlay, dx: number, dy: number): Overlay {
+    const c = { ...($state.snapshot(o) as Overlay), id: newId("o") };
+    if ("x" in c && "y" in c) {
+      c.x += dx;
+      c.y += dy;
+    } else if (c.kind === "arrow" || c.kind === "line") {
+      c.x1 += dx;
+      c.y1 += dy;
+      c.x2 += dx;
+      c.y2 += dy;
+    } else if (c.kind === "ink") {
+      c.points = c.points.map((v, i) => v + (i % 2 ? dy : dx));
+    } else if (c.kind === "markup") {
+      c.rects = c.rects.map((r) => ({ ...r, x: r.x + dx, y: r.y + dy }));
+    }
+    return c;
+  }
+
+  function onItemMenu(e: MouseEvent, o: Overlay) {
+    if (editingId === o.id) return;
+    doc.selectedOverlay = o.id;
+    const [dx, dy] = deltaToPage(12, 12);
+    openMenu(e, [
+      o.kind === "text" && { label: t("ctx.editText"), icon: "edit-text", run: () => startEditing(o.id) },
+      o.kind === "text" && o.text.trim() && { label: t("ctx.copyText"), icon: "duplicate", run: () => copyText(o.text) },
+      o.kind !== "markup" && { label: t("pages.duplicate"), icon: "duplicate", run: () => doc.addOverlay(shifted(o, dx, dy)) },
+      "sep",
+      { label: t("ctx.delete"), icon: "trash", shortcut: isMac ? "⌫" : "Del", danger: true, run: () => doc.removeOverlay(o.id) },
+    ]);
   }
 
   // ---- selecting, moving, resizing ------------------------------------
@@ -369,7 +477,7 @@
   <svg class="shapes" width={page.w * scale} height={page.h * scale} viewBox="0 0 {page.w} {page.h}">
     {#each all as o (o.id)}
       {#if o.kind === "markup"}
-        <g class="hit" role="button" tabindex="-1" class:selected={doc.selectedOverlay === o.id} onpointerdown={(e) => onItemDown(e, o)}>
+        <g class="hit" role="button" tabindex="-1" class:selected={doc.selectedOverlay === o.id} onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)}>
           {#each o.rects as r, i (i)}
             <!-- Highlight colors are drawn by the paint layer; this rect is the click target. -->
             <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="transparent" />
@@ -379,13 +487,13 @@
           {/each}
         </g>
       {:else if o.kind === "rect"}
-        <rect class="hit" role="button" tabindex="-1" x={o.x} y={o.y} width={o.w} height={o.h} fill={o.fill ?? "transparent"} stroke={o.width > 0 ? o.color : "none"} stroke-width={o.width} onpointerdown={(e) => onItemDown(e, o)} />
+        <rect class="hit" role="button" tabindex="-1" x={o.x} y={o.y} width={o.w} height={o.h} fill={o.fill ?? "transparent"} stroke={o.width > 0 ? o.color : "none"} stroke-width={o.width} onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)} />
       {:else if o.kind === "ellipse"}
-        <ellipse class="hit" role="button" tabindex="-1" cx={o.x + o.w / 2} cy={o.y + o.h / 2} rx={o.w / 2} ry={o.h / 2} fill={o.fill ?? "transparent"} stroke={o.color} stroke-width={o.width} onpointerdown={(e) => onItemDown(e, o)} />
+        <ellipse class="hit" role="button" tabindex="-1" cx={o.x + o.w / 2} cy={o.y + o.h / 2} rx={o.w / 2} ry={o.h / 2} fill={o.fill ?? "transparent"} stroke={o.color} stroke-width={o.width} onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)} />
       {:else if o.kind === "arrow" || o.kind === "line"}
-        <path class="hit stroke" role="button" tabindex="-1" d={o.kind === "arrow" ? arrowPath(o) : `M ${o.x1} ${o.y1} L ${o.x2} ${o.y2}`} fill="none" stroke={o.color} stroke-width={o.width} stroke-linecap="round" stroke-linejoin="round" onpointerdown={(e) => onItemDown(e, o)} />
+        <path class="hit stroke" role="button" tabindex="-1" d={o.kind === "arrow" ? arrowPath(o) : `M ${o.x1} ${o.y1} L ${o.x2} ${o.y2}`} fill="none" stroke={o.color} stroke-width={o.width} stroke-linecap="round" stroke-linejoin="round" onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)} />
       {:else if o.kind === "ink"}
-        <path class="hit stroke" role="button" tabindex="-1" d={inkPath(o.points)} fill="none" stroke={o.color} stroke-width={o.width} stroke-linecap="round" stroke-linejoin="round" onpointerdown={(e) => onItemDown(e, o)} />
+        <path class="hit stroke" role="button" tabindex="-1" d={inkPath(o.points)} fill="none" stroke={o.color} stroke-width={o.width} stroke-linecap="round" stroke-linejoin="round" onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)} />
       {/if}
     {/each}
     {#if hovered}
@@ -428,7 +536,7 @@
         style:color={o.color}
         style:font-weight={o.bold ? 700 : 400}
         style:font-family={fontStack(o.font)}
-        onpointerdown={(e) => onItemDown(e, o)}
+        onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)}
         ondblclick={() => ui.tool === "select" && startEditing(o.id)}
       >
         {#if editingId === o.id}
@@ -462,7 +570,7 @@
         style:width="{o.w * scale}px"
         style:height="{o.h * scale}px"
         style:transform="rotate({-o.rot}deg)"
-        onpointerdown={(e) => onItemDown(e, o)}
+        onpointerdown={(e) => onItemDown(e, o)} oncontextmenu={(e) => onItemMenu(e, o)}
       >
         <img src={o.src} alt="" draggable="false" />
         {#if doc.selectedOverlay === o.id}

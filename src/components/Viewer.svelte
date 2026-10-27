@@ -3,7 +3,11 @@
   import type { Doc } from "../lib/doc.svelte";
   import { CSS_UNITS } from "../lib/pdfjs";
   import { viewer } from "../lib/viewer.svelte";
-  import { ZOOM_STEPS } from "../lib/commands.svelte";
+  import { command, ZOOM_STEPS } from "../lib/commands.svelte";
+  import { openMenu } from "../lib/contextmenu.svelte";
+  import { settings } from "../lib/settings.svelte";
+  import { mod } from "../lib/ui.svelte";
+  import { t } from "../lib/i18n/index.svelte";
   import PageView from "./PageView.svelte";
   import StyleBar from "./StyleBar.svelte";
 
@@ -103,9 +107,22 @@
     doc.fitWidth = false;
     doc.zoom = Math.max(ZOOM_STEPS[0], Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], doc.zoom * factor));
   }
+
+  // Right-click beside the pages (pages have their own menu).
+  function onMenu(e: MouseEvent) {
+    openMenu(e, [
+      { label: t("ctx.zoomIn"), icon: "zoom-in", shortcut: `${mod}+`, run: () => command("zoom-in") },
+      { label: t("ctx.zoomOut"), icon: "zoom-out", shortcut: `${mod}-`, run: () => command("zoom-out") },
+      { label: t("ctx.fitWidth"), icon: "fit", shortcut: `${mod}0`, run: () => command("zoom-fit") },
+      "sep",
+      { label: t(settings.showSidebar ? "ctx.hidePages" : "ctx.showPages"), icon: "sidebar", shortcut: `${mod}B`, run: () => command("toggle-sidebar") },
+      { label: t(settings.showComments ? "ctx.hideComments" : "ctx.showComments"), icon: "comments", shortcut: `${mod}⇧K`, run: () => command("toggle-comments") },
+    ]);
+  }
 </script>
 
-<div class="viewer grain-free" bind:this={el} onscroll={onScroll} onwheel={onWheel}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="viewer grain-free" bind:this={el} onscroll={onScroll} onwheel={onWheel} oncontextmenu={onMenu}>
   <div class="pages" style:gap="{GAP}px">
     {#each doc.pages as page, i (page.id)}
       <div class="slot" data-page-index={i} data-page-id={page.id} use:observe>

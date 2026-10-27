@@ -3,7 +3,8 @@
   import { thumbnail, THUMB_WIDTH } from "../lib/thumbs";
   import { viewer } from "../lib/viewer.svelte";
   import { exportCopy, insertFiles } from "../lib/workspace.svelte";
-  import { toast } from "../lib/ui.svelte";
+  import { openDialog, toast } from "../lib/ui.svelte";
+  import { openMenu } from "../lib/contextmenu.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
 
@@ -48,6 +49,32 @@
     const ids = new Set(targets);
     const positions = doc.pages.flatMap((p, i) => (ids.has(p.id) ? [i] : []));
     exportCopy(doc, positions, "-pages");
+  }
+
+  function onContextMenu(e: MouseEvent, p: PageItem) {
+    // Right-clicking a page outside the selection selects just that page.
+    if (!selection.includes(p.id)) {
+      doc.selectedPages = [p.id];
+      anchorId = p.id;
+    }
+    const ids = doc.selectedPages;
+    const first = doc.pages.findIndex((x) => ids.includes(x.id));
+    const last = doc.pages.findLastIndex((x) => ids.includes(x.id));
+    const n = ids.length;
+    openMenu(e, [
+      { label: t("pages.rotateLeft"), icon: "rotate-ccw", run: () => doc.rotatePages(ids, -90) },
+      { label: t("pages.rotateRight"), icon: "rotate-cw", run: () => doc.rotatePages(ids, 90) },
+      { label: t("pages.duplicate"), icon: "duplicate", run: () => doc.duplicatePages(ids) },
+      { label: t("menu.resize"), icon: "resize", run: () => openDialog("resize", { doc }) },
+      "sep",
+      { label: t("ctx.insertBefore"), icon: "insert", run: () => insertFiles(doc, first) },
+      { label: t("ctx.insertAfter"), icon: "insert", run: () => insertFiles(doc, last + 1) },
+      { label: t("pages.extract"), icon: "export", run: extract },
+      "sep",
+      { label: t("ctx.selectAllPages"), icon: "pages", disabled: n === doc.pages.length, run: () => (doc.selectedPages = doc.pages.map((x) => x.id)) },
+      "sep",
+      { label: n > 1 ? t("ctx.deletePages", { n }) : t("ctx.deletePage"), icon: "trash", danger: true, disabled: n >= doc.pages.length, run: remove },
+    ]);
   }
 
   // ---- reordering by dragging (pointer events; HTML5 drag and drop clashes with file drops on Windows)
@@ -159,6 +186,7 @@
         aria-selected={selection.includes(p.id)}
         onclick={(e) => select(e, p, i)}
         onpointerdown={(e) => onPointerDown(e, p)}
+        oncontextmenu={(e) => onContextMenu(e, p)}
       >
         <div class="frame" style:width="{THUMB_WIDTH}px" style:aspect-ratio={`${doc.shownSize(p)[0]} / ${doc.shownSize(p)[1]}`}>
           <img use:lazyThumb={p} alt={t("pages.page", { n: i + 1 })} draggable="false" />

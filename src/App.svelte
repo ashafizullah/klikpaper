@@ -24,6 +24,7 @@
   import FindBar from "./components/FindBar.svelte";
   import Icon from "./components/Icon.svelte";
   import Tooltips from "./components/Tooltips.svelte";
+  import ContextMenu from "./components/ContextMenu.svelte";
 
   const doc = $derived(activeDoc());
   let dropping = $state(false);
@@ -131,6 +132,7 @@
   <Toasts />
   <Dialogs />
   <Tooltips />
+  <ContextMenu />
 </div>
 
 <style>

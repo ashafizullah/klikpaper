@@ -8,6 +8,7 @@
   import { baseName, dirName, formatBytes } from "../lib/pagespec";
   import { ipc, type FileStat } from "../lib/ipc";
   import { recentPreview } from "../lib/recent";
+  import { copyText, openMenu, revealFile, revealLabel } from "../lib/contextmenu.svelte";
   import { isMac, mod, openDialog } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
@@ -48,6 +49,16 @@
   function setView(view: "tiles" | "list") {
     settings.recentView = view;
     persist();
+  }
+
+  function recentMenu(e: MouseEvent, path: string, missing: boolean) {
+    openMenu(e, [
+      { label: t("ctx.open"), icon: "open", disabled: missing, run: () => openPaths([path]) },
+      { label: t(revealLabel), icon: "folder", disabled: missing, run: () => revealFile(path) },
+      { label: t("ctx.copyPath"), icon: "duplicate", run: () => copyText(path) },
+      "sep",
+      { label: t("home.forget"), icon: "close", run: () => removeRecent(path) },
+    ]);
   }
 
   const TOOLS = [
@@ -149,7 +160,8 @@
             {#each settings.recent as path, i (path)}
               {@const stat = stats[path]}
               {@const missing = stat && !stat.exists}
-              <div class="card rise" class:missing style:animation-delay="{Math.min(i, 12) * 40}ms">
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="card rise" class:missing style:animation-delay="{Math.min(i, 12) * 40}ms" oncontextmenu={(e) => recentMenu(e, path, !!missing)}>
                 <button class="card-main" onclick={() => openPaths([path])} title={path} disabled={missing}>
                   <div class="preview">
                     {#if previews[path]}

@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Menu klik kanan: klik kanan halaman, teks yang diblok, anotasi, penanda komentar, thumbnail halaman, tab, atau file terbaru untuk memunculkan aksi yang sesuai, misalnya menstabilo atau menyalin teks yang diblok, menambah komentar atau teks tepat di titik yang diklik, menggandakan atau menghapus anotasi, memutar, menyisipkan, atau menghapus halaman, menutup tab lain, atau membuka lokasi file di Finder/Explorer
+
 ## 0.1.10
 
 - Komentar: pilih alat komentar lalu klik di bagian halaman untuk meninggalkan komentar, lalu balas, tandai selesai, atau geser penandanya di panel Komentar yang baru (Cmd/Ctrl+Shift+K). Komentar disimpan di dalam PDF sebagai catatan standar, jadi orang yang Anda kirimi file bisa membaca dan membalasnya di KlikPaper, Acrobat, atau Preview
