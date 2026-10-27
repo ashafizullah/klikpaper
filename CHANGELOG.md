@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.7
 
 - Edit text: pick the new tool next to Add text and click a line in the PDF to change its words. KlikPaper covers the old line in the page's own color and puts the same words back in a matching font, size and color, ready to edit. The old words stay hidden underneath rather than deleted, so don't use it to hide private information
 - AI agents can change printed words too (`replace_text`)
