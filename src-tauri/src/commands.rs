@@ -4,6 +4,7 @@ use crate::error::{AppError, AppResult};
 use crate::files::{self, Temp};
 use crate::mcp::{Mcp, McpCall, McpInfo, McpLink};
 use crate::pdf::{self, AssembleJob, AssembleResult, PdfInfo, images};
+use crate::terminal::{TerminalEvent, Terminals};
 use crate::{Opened, keys, updater};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -190,6 +191,34 @@ pub fn mcp_link(state: State<'_, Mcp>) -> McpLink {
 #[tauri::command]
 pub fn mcp_reply(id: u64, result: serde_json::Value, state: State<'_, Mcp>) {
     state.reply(id, result);
+}
+
+// ---- terminal -------------------------------------------------------------
+
+#[tauri::command]
+pub fn terminal_open(
+    cwd: String,
+    cols: u16,
+    rows: u16,
+    on_event: Channel<TerminalEvent>,
+    state: State<'_, Terminals>,
+) -> AppResult<String> {
+    state.open(&cwd, cols, rows, on_event)
+}
+
+#[tauri::command]
+pub fn terminal_write(id: String, data: String, state: State<'_, Terminals>) -> AppResult<()> {
+    state.write(&id, &data)
+}
+
+#[tauri::command]
+pub fn terminal_resize(id: String, cols: u16, rows: u16, state: State<'_, Terminals>) -> AppResult<()> {
+    state.resize(&id, cols, rows)
+}
+
+#[tauri::command]
+pub fn terminal_close(id: String, state: State<'_, Terminals>) {
+    state.close(&id);
 }
 
 // ---- app ------------------------------------------------------------------

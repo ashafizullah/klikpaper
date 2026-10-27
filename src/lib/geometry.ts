@@ -75,6 +75,13 @@ export function displayRectToPage(r: Rect, rot: Rotation, w: number, h: number):
   return { x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(by - ay) };
 }
 
+/** The display-space rectangle covering a page-space rectangle. */
+export function pageRectToDisplay(r: Rect, rot: Rotation, w: number, h: number): Rect {
+  const [ax, ay] = pageToDisplay(r.x, r.y, rot, w, h);
+  const [bx, by] = pageToDisplay(r.x + r.w, r.y + r.h, rot, w, h);
+  return normRect(ax, ay, bx, by);
+}
+
 export function normRect(x1: number, y1: number, x2: number, y2: number): Rect {
   return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
 }

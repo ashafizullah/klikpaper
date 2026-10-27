@@ -4,6 +4,8 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/types/src/display/api";
 import type { PageViewport } from "pdfjs-dist/types/src/display/page_viewport";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
+import { findTextRects, type TextItem } from "./textmatch";
+import type { Rect } from "./geometry";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -112,6 +114,13 @@ export async function pageText(page: PDFPageProxy): Promise<string> {
     out += item.hasEOL ? "\n" : item.str && !item.str.endsWith(" ") ? " " : "";
   }
   return out.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Page-space rectangles of each occurrence of `query` on the page (unrotated, top-left origin). */
+export async function textRects(page: PDFPageProxy, query: string): Promise<Rect[][]> {
+  const content = await page.getTextContent();
+  const items = content.items.filter((i) => "str" in i) as TextItem[];
+  return findTextRects(items, query, page.getViewport({ scale: 1, rotation: 0 }).transform);
 }
 
 export interface LinkHandlers {

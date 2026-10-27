@@ -12,7 +12,8 @@ const INSTRUCTIONS = [
   "KlikPaper is a PDF app running on the user's computer.",
   "Tools that take `doc` act on documents open in the app: edits show up live, can be undone by the user, and are written to disk only by save_document.",
   "File tools (merge_pdfs, split_pdf, compress_pdf, ...) read and write PDF files directly; they never overwrite an existing file unless you pass overwrite: true. Use absolute paths.",
-  "Page numbers are 1-based. Positions for add_text are points from the top-left of the page as displayed.",
+  "Page numbers are 1-based. Positions for add_text, add_shape and add_image are points from the top-left of the page as displayed (document_info gives page sizes).",
+  "Annotations (text boxes, highlights, shapes, images) stay editable until the document is saved; the add_* tools return ids that remove_annotations takes. To mark a phrase, use highlight_text rather than guessing coordinates.",
 ].join("\n");
 
 export async function startMcp() {
@@ -71,6 +72,11 @@ export function setupSnippet(client: McpClientId, info: McpInfo): string {
     case "other":
       return `URL: ${info.url}\nAuthorization: ${auth}`;
   }
+}
+
+/** The command that starts the agent in a terminal; null when it isn't a terminal app. */
+export function agentCommand(client: string): string | null {
+  return client === "claude" || client === "codex" || client === "gemini" ? client : null;
 }
 
 /** A readable name for the `clientInfo` an agent sent, e.g. "codex-mcp-client 0.50.0" → "Codex". */

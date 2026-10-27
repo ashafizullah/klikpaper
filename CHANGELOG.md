@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- A built-in terminal (title bar button or Ctrl+`) to run your agent right next to your PDFs; it opens in the active document's folder and can type the agent's command for you
+- New MCP and AI chat tools: highlight, underline or strike through a phrase (`highlight_text`), draw shapes, arrows, whiteout and ink (`add_shape`), place an image or saved signature (`add_image`), list and remove annotations, duplicate pages, undo and redo, and close a document; `add_text` now returns the new text box's id
+
 ## 0.1.4
 
 - The MCP server now has setup steps for Codex, Gemini CLI, VS Code and Cursor besides Claude Code, plus the raw URL and header for any other client; the title bar shows which agent is connected

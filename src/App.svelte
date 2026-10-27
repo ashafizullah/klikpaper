@@ -24,6 +24,11 @@
 
   const doc = $derived(activeDoc());
   let dropping = $state(false);
+  // xterm loads, and the shell starts, only once the terminal is first opened; it then lives until the app quits.
+  let terminalStarted = $state(false);
+  $effect(() => {
+    if (ui.terminal) terminalStarted = true;
+  });
 
   const isImage = (p: string) => /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(p);
 
@@ -94,6 +99,11 @@
     {/key}
   {:else}
     <Home />
+  {/if}
+  {#if terminalStarted}
+    {#await import("./components/TerminalPanel.svelte") then { default: TerminalPanel }}
+      <TerminalPanel />
+    {/await}
   {/if}
 
   {#if dropping}

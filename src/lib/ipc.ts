@@ -107,6 +107,8 @@ export interface McpLink {
 }
 
 type AiStreamEvent = { type: "textDelta"; text: string };
+/** Terminal output arrives base64-encoded. */
+export type TerminalEvent = { type: "data"; data: string } | { type: "exit"; code: number | null };
 
 export const ipc = {
   readFile: async (path: string) => new Uint8Array(await invoke<ArrayBuffer>("read_file", { path })),
@@ -136,6 +138,14 @@ export const ipc = {
   mcpStop: () => invoke<void>("mcp_stop"),
   mcpLink: () => invoke<McpLink>("mcp_link"),
   mcpReply: (id: number, result: unknown) => invoke<void>("mcp_reply", { id, result }),
+  terminalOpen: (cwd: string, cols: number, rows: number, onEvent: (e: TerminalEvent) => void) => {
+    const ch = new Channel<TerminalEvent>();
+    ch.onmessage = onEvent;
+    return invoke<string>("terminal_open", { cwd, cols, rows, onEvent: ch });
+  },
+  terminalWrite: (id: string, data: string) => invoke<void>("terminal_write", { id, data }),
+  terminalResize: (id: string, cols: number, rows: number) => invoke<void>("terminal_resize", { id, cols, rows }),
+  terminalClose: (id: string) => invoke<void>("terminal_close", { id }),
   checkUpdates: () => invoke<void>("check_updates"),
   devAutostartMcp: () => invoke<boolean>("dev_autostart_mcp"),
 };

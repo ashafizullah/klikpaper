@@ -55,6 +55,7 @@
     Sparkles,
     Split,
     Square,
+    SquareTerminal,
     Strikethrough,
     Trash,
     Type,
@@ -130,6 +131,7 @@
     loader: LoaderCircle,
     clock: Clock,
     fit: Maximize,
+    terminal: SquareTerminal,
   };
 </script>
 

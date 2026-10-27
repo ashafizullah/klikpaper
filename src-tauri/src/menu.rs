@@ -60,6 +60,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&item(app, "find", "Find…", Some("CmdOrCtrl+F"))?)
         .item(&item(app, "toggle-sidebar", "Show/Hide Pages", Some("CmdOrCtrl+B"))?)
         .item(&item(app, "toggle-ai", "Show/Hide AI Chat", Some("CmdOrCtrl+J"))?)
+        .item(&item(app, "toggle-terminal", "Show/Hide Terminal", None)?)
         .build()?;
 
     let mut help = SubmenuBuilder::new(app, "Help");

@@ -32,6 +32,8 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "rustls"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+portable-pty = "0.9.0"
+base64 = "0.23.1"
 
 [profile.release]
 codegen-units = 1

@@ -6,6 +6,7 @@ mod keys;
 mod mcp;
 mod menu;
 pub mod pdf;
+mod terminal;
 mod updater;
 
 use std::path::PathBuf;
@@ -62,6 +63,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Opened::default())
+        .manage(terminal::Terminals::default())
         .setup(|app| {
             app.set_menu(menu::build(app.handle())?)?;
             app.on_menu_event(|app, event| menu::handle(app, event.id().as_ref()));
@@ -96,6 +98,10 @@ pub fn run() {
             commands::mcp_stop,
             commands::mcp_link,
             commands::mcp_reply,
+            commands::terminal_open,
+            commands::terminal_write,
+            commands::terminal_resize,
+            commands::terminal_close,
             commands::check_updates,
             commands::dev_autostart_mcp,
         ])

@@ -55,6 +55,8 @@ export const ui = $state({
   toasts: [] as Toast[],
   dialogs: [] as DialogState[],
   findOpen: false,
+  /** The terminal panel; its shell starts the first time it opens. */
+  terminal: false,
   /** The search text and the match being shown (index into the page list of the document). */
   findQuery: "",
   findPage: -1,

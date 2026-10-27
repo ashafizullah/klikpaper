@@ -2,7 +2,7 @@
   import { activate, closeDoc, docTitle, ws } from "../lib/workspace.svelte";
   import { command } from "../lib/commands.svelte";
   import { settings } from "../lib/settings.svelte";
-  import { isMac, mod } from "../lib/ui.svelte";
+  import { isMac, mod, ui } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
   import McpBadge from "./McpBadge.svelte";
@@ -30,6 +30,9 @@
   </div>
   <div class="right">
     <McpBadge />
+    <button class="icon-btn" class:on={ui.terminal} onclick={() => command("toggle-terminal")} title={t("terminal.title") + " (Ctrl+`)"} aria-label={t("terminal.title")}>
+      <Icon name="terminal" />
+    </button>
     <button class="icon-btn" class:on={settings.showChat} onclick={() => command("toggle-ai")} title="{t('ai.title')} ({mod}J)" aria-label={t("ai.title")}>
       <Icon name="chat" />
     </button>

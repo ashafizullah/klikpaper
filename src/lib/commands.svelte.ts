@@ -56,6 +56,9 @@ export async function command(id: string) {
     case "toggle-sidebar":
       settings.showSidebar = !settings.showSidebar;
       return persist();
+    case "toggle-terminal":
+      ui.terminal = !ui.terminal;
+      return;
   }
   if (!doc) return;
   switch (id) {
@@ -126,7 +129,10 @@ export function onKeydown(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
   const key = e.key.toLowerCase();
   let id: string | null = null;
-  if (e.key === "Escape") id = ui.dialogs.length ? "close-dialog" : "escape";
+  if (e.ctrlKey && e.key === "`") id = "toggle-terminal";
+  // Everything else typed in the terminal belongs to the shell.
+  else if ((e.target as HTMLElement | null)?.closest?.(".xterm")) return;
+  else if (e.key === "Escape") id = ui.dialogs.length ? "close-dialog" : "escape";
   else if (mod && !e.altKey) {
     if (e.shiftKey) id = { s: "save-as", z: "redo" }[key] ?? null;
     else

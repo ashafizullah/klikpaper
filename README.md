@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/ashafizullah/klikpaper/main/install
 
 1. Open **Settings → AI agents (MCP)** and enable the local MCP server.
 2. Pick your agent and copy its setup step: a one-time command for Claude Code (`claude mcp add …`), Gemini CLI (`gemini mcp add …`) and VS Code (`code --add-mcp …`), or a config snippet for Codex (`~/.codex/config.toml`) and Cursor (`~/.cursor/mcp.json`). For any other client, choose **Other** to get the server URL and `Authorization` header.
-3. Start your agent and ask, for example, *"merge every PDF in ~/Invoices into one file sorted by date"* or *"in the open document, delete the blank pages and add page numbers"*.
+3. Start your agent (KlikPaper's built-in terminal, **Ctrl+`**, opens in the document's folder) and ask, for example, *"merge every PDF in ~/Invoices into one file sorted by date"* or *"in the open document, delete the blank pages and add page numbers"* or *"highlight every mention of the deadline"*.
 
 The server only listens on `127.0.0.1` and requires a secret token. KlikPaper never starts your agent, sends it prompts or touches its credentials. File tools never overwrite an existing file unless asked to, and only write PDF, PNG and JPEG files.
 
