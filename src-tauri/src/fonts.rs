@@ -56,9 +56,7 @@ pub fn face(family: &str, bold: bool) -> AppResult<Vec<u8>> {
         style: fontdb::Style::Normal,
     };
     let id = db().query(&query).ok_or_else(|| AppError::msg(format!("The font {family} is not installed")))?;
-    let bytes = db()
-        .with_face_data(id, single_face)
-        .ok_or_else(|| AppError::msg(format!("Couldn't read the font {family}")))??;
+    let bytes = db().with_face_data(id, single_face).ok_or_else(|| AppError::msg(format!("Couldn't read the font {family}")))??;
     if !embeddable(&bytes) {
         return Err(AppError::msg(format!("The license of {family} doesn't allow embedding it in documents; pick another font")));
     }

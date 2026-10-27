@@ -41,11 +41,7 @@ pub fn parse(args: impl IntoIterator<Item = String>, cwd: Option<&str>) -> Optio
     }
     let action = action.filter(|a| PDF_ACTIONS.contains(&a.as_str()) || a == IMAGE_ACTION)?;
     let wanted: &[&str] = if action == IMAGE_ACTION { &images::EXTENSIONS } else { &["pdf"] };
-    let paths = files
-        .into_iter()
-        .filter(|p| pdf::has_extension(p, wanted) && p.is_file())
-        .map(|p| p.display().to_string())
-        .collect();
+    let paths = files.into_iter().filter(|p| pdf::has_extension(p, wanted) && p.is_file()).map(|p| p.display().to_string()).collect();
     Some(ShellAction { action, paths })
 }
 

@@ -96,12 +96,12 @@ async fn download(app: AppHandle) {
     if PENDING.lock().unwrap().is_some() || CHECKING.swap(true, Ordering::SeqCst) {
         return;
     }
-    if let Ok(Some(update)) = async { app.updater()?.check().await }.await {
-        if let Ok(bytes) = update.download(|_, _| {}, || {}).await {
-            *PENDING.lock().unwrap() = Some((update, bytes));
-            if let Some(ready) = pending() {
-                let _ = app.emit("update-ready", ready);
-            }
+    if let Ok(Some(update)) = async { app.updater()?.check().await }.await
+        && let Ok(bytes) = update.download(|_, _| {}, || {}).await
+    {
+        *PENDING.lock().unwrap() = Some((update, bytes));
+        if let Some(ready) = pending() {
+            let _ = app.emit("update-ready", ready);
         }
     }
     CHECKING.store(false, Ordering::SeqCst);

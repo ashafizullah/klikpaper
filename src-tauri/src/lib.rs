@@ -6,8 +6,8 @@ mod fonts;
 mod keys;
 mod mcp;
 mod menu;
-mod shell;
 pub mod pdf;
+mod shell;
 mod terminal;
 mod updater;
 
