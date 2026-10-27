@@ -55,7 +55,7 @@ pub struct Options {
     #[serde(default)]
     pub strip_metadata: bool,
     #[serde(default)]
-    pub compress: Option<compress::Level>,
+    pub compress: Option<compress::Compression>,
     #[serde(default)]
     pub protect: Option<Protect>,
 }

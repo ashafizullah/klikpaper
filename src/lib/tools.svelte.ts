@@ -4,7 +4,7 @@
 // asked to, and only write PDF/PNG/JPEG files (the backend enforces this too).
 import type { Corner, Doc, MarkupKind, Overlay, PageItem } from "./doc.svelte";
 import { exportImages } from "./export";
-import { errorText, ipc, type CompressLevel, type PageSize } from "./ipc";
+import { errorText, ipc, type CompressLevel, type Compression, type PageSize } from "./ipc";
 import { baseName, formatPages, joinPath, parsePages, splitGroups, stripExt } from "./pagespec";
 import { newId, settings } from "./settings.svelte";
 import { displayRectToPage, displaySize, displayToPage, normRect, pageRectToDisplay, type Rect } from "./geometry";
@@ -724,15 +724,27 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "compress_pdf",
-    description: "Makes a PDF smaller by downscaling and re-encoding its photos. low = best quality, high = smallest file.",
-    parameters: obj({ path: { type: "string" }, level: { type: "string", enum: ["low", "medium", "high"] }, output: { type: "string" }, overwrite: { type: "boolean" } }, ["path", "output"]),
+    description: "Makes a PDF smaller by downscaling and re-encoding its photos. low = best quality, high = smallest file; or pass quality (10-100) for a custom setting.",
+    parameters: obj(
+      {
+        path: { type: "string" },
+        level: { type: "string", enum: ["low", "medium", "high"] },
+        quality: { type: "integer", minimum: 10, maximum: 100, description: "Custom quality instead of level: 90 is about low, 70 medium, 45 high." },
+        output: { type: "string" },
+        overwrite: { type: "boolean" },
+      },
+      ["path", "output"],
+    ),
     scope: "mcp",
     async run(args) {
       const path = str(args, "path");
       requirePdf(path);
       const output = str(args, "output");
       await checkOutput(output, args.overwrite === true, [path]);
-      const level = (["low", "medium", "high"].includes(String(args.level)) ? args.level : "medium") as CompressLevel;
+      const level: Compression =
+        args.quality !== undefined
+          ? Math.min(100, Math.max(10, Math.round(num(args, "quality"))))
+          : ((["low", "medium", "high"].includes(String(args.level)) ? args.level : "medium") as CompressLevel);
       const n = await pageCount(path);
       const before = (await ipc.fileStats([path]))[0].bytes;
       const res = await ipc.assemble({

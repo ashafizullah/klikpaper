@@ -1,6 +1,6 @@
 // Writing documents: page work goes to Rust (lopdf), drawing to pdf-lib.
 import type { Doc } from "./doc.svelte";
-import { ipc, type AssembleResult, type CompressLevel, type PageSpec, type SourceSpec } from "./ipc";
+import { ipc, type AssembleResult, type Compression, type PageSpec, type SourceSpec } from "./ipc";
 import { baseName, joinPath, stripExt } from "./pagespec";
 import { fontFile } from "./fonts.svelte";
 
@@ -63,7 +63,7 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
 export interface WriteOptions {
   /** 0-based positions in the document; all pages when omitted. */
   pages?: number[];
-  compress?: CompressLevel | null;
+  compress?: Compression | null;
   /** Overrides the document's own protection setting (empty string = none). */
   password?: string | null;
 }

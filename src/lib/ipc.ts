@@ -45,9 +45,11 @@ export interface PageSpec {
   rotate: number;
 }
 export type CompressLevel = "low" | "medium" | "high";
+/** A preset, or a custom quality from 10 (smallest file) to 100 (best quality). */
+export type Compression = CompressLevel | number;
 export interface AssembleOptions {
   stripMetadata?: boolean;
-  compress?: CompressLevel | null;
+  compress?: Compression | null;
   protect?: { userPassword: string; ownerPassword?: string | null } | null;
 }
 export interface AssembleJob {

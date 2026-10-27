@@ -17,32 +17,56 @@ pub enum Level {
     High,
 }
 
-impl Level {
-    /// Longest side in pixels; about 300, 200 and 140 DPI on a full A4 page.
-    fn max_side(self) -> u32 {
-        match self {
-            Level::Low => 3500,
-            Level::Medium => 2300,
-            Level::High => 1600,
-        }
-    }
+/// A preset level, or a custom quality from 10 (smallest) to 100 (best) set with a slider.
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum Compression {
+    Preset(Level),
+    Custom(u8),
+}
 
-    fn quality(self) -> u8 {
-        match self {
-            Level::Low => 85,
-            Level::Medium => 72,
-            Level::High => 55,
-        }
+impl From<Level> for Compression {
+    fn from(level: Level) -> Self {
+        Compression::Preset(level)
     }
+}
 
-    /// Losslessly stored images (screenshots, diagrams) only become JPEG at the stronger levels.
-    fn converts_lossless(self) -> bool {
-        self != Level::Low
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Settings {
+    /// Longest side in pixels.
+    max_side: u32,
+    /// JPEG quality.
+    quality: u8,
+    /// Whether losslessly stored images (screenshots, diagrams) may become JPEG.
+    convert_lossless: bool,
+    /// Whether embedded page thumbnails are dropped.
+    drop_thumbs: bool,
+}
+
+impl Compression {
+    fn settings(self) -> Settings {
+        match self {
+            // About 300, 200 and 140 DPI on a full A4 page.
+            Compression::Preset(Level::Low) => Settings { max_side: 3500, quality: 85, convert_lossless: false, drop_thumbs: false },
+            Compression::Preset(Level::Medium) => Settings { max_side: 2300, quality: 72, convert_lossless: true, drop_thumbs: true },
+            Compression::Preset(Level::High) => Settings { max_side: 1600, quality: 55, convert_lossless: true, drop_thumbs: true },
+            // Curves through the presets: 90 is about Light, 70 Recommended, 45 Strong.
+            Compression::Custom(q) => {
+                let q = u32::from(q.clamp(10, 100));
+                Settings {
+                    max_side: 800 + q * q * 3 / 10,
+                    quality: (30 + (q - 10) * 65 / 90) as u8,
+                    convert_lossless: q < 90,
+                    drop_thumbs: q < 90,
+                }
+            }
+        }
     }
 }
 
 /// Re-encodes the document's images; returns how many were replaced.
-pub fn run(doc: &mut Document, level: Level) -> usize {
+pub fn run(doc: &mut Document, compression: Compression) -> usize {
+    let level = compression.settings();
     // Soft masks and stencil masks hold transparency; lossy artefacts there show as halos.
     let masks: HashSet<ObjectId> = doc
         .objects
@@ -67,7 +91,7 @@ pub fn run(doc: &mut Document, level: Level) -> usize {
         doc.objects.insert(id, Object::Stream(new));
         replaced += 1;
     }
-    if level != Level::Low {
+    if level.drop_thumbs {
         // Embedded page thumbnails are redundant: every viewer renders its own.
         let pages: Vec<ObjectId> = doc.get_pages().into_values().collect();
         for page in pages {
@@ -108,7 +132,7 @@ fn filters(stream: &Stream) -> Vec<Vec<u8>> {
     }
 }
 
-fn recompress(doc: &Document, stream: &Stream, level: Level) -> Option<Stream> {
+fn recompress(doc: &Document, stream: &Stream, level: Settings) -> Option<Stream> {
     let dict = &stream.dict;
     if dict.get(b"ImageMask").and_then(Object::as_bool).unwrap_or(false) || dict.has(b"Decode") || dict.has(b"Mask") {
         return None;
@@ -127,7 +151,7 @@ fn recompress(doc: &Document, stream: &Stream, level: Level) -> Option<Stream> {
             }
             img
         }
-        [b"FlateDecode"] | [] if level.converts_lossless() => {
+        [b"FlateDecode"] | [] if level.convert_lossless => {
             if dict.get(b"BitsPerComponent").and_then(Object::as_i64).ok()? != 8 {
                 return None;
             }
@@ -142,11 +166,11 @@ fn recompress(doc: &Document, stream: &Stream, level: Level) -> Option<Stream> {
         _ => return None,
     };
 
-    let max = level.max_side();
+    let max = level.max_side;
     let image = if width.max(height) > max { image.resize(max, max, FilterType::Triangle) } else { image };
     let image = if channels == 1 { DynamicImage::ImageLuma8(image.to_luma8()) } else { DynamicImage::ImageRgb8(image.to_rgb8()) };
     let mut jpeg = Vec::new();
-    JpegEncoder::new_with_quality(&mut jpeg, level.quality()).encode_image(&image).ok()?;
+    JpegEncoder::new_with_quality(&mut jpeg, level.quality).encode_image(&image).ok()?;
     // Only worth it when clearly smaller than what is stored now.
     if jpeg.len() as f64 > stream.content.len() as f64 * 0.9 {
         return None;
@@ -202,6 +226,26 @@ mod tests {
     }
 
     #[test]
+    fn custom_quality_follows_the_presets() {
+        let custom = |q| Compression::Custom(q).settings();
+        // Near the presets they stand for, and monotonic in between.
+        assert!(custom(90).max_side.abs_diff(3500) < 400 && custom(90).quality.abs_diff(85) < 5 && !custom(90).convert_lossless);
+        assert!(custom(70).max_side.abs_diff(2300) < 100 && custom(70).quality.abs_diff(72) < 3);
+        assert!(custom(45).max_side.abs_diff(1600) < 250 && custom(45).quality.abs_diff(55) < 3);
+        assert_eq!(custom(0), custom(10));
+        assert_eq!(custom(255), custom(100));
+        for q in 10..100 {
+            assert!(custom(q).max_side <= custom(q + 1).max_side && custom(q).quality <= custom(q + 1).quality);
+        }
+    }
+
+    #[test]
+    fn reads_levels_and_numbers() {
+        assert_eq!(serde_json::from_str::<Compression>("\"medium\"").unwrap(), Compression::Preset(Level::Medium));
+        assert_eq!(serde_json::from_str::<Compression>("35").unwrap(), Compression::Custom(35));
+    }
+
+    #[test]
     fn shrinks_photos_and_keeps_the_page() {
         let dir = temp_dir();
         let input = dir.join("photo.pdf");
@@ -212,7 +256,7 @@ mod tests {
             sources: vec![Source { id: "p".into(), path: input.display().to_string(), password: None }],
             pages: vec![PageRef { source: "p".into(), index: 0, rotate: 0 }],
             output: out.display().to_string(),
-            options: Options { compress: Some(Level::High), ..Default::default() },
+            options: Options { compress: Some(Level::High.into()), ..Default::default() },
         };
         let res = assemble(&job).unwrap();
         assert_eq!(res.images, 1);
@@ -224,8 +268,15 @@ mod tests {
         assert!(image::load_from_memory(&img.content).is_ok());
 
         // The gentlest level leaves lossless images alone.
-        let job = AssembleJob { options: Options { compress: Some(Level::Low), ..Default::default() }, ..job };
+        let job = AssembleJob { options: Options { compress: Some(Level::Low.into()), ..Default::default() }, ..job };
         assert_eq!(assemble(&job).unwrap().images, 0);
+
+        // A low custom quality shrinks more than a high one.
+        let size = |q: u8| {
+            let job = AssembleJob { options: Options { compress: Some(Compression::Custom(q)), ..Default::default() }, ..job.clone() };
+            assemble(&job).unwrap().bytes
+        };
+        assert!(size(20) < size(80));
         let _ = std::fs::remove_dir_all(dir);
     }
 }
