@@ -2,7 +2,7 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.11
 
 - Menu klik kanan: klik kanan halaman, teks yang diblok, anotasi, penanda komentar, thumbnail halaman, tab, atau file terbaru untuk memunculkan aksi yang sesuai, misalnya menstabilo atau menyalin teks yang diblok, menambah komentar atau teks tepat di titik yang diklik, menggandakan atau menghapus anotasi, memutar, menyisipkan, atau menghapus halaman, menutup tab lain, atau membuka lokasi file di Finder/Explorer
 

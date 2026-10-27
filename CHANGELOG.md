@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.11
 
 - Right-click menus: right-click a page, selected text, an annotation, a comment pin, a page thumbnail, a tab or a recent file to get the actions for it, such as highlight or copy the selected text, add a comment or text right where you clicked, duplicate or delete an annotation, rotate, insert or delete pages, close other tabs, or show the file in Finder/Explorer
 
