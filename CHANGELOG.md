@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.8
 
 - Resize pages: put pages on A4, Letter, Legal, A3 or A5 paper (from the ⋯ menu or File → Resize Pages). The content is scaled to fit, never stretched, and centered, with an optional margin. You see it right away, Undo takes it back, and Original returns pages to their own size
 - AI agents can resize pages too (`resize_pages`)

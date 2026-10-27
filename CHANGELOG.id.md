@@ -2,7 +2,7 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.8
 
 - Ubah ukuran halaman: pindahkan halaman ke kertas A4, Letter, Legal, A3, atau A5 (dari menu ⋯ atau Berkas → Ubah Ukuran Halaman). Isinya diperkecil atau diperbesar agar pas, tidak ditarik, dan diletakkan di tengah, dengan margin bila perlu. Hasilnya langsung terlihat, Urungkan bisa membatalkannya, dan Asli mengembalikan halaman ke ukurannya sendiri
 - Agen AI juga bisa mengubah ukuran halaman (`resize_pages`)
