@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.10
 
 - Comments: pick the comment tool and click a spot on a page to leave a comment, then reply, mark it done or drag its pin in the new Comments panel (Cmd/Ctrl+Shift+K). Comments are saved inside the PDF as standard notes, so the people you send the file to can read and answer them in KlikPaper, Acrobat or Preview
 - When an open file changes elsewhere (say, a colleague saves it in a shared Google Drive, Dropbox or OneDrive folder), KlikPaper reloads it; if you have unsaved changes, it adds their new comments so saving keeps both

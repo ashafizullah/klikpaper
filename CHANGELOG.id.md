@@ -2,7 +2,7 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.10
 
 - Komentar: pilih alat komentar lalu klik di bagian halaman untuk meninggalkan komentar, lalu balas, tandai selesai, atau geser penandanya di panel Komentar yang baru (Cmd/Ctrl+Shift+K). Komentar disimpan di dalam PDF sebagai catatan standar, jadi orang yang Anda kirimi file bisa membaca dan membalasnya di KlikPaper, Acrobat, atau Preview
 - Saat file yang sedang terbuka diubah di tempat lain (misalnya rekan menyimpannya di folder bersama Google Drive, Dropbox, atau OneDrive), KlikPaper membukanya ulang; kalau ada perubahan yang belum Anda simpan, komentar baru mereka ditambahkan supaya saat disimpan keduanya tetap ada
