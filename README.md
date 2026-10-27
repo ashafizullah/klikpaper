@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="design/screenshot.png" width="900" alt="KlikPaper with a highlighted PDF, the page sidebar and the Ask this PDF panel">
+  <img src="design/screenshot.png" width="900" alt="KlikPaper with a PDF an AI agent highlighted and annotated in a handwritten font over MCP, the page sidebar and the Ask this PDF panel">
 </p>
 
 

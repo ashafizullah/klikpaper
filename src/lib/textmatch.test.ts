@@ -39,6 +39,15 @@ describe("findTextRects", () => {
     expect(r.h).toBeCloseTo(10);
   });
 
+  test("places a match by measured widths when given them", () => {
+    // "iiiWW": narrow i's, wide W's; the measured share puts "WW" further right than equal widths would.
+    const it = item("iiiWW", 0, 700, 10, 30);
+    const share = (_: TextItem, chars: number) => [0, 0.1, 0.2, 0.3, 0.65, 1][chars];
+    const [[r]] = findTextRects([it], "ww", TO_PAGE, share);
+    expect(r.x).toBeCloseTo(9);
+    expect(r.w).toBeCloseTo(21);
+  });
+
   test("no match", () => {
     expect(findTextRects([item("Hello", 0, 700)], "bye", TO_PAGE)).toEqual([]);
   });

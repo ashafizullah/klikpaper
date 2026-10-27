@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Highlights from `highlight_text` line up with the text exactly: positions inside a line are measured with the PDF's own font
+- The font size box shows sizes set by an agent instead of going blank
+
 ## 0.1.5
 
 - A built-in terminal (title bar button or Ctrl+`) to run your agent right next to your PDFs; it opens in the active document's folder and can type the agent's command for you

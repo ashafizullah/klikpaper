@@ -45,6 +45,13 @@
     if (showSize) loadSystemFonts().catch((e) => toast(errorText(e), "error"));
   });
 
+  // A size set elsewhere (by an agent, say) joins the list so the box doesn't show blank.
+  const sizes = $derived.by(() => {
+    const list = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
+    const size = selected?.kind === "text" ? selected.size : ui.fontSize;
+    return list.includes(size) ? list : [...list, size].sort((a, b) => a - b);
+  });
+
   const currentFont = $derived(selected?.kind === "text" ? (selected.font ?? "") : settings.textFont);
 
   async function setFont(select: HTMLSelectElement) {
@@ -93,7 +100,7 @@
           {#each fonts.list as f (f.family)}<option value={f.family}>{f.family}</option>{/each}
         </select>
         <select class="field small" value={selected?.kind === "text" ? selected.size : ui.fontSize} onchange={(e) => setSize(Number(e.currentTarget.value))} aria-label={t("toolbar.fontSize")}>
-          {#each [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64] as s (s)}<option value={s}>{s}</option>{/each}
+          {#each sizes as s (s)}<option value={s}>{s}</option>{/each}
         </select>
       {/if}
       {#if selected && (selected.kind === "rect" || selected.kind === "ellipse")}

@@ -15,19 +15,24 @@ export interface TextItem {
 
 type Matrix = number[];
 
+/** Advance of an item's first `chars` characters as a share of the whole item (0..1). */
+export type Share = (item: TextItem, chars: number) => number;
+
+/** Without font metrics: every character equally wide. */
+const evenShare: Share = (item, chars) => chars / (item.str.length || 1);
+
 const apply = (m: Matrix, x: number, y: number): [number, number] => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 
 /** Box of characters [from, to) of an item, mapped by `toPage` (user space → page space). */
-function itemRect(item: TextItem, from: number, to: number, toPage: Matrix): Rect {
+function itemRect(item: TextItem, from: number, to: number, toPage: Matrix, share: Share): Rect {
   const [a, b, c, d, e, f] = item.transform;
   const len = Math.hypot(a, b) || 1;
   const [ux, uy] = [a / len, b / len];
   const vlen = Math.hypot(c, d) || 1;
   const [vx, vy] = [c / vlen, d / vlen];
   const h = item.height || vlen;
-  const n = item.str.length || 1;
-  const s = (item.width * from) / n;
-  const t = (item.width * to) / n;
+  const s = item.width * share(item, from);
+  const t = item.width * share(item, to);
   // From just below the baseline (descenders) to the top of capitals.
   const corners = [s, t].flatMap((along) =>
     [-0.22, 0.9].map((up) => apply(toPage, e + ux * along + vx * up * h, f + uy * along + vy * up * h)),
@@ -40,7 +45,7 @@ function itemRect(item: TextItem, from: number, to: number, toPage: Matrix): Rec
 }
 
 /** Rectangles (page space) covering each occurrence of `query`; one list per occurrence. */
-export function findTextRects(items: TextItem[], query: string, toPage: Matrix): Rect[][] {
+export function findTextRects(items: TextItem[], query: string, toPage: Matrix, share: Share = evenShare): Rect[][] {
   const needle = query.replace(/\s+/g, "").toLowerCase();
   if (!needle) return [];
   const chars: { item: number; index: number }[] = [];
@@ -61,7 +66,7 @@ export function findTextRects(items: TextItem[], query: string, toPage: Matrix):
       const item = chars[from].item;
       let to = from;
       while (to + 1 < at + needle.length && chars[to + 1].item === item) to++;
-      rects.push(itemRect(items[item], chars[from].index, chars[to].index + 1, toPage));
+      rects.push(itemRect(items[item], chars[from].index, chars[to].index + 1, toPage, share));
       from = to + 1;
     }
     out.push(rects);

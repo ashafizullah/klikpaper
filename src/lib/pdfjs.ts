@@ -119,8 +119,19 @@ export async function pageText(page: PDFPageProxy): Promise<string> {
 /** Page-space rectangles of each occurrence of `query` on the page (unrotated, top-left origin). */
 export async function textRects(page: PDFPageProxy, query: string): Promise<Rect[][]> {
   const content = await page.getTextContent();
-  const items = content.items.filter((i) => "str" in i) as TextItem[];
-  return findTextRects(items, query, page.getViewport({ scale: 1, rotation: 0 }).transform);
+  const items = content.items.filter((i) => "str" in i) as (TextItem & { fontName: string })[];
+  // Where a match starts inside an item, measured with the PDF's own font: pdf.js
+  // registers it under the item's fontName once the page has been drawn. Until then
+  // the generic family it reports is still closer than equal-width characters.
+  const ctx = document.createElement("canvas").getContext("2d");
+  const share = (item: TextItem, chars: number) => {
+    const { str, fontName } = item as TextItem & { fontName: string };
+    if (!ctx || !str) return chars / (str.length || 1);
+    ctx.font = `100px "${fontName}", ${content.styles[fontName]?.fontFamily ?? "sans-serif"}`;
+    const whole = ctx.measureText(str).width;
+    return whole > 0 ? ctx.measureText(str.slice(0, chars)).width / whole : chars / str.length;
+  };
+  return findTextRects(items, query, page.getViewport({ scale: 1, rotation: 0 }).transform, share);
 }
 
 export interface LinkHandlers {
