@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { findTextRects, type TextItem } from "./textmatch";
+import { findTextRects, groupLines, type TextItem } from "./textmatch";
 
 // A US Letter page: pdf.js's viewport transform at scale 1, rotation 0.
 const TO_PAGE = [1, 0, 0, -1, 0, 792];
@@ -50,5 +50,34 @@ describe("findTextRects", () => {
 
   test("no match", () => {
     expect(findTextRects([item("Hello", 0, 700)], "bye", TO_PAGE)).toEqual([]);
+  });
+});
+
+describe("groupLines", () => {
+  test("joins items on one baseline and splits lines and columns", () => {
+    const lines = groupLines(
+      [
+        item("Total", 72, 700, 12, 30),
+        item("amount", 106, 700, 12, 42),
+        item("Rp 5.000", 400, 700, 12, 50),
+        item("Second line", 72, 684, 12, 66),
+        item("   ", 72, 660),
+      ],
+      TO_PAGE,
+    );
+    expect(lines.map((l) => l.text)).toEqual(["Total amount", "Rp 5.000", "Second line"]);
+    const [first] = lines;
+    expect(first.size).toBe(12);
+    expect(first.x).toBeCloseTo(72);
+    expect(first.baseline).toBeCloseTo(92);
+    // From 72 to the end of "amount" (106 + 42), cap height above the baseline.
+    expect(first.rect.x).toBeCloseTo(72);
+    expect(first.rect.w).toBeCloseTo(76);
+    expect(first.rect.y).toBeCloseTo(92 - 10.8);
+  });
+
+  test("leaves out rotated text", () => {
+    const vertical: TextItem = { str: "up", transform: [0, 10, -10, 0, 300, 100], width: 20, height: 10 };
+    expect(groupLines([vertical], TO_PAGE)).toEqual([]);
   });
 });

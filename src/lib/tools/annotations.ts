@@ -6,7 +6,8 @@ import { newId, settings } from "../settings.svelte";
 import { displaySize, displayToPage, normRect, pageRectToDisplay, type Rect } from "../geometry";
 import { normalizeImage } from "../images";
 import { fonts, loadSystemFonts, showFont } from "../fonts.svelte";
-import { textRects } from "../pdfjs";
+import { textLines, textRects } from "../pdfjs";
+import { replaceLine } from "../edittext";
 import { DEFAULT_COLORS } from "../ui.svelte";
 import { DOC, PAGES, obj, str, num, findDoc, pageIds, pageArg, color, boxOnPage, pointOnPage, type ToolSpec } from "./args";
 
@@ -146,6 +147,30 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
       doc.change(() => doc.overlays.push(...added));
       const pages = added.map((o) => doc.pages.findIndex((p) => p.id === o.page) + 1);
       return { matches, pages, ids: added.map((o) => o.id) };
+    },
+  },
+  {
+    name: "replace_text",
+    description:
+      "Changes words already printed in the PDF. Each line containing `text` is covered with a box in the page's background color and written again with `text` replaced, in the same size and color and the closest installed font. The original stays in the file underneath (covered, not removed), so never use this to hide sensitive information. Matching is exact (case-sensitive) within a line. Works best on pages the user has scrolled to. Undoable; saved when the user saves.",
+    parameters: obj({ doc: DOC, text: { type: "string" }, replacement: { type: "string" }, pages: PAGES }, ["text", "replacement"]),
+    scope: "both",
+    async run(args) {
+      const doc = findDoc(args);
+      const find = str(args, "text");
+      const replacement = typeof args.replacement === "string" ? args.replacement : "";
+      const ids = args.pages ? pageIds(doc, str(args, "pages")) : doc.pages.map((p) => p.id);
+      const changed: { page: number; id: string; text: string; font: string }[] = [];
+      for (const id of ids) {
+        const page = doc.pageById(id)!;
+        for (const line of await textLines(await doc.pdfPage(page))) {
+          if (!line.text.includes(find)) continue;
+          const box = await replaceLine(doc, page, line, line.text.split(find).join(replacement));
+          changed.push({ page: doc.pages.indexOf(page) + 1, id: box.id, text: box.text, font: `${box.font ?? "Liberation Sans"}${box.bold ? " Bold" : ""}` });
+        }
+      }
+      if (!changed.length) return `"${find}" was not found as printed text${args.pages ? " on those pages" : ""}`;
+      return changed;
     },
   },
   {

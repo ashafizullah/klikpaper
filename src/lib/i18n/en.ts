@@ -61,6 +61,7 @@ const en = {
 
   "tool.select": "Select and edit",
   "tool.text": "Add text",
+  "tool.editText": "Edit text: click a line to change it",
   "tool.highlight": "Highlight text (select it)",
   "tool.underline": "Underline text (select it)",
   "tool.strike": "Strike through text (select it)",

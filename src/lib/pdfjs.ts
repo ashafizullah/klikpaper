@@ -4,7 +4,7 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/types/src/display/api";
 import type { PageViewport } from "pdfjs-dist/types/src/display/page_viewport";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
-import { findTextRects, type TextItem } from "./textmatch";
+import { findTextRects, groupLines, type TextItem, type TextLine } from "./textmatch";
 import type { Rect } from "./geometry";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -37,6 +37,8 @@ export async function openPdf(data: Uint8Array, password?: string): Promise<PDFD
     wasmUrl: "/pdfjs/wasm/",
     iccUrl: "/pdfjs/iccs/",
     enableXfa: false,
+    // Keeps each font's name (and data) after loading, so Edit text can match the original font.
+    fontExtraProperties: true,
   });
   try {
     return await task.promise;
@@ -132,6 +134,30 @@ export async function textRects(page: PDFPageProxy, query: string): Promise<Rect
     return whole > 0 ? ctx.measureText(str.slice(0, chars)).width / whole : chars / str.length;
   };
   return findTextRects(items, query, page.getViewport({ scale: 1, rotation: 0 }).transform, share);
+}
+
+/** A line of the page's text with what is known about its font. */
+export interface PageLine extends TextLine {
+  /** The PDF's font name, e.g. "ABCDEF+Georgia-Bold" (empty until the page has been drawn). */
+  pdfFont: string;
+  /** CSS generic family pdf.js guessed: "serif", "sans-serif" or "monospace". */
+  generic: string;
+  /** pdf.js read the font as bold (or black). */
+  bold: boolean;
+}
+
+/** The page's horizontal lines of text, in page space (unrotated, top-left origin). */
+export async function textLines(page: PDFPageProxy): Promise<PageLine[]> {
+  const content = await page.getTextContent();
+  const items = content.items.filter((i) => "str" in i) as (TextItem & { fontName: string })[];
+  return groupLines(items, page.getViewport({ scale: 1, rotation: 0 }).transform).map((line) => {
+    let font: { name?: string; bold?: boolean; black?: boolean } | undefined;
+    try {
+      // Loaded while drawing the page; asking before that throws.
+      font = page.commonObjs.get(line.fontName) as typeof font;
+    } catch {}
+    return { ...line, pdfFont: font?.name ?? "", bold: !!(font?.bold || font?.black), generic: content.styles[line.fontName]?.fontFamily ?? "sans-serif" };
+  });
 }
 
 export interface LinkHandlers {

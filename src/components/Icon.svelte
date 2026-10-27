@@ -63,6 +63,7 @@
     Strikethrough,
     Trash,
     Type,
+    TextCursorInput,
     Underline,
     Undo2,
     X,
@@ -138,6 +139,7 @@
     home: House,
     alert: CircleAlert,
     tiles: LayoutGrid,
+    "edit-text": TextCursorInput,
     list: List,
     terminal: SquareTerminal,
   };

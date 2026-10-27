@@ -39,6 +39,7 @@
 - **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF
 - **Compress**: three levels or a custom quality slider that downscale and re-encode photos; text, vector graphics and fonts are untouched. Every level shows its resulting file size before you save
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
+- **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact)
 - **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes in any font installed on your computer (embedded when you save), freehand drawing, rectangles, ellipses, arrows, white-out, images
 - **Sign**: draw, type or upload a signature, place and resize it. This is a picture of your signature, not a certificate-based digital signature
 - **Watermark and page numbers**, previewed live on every page

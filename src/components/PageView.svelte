@@ -168,6 +168,7 @@
 
 <div
   class="page"
+  data-page-id={page.id}
   class:current={doc.current === index}
   bind:this={pageEl}
   style:width="{cssW}px"

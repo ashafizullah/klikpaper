@@ -4,6 +4,7 @@ import { settings } from "./settings.svelte";
 export type Tool =
   | "select"
   | "text"
+  | "edittext"
   | "highlight"
   | "underline"
   | "strike"

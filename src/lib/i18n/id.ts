@@ -63,6 +63,7 @@ const id: Record<Key, string> = {
 
   "tool.select": "Pilih dan ubah",
   "tool.text": "Tambah teks",
+  "tool.editText": "Edit teks: klik satu baris untuk mengubahnya",
   "tool.highlight": "Stabilo teks (blok teksnya)",
   "tool.underline": "Garis bawahi teks (blok teksnya)",
   "tool.strike": "Coret teks (blok teksnya)",

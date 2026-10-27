@@ -13,7 +13,7 @@ const INSTRUCTIONS = [
   "Tools that take `doc` act on documents open in the app: edits show up live, can be undone by the user, and are written to disk only by save_document.",
   "File tools (merge_pdfs, split_pdf, compress_pdf, ...) read and write PDF files directly; they never overwrite an existing file unless you pass overwrite: true. Use absolute paths.",
   "Page numbers are 1-based. Positions for add_text, add_shape and add_image are points from the top-left of the page as displayed (document_info gives page sizes).",
-  "Annotations (text boxes, highlights, shapes, images) stay editable until the document is saved; the add_* tools return ids that remove_annotations takes. To mark a phrase, use highlight_text rather than guessing coordinates.",
+  "Annotations (text boxes, highlights, shapes, images) stay editable until the document is saved; the add_* tools return ids that remove_annotations takes. To mark a phrase, use highlight_text rather than guessing coordinates; to change printed words, use replace_text.",
 ].join("\n");
 
 export async function startMcp() {

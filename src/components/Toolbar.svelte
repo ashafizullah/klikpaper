@@ -18,6 +18,7 @@
   const TOOLS: { id: Tool; icon: string; label: Key }[] = [
     { id: "select", icon: "select", label: "tool.select" },
     { id: "text", icon: "text", label: "tool.text" },
+    { id: "edittext", icon: "edit-text", label: "tool.editText" },
     { id: "highlight", icon: "highlight", label: "tool.highlight" },
     { id: "underline", icon: "underline", label: "tool.underline" },
     { id: "strike", icon: "strike", label: "tool.strike" },

@@ -7,13 +7,15 @@
   import { displayRectToPage, displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
   import { newId, settings } from "../lib/settings.svelte";
   import { fontStack, showFont } from "../lib/fonts.svelte";
+  import { replaceLine } from "../lib/edittext";
+  import { textLines, type PageLine } from "../lib/pdfjs";
   import { toolColor, ui } from "../lib/ui.svelte";
   import { arrowHead, LINE_HEIGHT } from "../lib/layout";
 
   let { doc, page, scale, rotation, pageEl }: { doc: Doc; page: PageItem; scale: number; rotation: Rotation; pageEl: HTMLDivElement } = $props();
 
   const items = $derived(doc.overlays.filter((o) => o.page === page.id));
-  const drawing = $derived(["text", "ink", "rect", "ellipse", "arrow", "whiteout"].includes(ui.tool) || (ui.tool === "image" && !!ui.pendingImage));
+  const drawing = $derived(["text", "edittext", "ink", "rect", "ellipse", "arrow", "whiteout"].includes(ui.tool) || (ui.tool === "image" && !!ui.pendingImage));
   const markupTool = $derived(ui.tool === "highlight" || ui.tool === "underline" || ui.tool === "strike");
 
   let editingId = $state<string | null>(null);
@@ -45,6 +47,11 @@
     e.preventDefault();
     doc.selectedOverlay = null;
     const [x, y] = toPage(e);
+    if (ui.tool === "edittext") {
+      const line = lineAt(x, y);
+      if (line) editLine(line);
+      return;
+    }
     const color = toolColor(ui.tool);
     switch (ui.tool) {
       case "text": {
@@ -87,6 +94,10 @@
   }
 
   function onSurfaceMove(e: PointerEvent) {
+    if (ui.tool === "edittext") {
+      hovered = lineAt(...toPage(e)) ?? null;
+      return;
+    }
     if (!draft || !start) return;
     const [x, y] = toPage(e);
     const cx = clampX(x);
@@ -119,6 +130,43 @@
     if (d.kind === "arrow" && Math.hypot(d.x2 - d.x1, d.y2 - d.y1) < 4) return;
     if (d.kind === "ink" && d.points.length < 4) return;
     doc.addOverlay(d);
+  }
+
+  // ---- editing the page's own text (cover it, then type over it) --------
+
+  let lines = $state<PageLine[]>([]);
+  let hovered = $state<PageLine | null>(null);
+
+  // The page's lines, read when the Edit text tool is picked.
+  $effect(() => {
+    if (ui.tool !== "edittext") {
+      hovered = null;
+      return;
+    }
+    let live = true;
+    doc
+      .pdfPage(page)
+      .then(textLines)
+      .then((found) => live && (lines = found))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  });
+
+  const lineAt = (x: number, y: number) => lines.find((l) => x >= l.rect.x - 2 && x <= l.rect.x + l.rect.w + 2 && y >= l.rect.y - 1 && y <= l.rect.y + l.rect.h + 1);
+
+  /** The text box that replaces a line, made by Edit text (emptying it erases the line). */
+  let replacingId: string | null = null;
+
+  async function editLine(line: PageLine) {
+    hovered = null;
+    const box = await replaceLine(doc, page, line);
+    ui.tool = "select";
+    createdId = box.id;
+    replacingId = box.id;
+    await startEditing(box.id);
+    editor?.select();
   }
 
   // ---- highlight / underline / strike from a text selection ------------
@@ -246,12 +294,18 @@
   function stopEditing() {
     const o = editingId ? doc.overlay(editingId) : undefined;
     if (o?.kind === "text" && !o.text.trim()) {
-      // An empty new text box is dropped, as if it was never added.
-      if (createdId === o.id) doc.undo();
-      else doc.removeOverlay(o.id);
+      if (replacingId === o.id) {
+        // An emptied replacement leaves the cover: the line is erased, still one step to undo.
+        doc.overlays = doc.overlays.filter((x) => x.id !== o.id);
+        doc.selectedOverlay = null;
+      } else if (createdId === o.id) {
+        // An empty new text box is dropped, as if it was never added.
+        doc.undo();
+      } else doc.removeOverlay(o.id);
     }
     editingId = null;
     createdId = null;
+    replacingId = null;
     editCheckpointed = false;
   }
 
@@ -334,6 +388,9 @@
         <path class="hit stroke" role="button" tabindex="-1" d={inkPath(o.points)} fill="none" stroke={o.color} stroke-width={o.width} stroke-linecap="round" stroke-linejoin="round" onpointerdown={(e) => onItemDown(e, o)} />
       {/if}
     {/each}
+    {#if hovered}
+      <rect class="outline line" x={hovered.rect.x - 2} y={hovered.rect.y - 1} width={hovered.rect.w + 4} height={hovered.rect.h + 2} rx="1.5" />
+    {/if}
     {#if doc.selectedOverlay}
       {@const sel = items.find((o) => o.id === doc.selectedOverlay)}
       {#if sel && (sel.kind === "rect" || sel.kind === "ellipse")}
@@ -420,7 +477,7 @@
   <div
     class="surface"
     class:crosshair={ui.tool !== "text" && ui.tool !== "image"}
-    class:texting={ui.tool === "text"}
+    class:texting={ui.tool === "text" || ui.tool === "edittext"}
     role="application"
     onpointerdown={onSurfaceDown}
     onpointermove={onSurfaceMove}
@@ -456,6 +513,9 @@
   }
   .layer.markup .hit {
     pointer-events: none;
+  }
+  .outline.line {
+    fill: color-mix(in srgb, var(--accent) 10%, transparent);
   }
   .outline {
     fill: none;

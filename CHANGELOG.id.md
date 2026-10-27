@@ -2,6 +2,11 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Edit teks: pilih alat baru di sebelah Tambah teks, lalu klik satu baris di PDF untuk mengubah kata-katanya. KlikPaper menutup baris lama dengan warna halaman itu sendiri dan menuliskan kembali kata yang sama dengan font, ukuran, dan warna yang mirip, siap diedit. Kata lama tetap tersembunyi di bawahnya, bukan terhapus, jadi jangan dipakai untuk menyembunyikan informasi pribadi
+- Agen AI juga bisa mengubah tulisan yang tercetak (`replace_text`)
+
 ## 0.1.6
 
 - Pesan pembaruan kini muncul di dalam KlikPaper, dalam bahasa Anda, dan menampilkan apa yang baru sebelum dipasang. Setelah diperbarui, KlikPaper menunjukkan sekali apa saja yang berubah

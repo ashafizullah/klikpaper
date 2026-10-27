@@ -1,5 +1,5 @@
 // Where text sits on a page, from pdf.js text items, so tools can highlight a
-// phrase without a mouse selection. Matching ignores case and whitespace: the
+// phrase without a mouse selection and the Edit text tool can pick a line. Matching ignores case and whitespace: the
 // spaces pdf.js reports between items don't reliably match the visible text.
 import type { Rect } from "./geometry";
 
@@ -72,4 +72,64 @@ export function findTextRects(items: TextItem[], query: string, toPage: Matrix, 
     out.push(rects);
   }
   return out;
+}
+
+/** One line of text as drawn: what it says, where it sits (page space) and how big it is. */
+export interface TextLine {
+  text: string;
+  /** From the top of capitals to below descenders. */
+  rect: Rect;
+  /** Left end of the baseline. */
+  x: number;
+  baseline: number;
+  /** Font size in points. */
+  size: number;
+  /** pdf.js font id of its first item. */
+  fontName: string;
+}
+
+/**
+ * Horizontal text items joined into lines: same baseline and close together.
+ * A wide gap (a table column, say) starts a new line. Rotated text is left out.
+ */
+export function groupLines(items: (TextItem & { fontName?: string })[], toPage: Matrix): TextLine[] {
+  type Run = { items: (TextItem & { fontName?: string })[]; base: number; end: number; size: number };
+  const flat = items.filter((i) => i.str.trim() && Math.abs(i.transform[1]) < 1e-6 && Math.abs(i.transform[2]) < 1e-6 && i.transform[0] > 0 && i.transform[3] > 0);
+  // Top to bottom (user space y goes up), then left to right.
+  flat.sort((a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4]);
+  const runs: Run[] = [];
+  for (const item of flat) {
+    const size = item.height || item.transform[3];
+    const [, , , , x, base] = item.transform;
+    const run = runs.find((r) => Math.abs(r.base - base) < Math.max(r.size, size) * 0.3 && x - r.end > -size * 0.5 && x - r.end < size * 1.5);
+    if (run) {
+      run.items.push(item);
+      run.end = Math.max(run.end, x + item.width);
+      run.size = Math.max(run.size, size);
+    } else runs.push({ items: [item], base, end: x + item.width, size });
+  }
+  return runs.map((run) => {
+    run.items.sort((a, b) => a.transform[4] - b.transform[4]);
+    let text = "";
+    let prevEnd = -Infinity;
+    for (const item of run.items) {
+      const x = item.transform[4];
+      // A visible gap with no space character in either item reads as a space.
+      if (text && x - prevEnd > run.size * 0.15 && !text.endsWith(" ") && !item.str.startsWith(" ")) text += " ";
+      text += item.str;
+      prevEnd = x + item.width;
+    }
+    const x0 = run.items[0].transform[4];
+    const [ax, ay] = apply(toPage, x0, run.base + run.size * 0.9);
+    const [bx, by] = apply(toPage, run.end, run.base - run.size * 0.22);
+    const [px, py] = apply(toPage, x0, run.base);
+    return {
+      text: text.trim(),
+      rect: { x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(by - ay) },
+      x: px,
+      baseline: py,
+      size: run.size,
+      fontName: run.items[0].fontName ?? "",
+    };
+  });
 }

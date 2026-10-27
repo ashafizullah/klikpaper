@@ -39,6 +39,7 @@
 - **Atur halaman**: seret thumbnail untuk mengurutkan ulang, putar, hapus, gandakan, sisipkan halaman dari PDF lain, gabung beberapa file, pisah per rentang atau setiap N halaman, simpan halaman terpilih sebagai PDF baru
 - **Kompres**: tiga tingkat atau slider kualitas sendiri yang mengecilkan dan mengodekan ulang foto; teks, grafik vektor, dan font tidak diubah. Setiap tingkat menampilkan ukuran file hasilnya sebelum Anda menyimpan
 - **Konversi**: gambar (JPG, PNG, WebP, GIF, BMP, TIFF) ke PDF, dan halaman ke PNG atau JPEG
+- **Edit teks**: klik satu baris untuk mengubah kata-katanya; KlikPaper menutup baris lama dan menuliskannya lagi dengan font, ukuran, dan warna yang mirip (kata lama tetap tersembunyi di bawahnya, jadi bukan cara untuk menyensor)
 - **Anotasi**: sorot, garis bawah, dan coret teks (disimpan sebagai anotasi PDF asli yang bisa dilihat penampil lain), kotak teks dengan font apa pun yang terpasang di komputer Anda (disematkan saat disimpan), gambar tangan, persegi, elips, panah, penghapus putih, gambar
 - **Tanda tangan**: gambar, ketik, atau unggah tanda tangan, lalu tempatkan dan ubah ukurannya. Ini gambar tanda tangan Anda, bukan tanda tangan digital berbasis sertifikat
 - **Watermark dan nomor halaman**, langsung terlihat di setiap halaman
