@@ -33,6 +33,8 @@ const id: Record<Key, string> = {
   "drop.hint": "Lepas PDF untuk membuka, gambar untuk dijadikan PDF",
 
   "tab.close": "Tutup",
+  "tab.home": "Beranda",
+  "tab.new": "Tab baru",
   "tab.unsaved": "Ada perubahan belum disimpan",
 
   "toolbar.pages": "Halaman",

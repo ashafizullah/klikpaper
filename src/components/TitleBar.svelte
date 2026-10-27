@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activate, closeDoc, docTitle, ws } from "../lib/workspace.svelte";
+  import { activate, closeDoc, closeHomeTab, docTitle, ws } from "../lib/workspace.svelte";
   import { command } from "../lib/commands.svelte";
   import { settings } from "../lib/settings.svelte";
   import { isMac, mod, ui } from "../lib/ui.svelte";
@@ -22,8 +22,19 @@
         </button>
       </div>
     {/each}
+    {#if ws.homeTab}
+      <div class="tab" class:active={!ws.activeId}>
+        <button class="tab-main" onclick={() => (ws.activeId = null)}>
+          <Icon name="home" size={13} />
+          <span class="name">{t("tab.home")}</span>
+        </button>
+        <button class="tab-close" onclick={closeHomeTab} aria-label={t("tab.close")} title="{t('tab.close')} ({mod}W)">
+          <Icon name="close" size={12} />
+        </button>
+      </div>
+    {/if}
     {#if ws.docs.length}
-      <button class="icon-btn new" onclick={() => command("open")} title="{t('home.open')} ({mod}O)" aria-label={t("home.open")}>
+      <button class="icon-btn new" onclick={() => command("new-tab")} title="{t('tab.new')} ({mod}T)" aria-label={t("tab.new")}>
         <Icon name="plus" size={14} />
       </button>
     {/if}

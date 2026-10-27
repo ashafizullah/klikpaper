@@ -31,6 +31,8 @@ const en = {
   "drop.hint": "Drop PDFs to open, images to make a PDF",
 
   "tab.close": "Close",
+  "tab.home": "Home",
+  "tab.new": "New tab",
   "tab.unsaved": "Unsaved changes",
 
   "toolbar.pages": "Pages",

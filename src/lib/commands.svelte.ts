@@ -3,7 +3,7 @@ import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { settings, persist } from "./settings.svelte";
 import { closeDialog, openDialog, toast, ui } from "./ui.svelte";
 import { viewer } from "./viewer.svelte";
-import { activeDoc, closeDoc, IMAGE_FILTER, pickAndOpen, saveDoc, ws } from "./workspace.svelte";
+import { activeDoc, closeDoc, closeHomeTab, IMAGE_FILTER, openHomeTab, pickAndOpen, saveDoc, ws } from "./workspace.svelte";
 import { t } from "./i18n/index.svelte";
 import { ipc } from "./ipc";
 
@@ -38,6 +38,8 @@ export async function command(id: string) {
   switch (id) {
     case "open":
       return pickAndOpen();
+    case "new-tab":
+      return openHomeTab();
     case "merge":
       return pickAndOpen(true);
     case "images-to-pdf":
@@ -60,7 +62,10 @@ export async function command(id: string) {
       ui.terminal = !ui.terminal;
       return;
   }
-  if (!doc) return;
+  if (!doc) {
+    if (id === "close-tab" && ws.homeTab) closeHomeTab();
+    return;
+  }
   switch (id) {
     case "save":
       return saveDoc(doc);
@@ -139,6 +144,7 @@ export function onKeydown(e: KeyboardEvent) {
       id =
         {
           o: "open",
+          t: "new-tab",
           s: "save",
           w: "close-tab",
           z: "undo",

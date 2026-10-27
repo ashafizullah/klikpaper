@@ -24,6 +24,7 @@
     GripVertical,
     Hash,
     Highlighter,
+    House,
     Image,
     Images,
     Info,
@@ -131,6 +132,7 @@
     loader: LoaderCircle,
     clock: Clock,
     fit: Maximize,
+    home: House,
     terminal: SquareTerminal,
   };
 </script>

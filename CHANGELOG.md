@@ -7,6 +7,7 @@
 - Automatic updates: new versions download in the background and install when you quit, or right away with Restart to update. Settings → General lets you switch to asking first or to checking only on request
 - Compress shows the resulting file size for every level before you save, and has a Custom quality slider (also `quality` in the `compress_pdf` MCP tool)
 - Compress and Export as images are on the toolbar
+- The + next to the tabs (or Ctrl/⌘+T, File → New Tab) opens a Home tab instead of going straight to the file picker; opening a file from it takes that tab's place
 - Highlights no longer hide the text under them on screen (saved files were already right)
 - New MCP and AI chat tools: highlight, underline or strike through a phrase (`highlight_text`), draw shapes, arrows, whiteout and ink (`add_shape`), place an image or saved signature (`add_image`), list and remove annotations, duplicate pages, undo and redo, and close a document, and list the installed fonts (`list_fonts`); `add_text` takes a font and returns the new text box's id
 

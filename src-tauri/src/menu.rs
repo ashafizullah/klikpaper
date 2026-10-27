@@ -38,6 +38,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let check_updates = item(app, "check-updates", "Check for Updates…", None)?;
 
     let mut file = SubmenuBuilder::new(app, "File")
+        .item(&item(app, "new-tab", "New Tab", Some("CmdOrCtrl+T"))?)
         .item(&item(app, "open", "Open…", Some("CmdOrCtrl+O"))?)
         .item(&item(app, "images-to-pdf", "New PDF from Images…", None)?)
         .separator()

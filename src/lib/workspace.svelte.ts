@@ -9,7 +9,12 @@ import { defaultName, writePdf } from "./save.svelte";
 import { addRecent, newId, removeRecent } from "./settings.svelte";
 import { busy, openDialog, toast } from "./ui.svelte";
 
-export const ws = $state({ docs: [] as Doc[], activeId: null as string | null });
+export const ws = $state({
+  docs: [] as Doc[],
+  activeId: null as string | null,
+  /** A Home tab next to the documents, like a browser's new tab; it is the active one when activeId is null. */
+  homeTab: false,
+});
 
 export function activeDoc(): Doc | undefined {
   return ws.docs.find((d) => d.id === ws.activeId);
@@ -17,6 +22,24 @@ export function activeDoc(): Doc | undefined {
 
 export function activate(doc: Doc) {
   ws.activeId = doc.id;
+}
+
+/** Shows Home in a tab of its own. */
+export function openHomeTab() {
+  ws.homeTab = ws.docs.length > 0;
+  ws.activeId = null;
+}
+
+export function closeHomeTab() {
+  ws.homeTab = false;
+  ws.activeId ??= ws.docs.at(-1)?.id ?? null;
+}
+
+/** Shows a document; opened from the Home tab, it takes that tab's place. */
+function show(doc: Doc) {
+  if (ws.activeId === null) ws.homeTab = false;
+  if (!ws.docs.includes(doc)) ws.docs.push(doc);
+  activate(doc);
 }
 
 /** Loads a PDF, asking for its password when needed. Null when the user gives up. */
@@ -48,7 +71,7 @@ export async function openPaths(paths: string[]): Promise<string[]> {
   for (const path of paths) {
     const existing = ws.docs.find((d) => d.path === path);
     if (existing) {
-      activate(existing);
+      show(existing);
       continue;
     }
     try {
@@ -59,8 +82,7 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
       doc.pages = await doc.pagesOf(id);
       doc.protect = loaded.password ?? null;
-      ws.docs.push(doc);
-      activate(doc);
+      show(doc);
       addRecent(path);
     } catch (e) {
       toast(t("open.failed", { file: baseName(path), error: errorText(e) }), "error");
@@ -94,8 +116,7 @@ export async function mergePaths(paths: string[]) {
   }
   if (doc.pages.length === 0) return doc.destroy();
   doc.dirty = true;
-  ws.docs.push(doc);
-  activate(doc);
+  show(doc);
 }
 
 export async function pickAndOpen(merge = false) {
@@ -183,6 +204,7 @@ export async function closeDoc(doc: Doc): Promise<boolean> {
   const i = ws.docs.indexOf(doc);
   ws.docs = ws.docs.filter((d) => d !== doc);
   if (ws.activeId === doc.id) ws.activeId = ws.docs[Math.min(i, ws.docs.length - 1)]?.id ?? null;
+  if (!ws.docs.length) ws.homeTab = false;
   doc.destroy();
   return true;
 }
