@@ -7,7 +7,7 @@
   import { ipc, errorText, type McpLink } from "../../lib/ipc";
   import { addProfile, persist, PROFILE_PRESETS, removeProfile, settings, type AiProfile } from "../../lib/settings.svelte";
   import { clientName, mcp, MCP_CLIENTS, setupSnippet, startMcp, stopMcp, type McpClientId } from "../../lib/mcp.svelte";
-  import { openDialog, toast } from "../../lib/ui.svelte";
+  import { isMac, openDialog, toast } from "../../lib/ui.svelte";
   import { restartToUpdate, setUpdateMode, updates } from "../../lib/updates.svelte";
   import { relabelShellMenu, setShellMenu, shellMenu } from "../../lib/shell.svelte";
   import type { UpdateMode } from "../../lib/settings.svelte";
@@ -103,13 +103,13 @@
     <p class="note">{t(`settings.updateHint.${settings.updateMode}` as Key)}</p>
     {#if shellMenu.available}
       <div class="form-row">
-        <span>{t("settings.shellMenu")}</span>
+        <span>{isMac ? "Finder" : "Explorer"}</span>
         <label class="row">
           <input type="checkbox" checked={settings.shellMenu} onchange={(e) => setShellMenu(e.currentTarget.checked)} />
           {t("settings.shellMenuToggle")}
         </label>
       </div>
-      <p class="note">{t("settings.shellMenuHint")}</p>
+      <p class="note">{t(isMac ? "settings.shellMenuHintMac" : "settings.shellMenuHint")}</p>
     {/if}
     <p class="note">{t("settings.privacy")}</p>
   {:else if tab === "ai"}

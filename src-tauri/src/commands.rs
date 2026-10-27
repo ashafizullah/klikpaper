@@ -114,15 +114,15 @@ pub fn take_shell_actions(actions: State<'_, crate::shell::ShellActions>) -> Vec
     std::mem::take(&mut *actions.0.lock().unwrap())
 }
 
-/// Whether the Explorer right-click entries are installed; None off Windows.
+/// Whether the right-click entries (Explorer, Finder) are installed; None where there are none.
 #[tauri::command]
 pub fn shell_menu() -> Option<bool> {
     crate::shell::menu_installed()
 }
 
 #[tauri::command]
-pub fn set_shell_menu(enabled: bool, labels: crate::shell::Labels) -> AppResult<()> {
-    Ok(crate::shell::set_menu(enabled, &labels)?)
+pub fn set_shell_menu(app: AppHandle, enabled: bool, labels: crate::shell::Labels) -> AppResult<()> {
+    Ok(crate::shell::set_menu(enabled, &app.config().identifier, &labels)?)
 }
 
 // ---- PDF ------------------------------------------------------------------

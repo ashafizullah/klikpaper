@@ -92,7 +92,7 @@ export interface FileStat {
   exists: boolean;
   bytes: number;
 }
-/** A right-click action from Windows Explorer: merge, compress, images or to-pdf. */
+/** A right-click action from Explorer or Finder: merge, compress, images or to-pdf. */
 export interface ShellAction {
   action: string;
   paths: string[];

@@ -1,6 +1,7 @@
-// Explorer right-click actions on Windows ("Merge with KlikPaper", ...). Explorer
-// starts KlikPaper once per selected file, so files that arrive close together
-// are batched into one action: merging five PDFs makes one document.
+// Right-click actions on files ("Merge with KlikPaper", ...): Windows Explorer
+// entries and macOS Finder Quick Actions. Explorer starts KlikPaper once per
+// selected file, so files that arrive close together are batched into one
+// action: merging five PDFs makes one document.
 import { listen } from "@tauri-apps/api/event";
 import { errorText, ipc, type ShellAction } from "./ipc";
 import { persist, settings } from "./settings.svelte";
@@ -9,7 +10,7 @@ import { activate, mergePaths, openPaths, ws } from "./workspace.svelte";
 import { imagesToPdf } from "./commands.svelte";
 import { t } from "./i18n/index.svelte";
 
-/** Whether this system has the menu (Windows only). */
+/** Whether this system has the menu (Windows and macOS). */
 export const shellMenu = $state({ available: false });
 
 const BATCH_MS = 700;

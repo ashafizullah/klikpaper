@@ -48,7 +48,7 @@ interface Stored {
   /** Installed font family for new text boxes; "" = the default. */
   textFont: string;
   updateMode: UpdateMode;
-  /** Windows: KlikPaper's actions in Explorer's right-click menu. */
+  /** KlikPaper's actions in the Explorer right-click menu (Windows) or Finder Quick Actions (macOS). */
   shellMenu: boolean;
 }
 
