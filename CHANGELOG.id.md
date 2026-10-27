@@ -2,6 +2,11 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Ubah ukuran halaman: pindahkan halaman ke kertas A4, Letter, Legal, A3, atau A5 (dari menu ⋯ atau Berkas → Ubah Ukuran Halaman). Isinya diperkecil atau diperbesar agar pas, tidak ditarik, dan diletakkan di tengah, dengan margin bila perlu. Hasilnya langsung terlihat, Urungkan bisa membatalkannya, dan Asli mengembalikan halaman ke ukurannya sendiri
+- Agen AI juga bisa mengubah ukuran halaman (`resize_pages`)
+
 ## 0.1.7
 
 - Edit teks: pilih alat baru di sebelah Tambah teks, lalu klik satu baris di PDF untuk mengubah kata-katanya. KlikPaper menutup baris lama dengan warna halaman itu sendiri dan menuliskan kembali kata yang sama dengan font, ukuran, dan warna yang mirip, siap diedit. Kata lama tetap tersembunyi di bawahnya, bukan terhapus, jadi jangan dipakai untuk menyembunyikan informasi pribadi

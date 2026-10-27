@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Resize pages: put pages on A4, Letter, Legal, A3 or A5 paper (from the ⋯ menu or File → Resize Pages). The content is scaled to fit, never stretched, and centered, with an optional margin. You see it right away, Undo takes it back, and Original returns pages to their own size
+- AI agents can resize pages too (`resize_pages`)
+
 ## 0.1.7
 
 - Edit text: pick the new tool next to Add text and click a line in the PDF to change its words. KlikPaper covers the old line in the page's own color and puts the same words back in a matching font, size and color, ready to edit. The old words stay hidden underneath rather than deleted, so don't use it to hide private information

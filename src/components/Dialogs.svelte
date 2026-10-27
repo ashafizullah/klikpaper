@@ -15,6 +15,7 @@
   import ImagesDialog from "./dialogs/ImagesDialog.svelte";
   import SignatureDialog from "./dialogs/SignatureDialog.svelte";
   import AlertDialog from "./dialogs/AlertDialog.svelte";
+  import ResizeDialog from "./dialogs/ResizeDialog.svelte";
 
   const KINDS: Record<string, Component<any>> = {
     password: PasswordDialog,
@@ -31,6 +32,7 @@
     images: ImagesDialog,
     signature: SignatureDialog,
     alert: AlertDialog,
+    resize: ResizeDialog,
   };
 </script>
 

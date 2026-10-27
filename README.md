@@ -36,7 +36,7 @@
 ## Features
 
 - **Viewer**: fast continuous scrolling, zoom and fit width, text selection, find in document, clickable links, fillable forms, tabs for several PDFs
-- **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF
+- **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF, resize pages to A4, Letter, Legal, A3 or A5 (content scaled to fit, never stretched)
 - **Compress**: three levels or a custom quality slider that downscale and re-encode photos; text, vector graphics and fonts are untouched. Every level shows its resulting file size before you save
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
 - **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact)

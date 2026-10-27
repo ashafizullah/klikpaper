@@ -22,6 +22,7 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Save" => "Simpan",
         "Save As…" => "Simpan Sebagai…",
         "Compress…" => "Kompres…",
+        "Resize Pages…" => "Ubah Ukuran Halaman…",
         "Export as Images…" => "Ekspor sebagai Gambar…",
         "Close Tab" => "Tutup Tab",
         "Exit" => "Keluar",
@@ -93,6 +94,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .item(&item(app, "save", t("Save"), Some("CmdOrCtrl+S"))?)
         .item(&item(app, "save-as", t("Save As…"), Some("CmdOrCtrl+Shift+S"))?)
         .item(&item(app, "compress", t("Compress…"), None)?)
+        .item(&item(app, "resize", t("Resize Pages…"), None)?)
         .item(&item(app, "export-images", t("Export as Images…"), None)?)
         .separator()
         .item(&item(app, "close-tab", t("Close Tab"), Some("CmdOrCtrl+W"))?);

@@ -72,7 +72,9 @@ export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}
   const temps: string[] = [];
   try {
     const prepared = await prepare(doc, temps);
-    const pages = opts.pages ? opts.pages.map((i) => prepared.pages[i]) : prepared.pages;
+    // A new paper size applies last, so annotations drawn in the page's own space move with the content.
+    const fitted = prepared.pages.map((p, i) => ({ ...p, sheet: doc.pages[i].sheet ?? null }));
+    const pages = opts.pages ? opts.pages.map((i) => fitted[i]) : fitted;
     const password = opts.password !== undefined ? opts.password : doc.protect;
     return await ipc.assemble({
       sources: prepared.sources,

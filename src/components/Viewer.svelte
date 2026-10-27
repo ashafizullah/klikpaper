@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import type { Doc } from "../lib/doc.svelte";
-  import { displaySize } from "../lib/geometry";
   import { CSS_UNITS } from "../lib/pdfjs";
   import { viewer } from "../lib/viewer.svelte";
   import { ZOOM_STEPS } from "../lib/commands.svelte";
@@ -14,7 +13,7 @@
   let visible = $state(new Set<string>());
   const GAP = 16;
 
-  const maxWidth = $derived(Math.max(1, ...doc.pages.map((p) => displaySize(p.w, p.h, doc.rotation(p))[0])));
+  const maxWidth = $derived(Math.max(1, ...doc.pages.map((p) => doc.shownSize(p)[0])));
 
   // Fit width keeps the widest page filling the view.
   $effect(() => {

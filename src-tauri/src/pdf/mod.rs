@@ -4,6 +4,7 @@
 //! rewritten when the user saves.
 pub mod compress;
 pub mod images;
+pub mod sheet;
 
 use crate::error::{AppError, AppResult};
 use lopdf::encryption::crypt_filters::{Aes256CryptFilter, CryptFilter};
@@ -37,6 +38,9 @@ pub struct PageRef {
     /// Clockwise degrees added to the page's own rotation (a multiple of 90).
     #[serde(default)]
     pub rotate: i64,
+    /// Another paper size to fit the page onto (see `sheet`).
+    #[serde(default)]
+    pub sheet: Option<sheet::Sheet>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -248,6 +252,7 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
     let pages_id = doc.new_object_id();
     let mut kids: Vec<Object> = Vec::with_capacity(pages.len());
     let mut used: HashSet<ObjectId> = HashSet::new();
+    let mut moved_annots: HashSet<ObjectId> = HashSet::new();
     for p in pages {
         let ids = &page_ids[p.source.as_str()];
         let Some(&orig) = ids.get(p.index as usize) else {
@@ -261,6 +266,9 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
         let rotation = (dict.get(b"Rotate").and_then(Object::as_i64).unwrap_or(0) + p.rotate).rem_euclid(360);
         dict.set("Rotate", rotation - rotation % 90);
         dict.set("Parent", pages_id);
+        if let Some(paper) = &p.sheet {
+            sheet::fit_page(&mut doc, &mut dict, paper, &mut moved_annots)?;
+        }
         // A page used twice becomes a second page object sharing the same content.
         let id = if used.insert(orig) { orig } else { doc.new_object_id() };
         doc.objects.insert(id, Object::Dictionary(dict));
@@ -552,7 +560,7 @@ pub(crate) mod tests {
     }
 
     fn page(source: &str, index: u32, rotate: i64) -> PageRef {
-        PageRef { source: source.into(), index, rotate }
+        PageRef { source: source.into(), index, rotate, sheet: None }
     }
 
     fn src(id: &str, path: &str) -> Source {
@@ -580,6 +588,52 @@ pub(crate) mod tests {
         assert_eq!(rotations, [0, 90, 270, 0]);
         // The inherited media box was copied onto every page.
         assert!(doc.get_pages().values().all(|id| doc.get_dictionary(*id).unwrap().has(b"MediaBox")));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn fits_pages_onto_another_paper_size() {
+        let dir = temp_dir();
+        let a = write_sample(&dir, "a.pdf", &["A1", "A2"]);
+        let out = dir.join("a4.pdf").display().to_string();
+        let a4 = sheet::Sheet { w: 595.28, h: 841.89, margin: 0.0 };
+        let job = AssembleJob {
+            sources: vec![src("a", &a)],
+            pages: vec![PageRef { sheet: Some(a4), ..page("a", 0, 0) }, page("a", 1, 0)],
+            output: out.clone(),
+            options: Options::default(),
+        };
+        assemble(&job).unwrap();
+        let doc = Document::load(&out).unwrap();
+        let boxes: Vec<Vec<f64>> = doc
+            .get_pages()
+            .values()
+            .map(|id| {
+                let d = doc.get_dictionary(*id).unwrap();
+                d.get(b"MediaBox")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|o| o.as_float().map(f64::from).or(o.as_i64().map(|i| i as f64)).unwrap())
+                    .collect()
+            })
+            .collect();
+        assert!((boxes[0][2] - 595.28).abs() < 0.01 && (boxes[0][3] - 841.89).abs() < 0.01);
+        assert_eq!(boxes[1], [0.0, 0.0, 612.0, 792.0]);
+        // The resized page draws its old content, now a form, through a scaling transform.
+        let first = *doc.get_pages().values().next().unwrap();
+        let content = String::from_utf8_lossy(&doc.get_page_content(first)).into_owned();
+        assert!(content.starts_with("q 0.97") && content.contains(" cm /KlikPaperPage Do Q"));
+        let page = doc.get_dictionary(first).unwrap();
+        let xobjects = page.get(b"Resources").unwrap().as_dict().unwrap().get(b"XObject").unwrap().as_dict().unwrap();
+        let form = doc.get_object(xobjects.get(b"KlikPaperPage").unwrap().as_reference().unwrap()).unwrap().as_stream().unwrap();
+        let text = String::from_utf8_lossy(&form.decompressed_content().unwrap_or_else(|_| form.content.clone())).into_owned();
+        assert!(text.contains("(A1) Tj"));
+        assert!(form.dict.get(b"Resources").unwrap().as_dict().unwrap().has(b"Font"));
+        // The other page is untouched.
+        let second = *doc.get_pages().values().nth(1).unwrap();
+        assert!(String::from_utf8_lossy(&doc.get_page_content(second)).contains("(A2) Tj"));
         let _ = std::fs::remove_dir_all(dir);
     }
 

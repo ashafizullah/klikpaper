@@ -22,7 +22,7 @@
     return d.toLocaleString();
   }
 
-  const sizes = $derived([...new Set(doc.pages.map((p) => `${Math.round((p.w / 72) * 25.4)} × ${Math.round((p.h / 72) * 25.4)} mm`))]);
+  const sizes = $derived([...new Set(doc.pages.map((p) => `${Math.round(((p.sheet?.w ?? p.w) / 72) * 25.4)} × ${Math.round(((p.sheet?.h ?? p.h) / 72) * 25.4)} mm`))]);
   const rows = $derived<[string, string | null | undefined][]>([
     [t("info.file"), doc.path ?? t("info.unsaved")],
     [t("info.pages"), String(doc.pages.length)],

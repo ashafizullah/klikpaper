@@ -1,7 +1,8 @@
 // An open document: an ordered list of pages taken from one or more source
 // files, plus the annotations drawn on them. Nothing touches the files until
 // the user saves; every edit can be undone.
-import { normRotation, type Rotation } from "./geometry";
+import { displaySize, normRotation, type Rotation } from "./geometry";
+import type { Sheet } from "./paper";
 import { newId } from "./settings.svelte";
 import { closePdf, pageText, type PDFDocumentProxy } from "./pdfjs";
 import { dropThumbnails } from "./thumbs";
@@ -25,6 +26,8 @@ export interface PageItem {
   /** Unrotated size in points. */
   w: number;
   h: number;
+  /** Another paper size the page is put on when saved (Resize pages); its content is scaled to fit and centered. */
+  sheet?: Sheet;
 }
 
 export type MarkupKind = "highlight" | "underline" | "strike";
@@ -122,6 +125,11 @@ export class Doc {
 
   rotation(p: PageItem): Rotation {
     return normRotation(p.own + p.rotate);
+  }
+
+  /** The page's size as shown: its paper when resized, else its own, turned by its rotation. */
+  shownSize(p: PageItem): [number, number] {
+    return displaySize(p.sheet?.w ?? p.w, p.sheet?.h ?? p.h, this.rotation(p));
   }
 
   pageById(id: string): PageItem | undefined {
@@ -230,6 +238,18 @@ export class Doc {
     this.change(() => {
       const i = Math.max(0, Math.min(at, this.pages.length));
       this.pages = [...this.pages.slice(0, i), ...items, ...this.pages.slice(i)];
+    });
+  }
+
+  /** Puts pages on new paper (or back on their own when `sheetFor` gives undefined). */
+  resizePages(ids: string[], sheetFor: (p: PageItem) => Sheet | undefined) {
+    this.change(() => {
+      for (const p of this.pages) {
+        if (!ids.includes(p.id)) continue;
+        const sheet = sheetFor(p);
+        if (sheet) p.sheet = sheet;
+        else delete p.sheet;
+      }
     });
   }
 

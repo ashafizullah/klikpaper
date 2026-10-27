@@ -80,6 +80,8 @@ export async function command(id: string) {
       return openDialog("export-images", { doc });
     case "split":
       return openDialog("split", { doc });
+    case "resize":
+      return openDialog("resize", { doc });
     case "security":
       return openDialog("security", { doc });
     case "watermark":

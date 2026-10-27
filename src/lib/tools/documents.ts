@@ -5,6 +5,7 @@ import { parsePages } from "../pagespec";
 import { activate, closeDoc, insertFiles, openPaths, saveDoc, ws } from "../workspace.svelte";
 import { viewer } from "../viewer.svelte";
 import { DOC, PAGES, obj, str, num, findDoc, pageIds, requirePdf, checkOutput, type ToolSpec } from "./args";
+import { mmToPt, PAPER, sheetFor, type PaperOrientation, type PaperSize } from "../paper";
 
 const MAX_TEXT = 60_000;
 
@@ -163,6 +164,32 @@ export const DOCUMENT_TOOLS: ToolSpec[] = [
       const before = doc.pages.length;
       await insertFiles(doc, Math.max(0, Math.min(after, before)), [path]);
       return `Inserted ${doc.pages.length - before} page(s)`;
+    },
+  },
+  {
+    name: "resize_pages",
+    description:
+      'Puts pages on another paper size (for example A4): each page\'s content is scaled to fit inside the margin, never stretched, and centered. size "original" takes them back to their own size. Shows at once; undoable; saved when the user saves.',
+    parameters: obj(
+      {
+        doc: DOC,
+        size: { type: "string", enum: ["a4", "letter", "legal", "a3", "a5", "original"] },
+        orientation: { type: "string", enum: ["auto", "portrait", "landscape"], description: "auto (default) keeps each page portrait or landscape as displayed." },
+        margin_mm: { type: "number", minimum: 0, maximum: 50, description: "Default 0." },
+        pages: PAGES,
+      },
+      ["size"],
+    ),
+    scope: "both",
+    async run(args) {
+      const doc = findDoc(args);
+      const size = str(args, "size");
+      if (size !== "original" && !(size in PAPER)) throw new Error(`Unknown size "${size}"`);
+      const orientation = (["auto", "portrait", "landscape"].includes(String(args.orientation)) ? args.orientation : "auto") as PaperOrientation;
+      const margin = mmToPt(Math.min(50, Math.max(0, num(args, "margin_mm", 0))));
+      const ids = args.pages ? pageIds(doc, str(args, "pages")) : doc.pages.map((p) => p.id);
+      doc.resizePages(ids, (p) => (size === "original" ? undefined : sheetFor(p.w, p.h, doc.rotation(p), size as PaperSize, orientation, margin)));
+      return size === "original" ? `${ids.length} page(s) back to their own size` : `${ids.length} page(s) put on ${size.toUpperCase()}`;
     },
   },
   {

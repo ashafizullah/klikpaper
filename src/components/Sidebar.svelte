@@ -160,7 +160,7 @@
         onclick={(e) => select(e, p, i)}
         onpointerdown={(e) => onPointerDown(e, p)}
       >
-        <div class="frame" style:width="{THUMB_WIDTH}px" style:aspect-ratio={doc.rotation(p) % 180 === 0 ? `${p.w} / ${p.h}` : `${p.h} / ${p.w}`}>
+        <div class="frame" style:width="{THUMB_WIDTH}px" style:aspect-ratio={`${doc.shownSize(p)[0]} / ${doc.shownSize(p)[1]}`}>
           <img use:lazyThumb={p} alt={t("pages.page", { n: i + 1 })} draggable="false" />
           {#if doc.overlays.some((o) => o.page === p.id)}<span class="badge" title={t("pages.hasAnnotations")}></span>{/if}
         </div>

@@ -43,6 +43,8 @@ export interface PageSpec {
   index: number;
   /** Clockwise degrees added to the page's own rotation. */
   rotate: number;
+  /** Another paper size to fit the page onto (points, unrotated). */
+  sheet?: { w: number; h: number; margin: number } | null;
 }
 export type CompressLevel = "low" | "medium" | "high";
 /** A preset, or a custom quality from 10 (smallest file) to 100 (best quality). */

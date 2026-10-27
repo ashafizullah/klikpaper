@@ -49,6 +49,7 @@
     RotateCcw,
     RotateCw,
     Save,
+    Scaling,
     Search,
     SendHorizontal,
     Settings,
@@ -140,6 +141,7 @@
     alert: CircleAlert,
     tiles: LayoutGrid,
     "edit-text": TextCursorInput,
+    resize: Scaling,
     list: List,
     terminal: SquareTerminal,
   };

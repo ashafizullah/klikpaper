@@ -150,6 +150,7 @@
     <div class="menu-sep"></div>
     <button class="menu-item" onclick={() => command("compress")}><Icon name="compress" />{t("menu.compress")}</button>
     <button class="menu-item" onclick={() => command("split")}><Icon name="split" />{t("menu.split")}</button>
+    <button class="menu-item" onclick={() => command("resize")}><Icon name="resize" />{t("menu.resize")}</button>
     <button class="menu-item" onclick={() => command("export-images")}><Icon name="images" />{t("menu.exportImages")}</button>
     <div class="menu-sep"></div>
     <button class="menu-item" onclick={() => command("watermark")}><Icon name="watermark" />{t("menu.watermark")}</button>

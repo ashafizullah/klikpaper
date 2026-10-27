@@ -3,6 +3,7 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import type { Doc, PageItem } from "../lib/doc.svelte";
   import { displaySize } from "../lib/geometry";
+  import { fitOnSheet } from "../lib/paper";
   import { linkService, pdfjs, renderToCanvas, type PDFPageProxy } from "../lib/pdfjs";
   import { ui } from "../lib/ui.svelte";
   import { viewer } from "../lib/viewer.svelte";
@@ -18,8 +19,13 @@
 
   const rotation = $derived(doc.rotation(page));
   const size = $derived(displaySize(page.w, page.h, rotation));
-  const cssW = $derived(size[0] * scale);
-  const cssH = $derived(size[1] * scale);
+  // Resized pages show their paper, with the page's content scaled to fit and centered on it.
+  const paper = $derived(doc.shownSize(page));
+  const fit = $derived(page.sheet ? fitOnSheet(page.w, page.h, page.sheet).s : 1);
+  /** CSS pixels per point for the page's content (the zoom, times the fit onto new paper). */
+  const contentScale = $derived(scale * fit);
+  const cssW = $derived(size[0] * contentScale);
+  const cssH = $derived(size[1] * contentScale);
 
   let rendered = $state<{ scale: number; rotation: number } | null>(null);
   let cancelRender: (() => void) | null = null;
@@ -117,7 +123,7 @@
 
   // Render when on screen; re-render (debounced) after zoom or rotation changes.
   $effect(() => {
-    const s = scale;
+    const s = contentScale;
     const rot = rotation;
     if (!visible) {
       clearTimeout(timer);
@@ -161,35 +167,37 @@
     // Approximate width for placement; the saved file measures the real font.
     const approx = numberLabel.length * pn.size * 0.55;
     const [x, y] = numberAnchor(pn.position, size, approx, pn.size, pn.margin);
-    return { left: x * scale, top: (y - pn.size * 0.905) * scale };
+    return { left: x * contentScale, top: (y - pn.size * 0.905) * contentScale };
   });
   const textSelectable = $derived(ui.tool === "select" || ui.tool === "highlight" || ui.tool === "underline" || ui.tool === "strike");
 </script>
 
-<div
-  class="page"
-  data-page-id={page.id}
-  class:current={doc.current === index}
-  bind:this={pageEl}
-  style:width="{cssW}px"
-  style:height="{cssH}px"
-  style="--total-scale-factor: {scale}; --scale-round-x: 1px; --scale-round-y: 1px;"
->
-  <canvas bind:this={canvas} style:width="{cssW}px" style:height="{cssH}px"></canvas>
-  {#if !rendered}
-    <div class="placeholder">{index + 1}</div>
-  {/if}
-  <div class="textLayer" class:off={!textSelectable} bind:this={textDiv}></div>
-  <div class="annotationLayer" class:off={ui.tool !== "select"} bind:this={annotDiv}></div>
-  {#if wm && wm.text.trim()}
-    <div class="wm" style:font-size="{wm.size * scale}px" style:opacity={wm.opacity} style:color={wm.color} style:transform="translate(-50%, -50%) rotate({-wm.angle}deg)">
-      {wm.text}
-    </div>
-  {/if}
-  {#if pn && numberPos}
-    <div class="pn" style:left="{numberPos.left}px" style:top="{numberPos.top}px" style:font-size="{pn.size * scale}px" style:color={pn.color}>{numberLabel}</div>
-  {/if}
-  <OverlayLayer {doc} {page} {scale} {rotation} {pageEl} />
+<div class="page" data-page-id={page.id} class:current={doc.current === index} style:width="{paper[0] * scale}px" style:height="{paper[1] * scale}px">
+  <div
+    class="content"
+    bind:this={pageEl}
+    style:left="{(paper[0] * scale - cssW) / 2}px"
+    style:top="{(paper[1] * scale - cssH) / 2}px"
+    style:width="{cssW}px"
+    style:height="{cssH}px"
+    style="--total-scale-factor: {contentScale}; --scale-round-x: 1px; --scale-round-y: 1px;"
+  >
+    <canvas bind:this={canvas} style:width="{cssW}px" style:height="{cssH}px"></canvas>
+    {#if !rendered}
+      <div class="placeholder">{index + 1}</div>
+    {/if}
+    <div class="textLayer" class:off={!textSelectable} bind:this={textDiv}></div>
+    <div class="annotationLayer" class:off={ui.tool !== "select"} bind:this={annotDiv}></div>
+    {#if wm && wm.text.trim()}
+      <div class="wm" style:font-size="{wm.size * contentScale}px" style:opacity={wm.opacity} style:color={wm.color} style:transform="translate(-50%, -50%) rotate({-wm.angle}deg)">
+        {wm.text}
+      </div>
+    {/if}
+    {#if pn && numberPos}
+      <div class="pn" style:left="{numberPos.left}px" style:top="{numberPos.top}px" style:font-size="{pn.size * contentScale}px" style:color={pn.color}>{numberLabel}</div>
+    {/if}
+    <OverlayLayer {doc} {page} scale={contentScale} {rotation} {pageEl} />
+  </div>
 </div>
 
 <style>
@@ -198,6 +206,9 @@
     background: #fff;
     box-shadow: 0 2px 6px rgb(0 0 0 / 0.5), 0 14px 32px -10px rgb(0 0 0 / 0.65);
     overflow: hidden;
+  }
+  .content {
+    position: absolute;
   }
   canvas {
     position: absolute;
