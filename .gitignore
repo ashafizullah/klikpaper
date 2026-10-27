@@ -3,3 +3,6 @@ node_modules
 /public/pdfjs
 /public/THIRD_PARTY_NOTICES.md
 .DS_Store
+
+# Promo images and their sources (posters for social media)
+/social-media/
