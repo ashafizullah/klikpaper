@@ -9,6 +9,7 @@ pub mod ocr;
 pub mod outline;
 pub mod redact;
 pub mod sheet;
+pub mod signatures;
 mod std14;
 
 use crate::error::{AppError, AppResult};
@@ -549,8 +550,19 @@ fn note_redaction(doc: &mut Document, areas: usize) -> AppResult<()> {
 /// Today's date (UTC) as YYYY-MM-DD.
 fn today() -> String {
     let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    // Days to a civil date (Howard Hinnant's algorithm).
-    let z = (secs / 86_400) as i64 + 719_468;
+    let (y, m, d) = civil_date(secs / 86_400);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Seconds since 1970 as "YYYY-MM-DDTHH:MM:SSZ".
+pub(crate) fn iso_datetime(secs: u64) -> String {
+    let (y, m, d) = civil_date(secs / 86_400);
+    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", secs % 86_400 / 3600, secs % 3600 / 60, secs % 60)
+}
+
+/// Days since 1970 to a calendar date (Howard Hinnant's algorithm).
+fn civil_date(days: u64) -> (i64, i64, i64) {
+    let z = days as i64 + 719_468;
     let era = z.div_euclid(146_097);
     let doe = z - era * 146_097;
     let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
@@ -558,8 +570,7 @@ fn today() -> String {
     let mp = (5 * doy + 2) / 153;
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    format!("{y:04}-{m:02}-{d:02}")
+    (yoe + era * 400 + i64::from(m <= 2), m, d)
 }
 
 pub fn strip_metadata(doc: &mut Document) -> AppResult<()> {

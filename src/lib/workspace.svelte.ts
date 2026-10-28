@@ -190,7 +190,7 @@ async function reload(doc: Doc, path: string, password: string | null) {
   doc.dirty = false;
 }
 
-/** What the file says about earlier changes: blacked-out parts and its edit history (read in the background). */
+/** What the file says about itself: blacked-out parts, its edit history and its digital signatures (read in the background). */
 function readNotes(doc: Doc, path: string, password?: string) {
   ipc
     .pdfInfo(path, password)
@@ -199,6 +199,10 @@ function readNotes(doc: Doc, path: string, password?: string) {
       doc.editHistory = info.history;
     })
     .catch(() => {});
+  ipc
+    .pdfSignatures(path, password)
+    .then((found) => (doc.signatures = found))
+    .catch(() => (doc.signatures = []));
 }
 
 /** When the file last changed (0 when unknown). */
@@ -258,6 +262,20 @@ export function watchFiles() {
 export async function saveDoc(doc: Doc, as = false, newFile = false): Promise<boolean> {
   let path = doc.path;
   // Saving redactions over the original would leave no unredacted copy; a new file is the usual choice.
+  // Saving rewrites the whole file, which breaks digital signatures; keeping the signed original is the usual choice.
+  if (!as && !newFile && path && doc.signatures.some((s) => !s.timestamp)) {
+    const choice = await showAlert({
+      title: t("sig.saveTitle"),
+      message: t("sig.saveMessage", { file: doc.name }),
+      actions: [
+        { label: t("common.cancel"), value: "cancel" },
+        { label: t("redact.overwrite"), value: "overwrite", danger: true },
+        { label: t("redact.saveCopy"), value: "copy", primary: true },
+      ],
+    });
+    if (choice !== "overwrite" && choice !== "copy") return false;
+    as = choice === "copy";
+  }
   if (!as && !newFile && path && doc.redactions.length) {
     const choice = await showAlert({
       title: t("redact.saveTitle"),
@@ -272,7 +290,9 @@ export async function saveDoc(doc: Doc, as = false, newFile = false): Promise<bo
     as = choice === "copy";
   }
   if (as || !path) {
-    const suggested = path && doc.redactions.length ? joinPath(dirName(path), defaultName(doc)) : (path ?? defaultName(doc));
+    // A copy next to the original, named for what was done to it.
+    const signed = doc.signatures.some((s) => !s.timestamp);
+    const suggested = path && (doc.redactions.length || signed) ? joinPath(dirName(path), defaultName(doc, doc.redactions.length ? "-redacted" : "-edited")) : (path ?? defaultName(doc));
     const chosen = await saveFileDialog({ defaultPath: suggested, filters: PDF_FILTER });
     if (!chosen) return false;
     path = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;

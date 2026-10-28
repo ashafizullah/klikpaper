@@ -153,6 +153,18 @@ pub async fn pdf_comments(path: String, password: Option<String>, temp: State<'_
     blocking(move || pdf::comments::read_file(Path::new(&path), password.as_deref())).await
 }
 
+/// The digital signatures in a file, checked.
+#[tauri::command]
+pub async fn pdf_signatures(
+    path: String,
+    password: Option<String>,
+    temp: State<'_, Temp>,
+) -> AppResult<Vec<pdf::signatures::SignatureReport>> {
+    let path = PathBuf::from(path);
+    files::check_readable(&temp, &path)?;
+    blocking(move || pdf::signatures::read(&path, password.as_deref())).await
+}
+
 #[tauri::command]
 pub async fn pdf_assemble(job: AssembleJob, temp: State<'_, Temp>) -> AppResult<AssembleResult> {
     for source in &job.sources {

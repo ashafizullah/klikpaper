@@ -2,7 +2,7 @@
 // files, plus the annotations drawn on them. Nothing touches the files until
 // the user saves; every edit can be undone.
 import { displaySize, normRotation, type Rect, type Rotation } from "./geometry";
-import type { CommentReply, CommentThread } from "./ipc";
+import type { CommentReply, CommentThread, SignatureReport } from "./ipc";
 import { dropPages, insertionIndex, type Bookmark } from "./outline";
 import type { Sheet } from "./paper";
 import { newId } from "./settings.svelte";
@@ -107,6 +107,8 @@ export class Doc {
   redactedNote = $state<string | null>(null);
   /** The file's edit history (one line per save that changed printed content), if it has one. */
   editHistory = $state<string | null>(null);
+  /** The file's digital signatures, checked when it was opened. */
+  signatures = $state<SignatureReport[]>([]);
   /** Bookmarks of the document (from the first file, or all of them when merged). */
   outline = $state<Bookmark[]>([]);
   /** The bookmarks were edited or combined: saving writes them instead of keeping the file's own. */

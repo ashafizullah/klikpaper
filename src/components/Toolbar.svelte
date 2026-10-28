@@ -11,6 +11,7 @@
   import Popover from "./Popover.svelte";
   import RedactBadge from "./RedactBadge.svelte";
   import EditBadge from "./EditBadge.svelte";
+  import SignatureBadge from "./SignatureBadge.svelte";
 
   let { doc }: { doc: Doc } = $props();
   let moreOpen = $state(false);
@@ -170,6 +171,7 @@
     <button class="menu-item" onclick={() => command("security")}><Icon name="lock" />{t("menu.security")}</button>
     <button class="menu-item" onclick={() => command("info")}><Icon name="info" />{t("menu.info")}</button>
   </Popover>
+  <SignatureBadge {doc} />
   <EditBadge {doc} />
   <RedactBadge {doc} />
   <span class="status" title={doc.path ?? ""}>

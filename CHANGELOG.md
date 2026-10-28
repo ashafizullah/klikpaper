@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Black out personal data (⋯ menu, or File → Black Out Personal Data): finds Indonesian ID numbers (NIK), tax numbers (NPWP), mobile numbers, email addresses, bank account and card numbers, and dates of birth across the document. Numbers are checked, not just matched (a NIK's region and birth date, a card's check digit), and account numbers and birth dates are only picked up next to a label, so invoice numbers, totals and ordinary dates stay. You review the list and untick anything that isn't private before it's marked
-- AI agents can find and black out personal data too (`find_personal_data`, `redact_personal_data`)
+- Check digital signatures: a signed PDF shows a badge (Signed, Changed after signing, or Signature not valid). Click it to see who signed, when, why and where, with which certificate, whether the document changed after signing, and what KlikPaper can't check (whether the certificate's issuer is trusted or the certificate revoked). Saving a signed PDF warns that its signatures won't be valid in the saved file and suggests a new file
+- AI agents can find and black out personal data (`find_personal_data`, `redact_personal_data`) and check signatures (`check_signatures`)
 - Fixes: a tooltip no longer stays on screen after its button goes away; the empty Bookmarks panel's button fits the sidebar; the toolbar fits more often in medium-sized windows
 
 ## 0.1.14

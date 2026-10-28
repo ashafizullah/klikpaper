@@ -4,7 +4,8 @@
   import type { Doc } from "../../lib/doc.svelte";
   import { errorText, ipc, type PdfInfo } from "../../lib/ipc";
   import { formatBytes } from "../../lib/pagespec";
-  import { t } from "../../lib/i18n/index.svelte";
+  import { t, type Key } from "../../lib/i18n/index.svelte";
+  import { summarize } from "../../lib/signatures";
 
   let { doc }: { doc: Doc } = $props();
   let info = $state<PdfInfo | null>(null);
@@ -22,6 +23,8 @@
     return d.toLocaleString();
   }
 
+  const summary = $derived(summarize(doc.signatures));
+  const signed = $derived(summary ? `${doc.signatures.length} · ${t(`sig.badge.${summary}` as Key)}` : null);
   const sizes = $derived([...new Set(doc.pages.map((p) => `${Math.round(((p.sheet?.w ?? p.w) / 72) * 25.4)} × ${Math.round(((p.sheet?.h ?? p.h) / 72) * 25.4)} mm`))]);
   const rows = $derived<[string, string | null | undefined][]>([
     [t("info.file"), doc.path ?? t("info.unsaved")],
@@ -40,6 +43,7 @@
     [t("info.modified"), date(info?.modified ?? null)],
     [t("info.redacted"), info?.redacted],
     [t("info.history"), info?.history],
+    [t("info.signatures"), signed],
   ]);
 </script>
 

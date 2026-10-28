@@ -131,6 +131,39 @@ export interface PdfInfo {
   /** Changes KlikPaper made to the printed content, one line per save. */
   history: string | null;
 }
+/** A certificate as people read it. */
+export interface CertInfo {
+  name: string;
+  organization: string | null;
+  issuer: string;
+  issuerOrganization: string | null;
+  validFrom: string;
+  validTo: string;
+  /** Issued by itself: anyone can make one in any name. */
+  selfSigned: boolean;
+}
+/** One digital signature in a file, checked (see signatures.rs). */
+export interface SignatureReport {
+  field: string | null;
+  /** 0-based page of its field. */
+  page: number | null;
+  timestamp: boolean;
+  subFilter: string | null;
+  name: string | null;
+  reason: string | null;
+  location: string | null;
+  contact: string | null;
+  signedAt: string | null;
+  signer: CertInfo | null;
+  chain: string[];
+  status: "valid" | "invalid" | "unknown";
+  intact: boolean | null;
+  verified: boolean | null;
+  /** Nothing was added to the file after this signature. */
+  coversAll: boolean;
+  certValidWhenSigned: boolean | null;
+  problem: string | null;
+}
 export type PageSize = "fit" | "a4" | "letter";
 export type Orientation = "auto" | "portrait" | "landscape";
 export interface ImagesJob {
@@ -198,6 +231,7 @@ export const ipc = {
   setShellMenu: (enabled: boolean, labels: { merge: string; compress: string; images: string; toPdf: string }) =>
     invoke<void>("set_shell_menu", { enabled, labels }),
   pdfInfo: (path: string, password?: string | null) => invoke<PdfInfo>("pdf_info", { path, password: password ?? null }),
+  pdfSignatures: (path: string, password?: string | null) => invoke<SignatureReport[]>("pdf_signatures", { path, password: password ?? null }),
   pdfComments: (path: string, password?: string | null) => invoke<{ index: number; threads: CommentThread[] }[]>("pdf_comments", { path, password: password ?? null }),
   userName: () => invoke<string>("user_name"),
   assemble: (job: AssembleJob) => invoke<AssembleResult>("pdf_assemble", { job }),

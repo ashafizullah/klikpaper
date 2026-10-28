@@ -106,6 +106,7 @@ pub fn run() {
             commands::pdf_info,
             commands::pdf_assemble,
             commands::pdf_comments,
+            commands::pdf_signatures,
             commands::user_name,
             commands::images_to_pdf,
             commands::print_window,

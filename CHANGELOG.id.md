@@ -5,7 +5,8 @@ Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan 
 ## Unreleased
 
 - Sensor data pribadi (menu ⋯, atau Berkas → Sensor Data Pribadi): mencari NIK, NPWP, nomor HP, email, nomor rekening dan kartu, serta tanggal lahir di seluruh dokumen. Nomor diperiksa, bukan sekadar dicocokkan polanya (kode wilayah dan tanggal lahir NIK, digit pemeriksa kartu), dan nomor rekening serta tanggal lahir hanya diambil kalau ada label di dekatnya, jadi nomor invoice, total, dan tanggal biasa tidak ikut. Anda memeriksa daftarnya dan menghilangkan centang yang bukan data pribadi sebelum ditandai
-- Agen AI juga bisa mencari dan menyensor data pribadi (`find_personal_data`, `redact_personal_data`)
+- Cek tanda tangan digital: PDF bertanda tangan digital menampilkan badge (Ditandatangani, Diubah setelah ditandatangani, atau Tanda tangan tidak sah). Klik untuk melihat siapa yang menandatangani, kapan, alasan dan lokasinya, sertifikat yang dipakai, apakah dokumen diubah setelah ditandatangani, dan apa yang tidak bisa diperiksa KlikPaper (apakah penerbit sertifikat tepercaya atau sertifikat sudah dicabut). Menyimpan PDF bertanda tangan memunculkan peringatan bahwa tanda tangannya tidak lagi sah di file yang disimpan dan menyarankan file baru
+- Agen AI bisa mencari dan menyensor data pribadi (`find_personal_data`, `redact_personal_data`) serta memeriksa tanda tangan (`check_signatures`)
 - Perbaikan: tooltip tidak lagi tertinggal di layar setelah tombolnya hilang; tombol di panel Bookmark yang kosong muat di sidebar; toolbar lebih sering muat di jendela berukuran sedang
 
 ## 0.1.14
