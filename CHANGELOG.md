@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.12
 
 - Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out, and a red badge in the toolbar reminds you while it's in use. KlikPaper suggests saving the result as a new file, so you keep the original
 - Bookmarks: the sidebar has a Bookmarks tab with the document's table of contents. Click one to jump there, and add, rename, nest, reorder or delete them; they're saved in the PDF. Merged files keep each file's bookmarks

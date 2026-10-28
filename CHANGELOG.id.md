@@ -2,7 +2,7 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## Unreleased
+## 0.1.12
 
 - Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor, dan badge merah di toolbar mengingatkan selama fitur ini dipakai. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada
 - Bookmark: sidebar punya tab Bookmark berisi daftar isi dokumen. Klik untuk langsung ke bagian itu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; semuanya tersimpan di PDF. File yang digabung tetap membawa bookmark masing-masing
