@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.13
 
 - Recognize text (OCR): scanned pages become text you can search, select and copy, that the AI can read and that Black out can remove word by word. Find it in the ⋯ menu, File → Recognize Text (OCR), by right-clicking a page, or in the search bar when a document has scanned pages. It reads Indonesian and English, entirely on this computer: nothing is uploaded, and the page looks the same
 - AI agents can recognize text too (`recognize_text`)
