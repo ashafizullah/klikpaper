@@ -20,6 +20,8 @@
   import PersonalDialog from "./dialogs/PersonalDialog.svelte";
   import SignaturesDialog from "./dialogs/SignaturesDialog.svelte";
   import BatchDialog from "./dialogs/BatchDialog.svelte";
+  import CompareDialog from "./dialogs/CompareDialog.svelte";
+  import CleanScanDialog from "./dialogs/CleanScanDialog.svelte";
 
   const KINDS: Record<string, Component<any>> = {
     password: PasswordDialog,
@@ -41,6 +43,8 @@
     personal: PersonalDialog,
     signatures: SignaturesDialog,
     batch: BatchDialog,
+    compare: CompareDialog,
+    "clean-scan": CleanScanDialog,
   };
 </script>
 

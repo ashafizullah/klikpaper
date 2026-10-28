@@ -9,6 +9,7 @@ import { errorText, ipc, type Compression } from "./ipc";
 import { needsOcr, recognize } from "./ocr";
 import { baseName, dirName, joinPath, stripExt } from "./pagespec";
 import { markPersonal, scanPersonal } from "./personal";
+import { cleanScans, isScan } from "./scan";
 import type { PiiKind } from "./pii";
 import { PasswordNeeded, openPdf } from "./pdfjs";
 import { writePdf } from "./save.svelte";
@@ -16,6 +17,8 @@ import { newId } from "./settings.svelte";
 import { summarize, type SignatureSummary } from "./signatures";
 
 export interface BatchActions {
+  /** Clean up scanned pages (straighten, whiten edges, black and white), before recognizing text. */
+  cleanup?: { deskew: boolean; borders: boolean; blackWhite: boolean } | null;
   /** Recognize text on pages that have none. */
   ocr?: boolean;
   /** Black out these kinds of personal data (found ones are marked without review). */
@@ -31,7 +34,7 @@ export interface BatchActions {
 
 /** Whether the actions write new files (checking signatures alone only reports). */
 export function writesFiles(a: BatchActions): boolean {
-  return !!(a.ocr || a.personal?.length || a.watermark || a.pageNumbers || a.compress || a.password || a.stripMetadata);
+  return !!(a.cleanup || a.ocr || a.personal?.length || a.watermark || a.pageNumbers || a.compress || a.password || a.stripMetadata);
 }
 
 export interface BatchReport {
@@ -42,6 +45,8 @@ export interface BatchReport {
   pages: number;
   bytesBefore: number;
   bytesAfter: number | null;
+  /** Scanned pages cleaned up. */
+  cleaned: number;
   /** Pages whose text was recognized. */
   ocrPages: number;
   /** Personal data blacked out, by kind. */
@@ -56,7 +61,7 @@ export interface BatchProgress {
   done: number;
   total: number;
   file: string;
-  /** What is happening to it: "open", "ocr", "personal" or "write". */
+  /** What is happening to it: "open", "clean", "ocr", "personal" or "write". */
   stage: string;
 }
 
@@ -93,7 +98,7 @@ export async function runBatch(
     const input = files[i];
     const stage = (s: string) => onProgress({ done: i, total: files.length, file: input, stage: s });
     stage("open");
-    const report: BatchReport = { input, output: null, error: null, pages: 0, bytesBefore: 0, bytesAfter: null, ocrPages: 0, personal: {}, pictures: 0, signatures: null };
+    const report: BatchReport = { input, output: null, error: null, pages: 0, bytesBefore: 0, bytesAfter: null, cleaned: 0, ocrPages: 0, personal: {}, pictures: 0, signatures: null };
     reports.push(report);
     let doc: Doc | null = null;
     try {
@@ -113,6 +118,15 @@ export async function runBatch(
       report.pages = doc.pages.length;
       if (!writes) continue;
 
+      if (actions.cleanup) {
+        const scans = [];
+        for (const p of doc.pages) if (await isScan(await doc.pdfPage(p)).catch(() => false)) scans.push(p);
+        if (scans.length) {
+          stage("clean");
+          // Text is recognized below for the whole document when asked.
+          report.cleaned = (await cleanScans(doc, scans, { ...actions.cleanup, ocr: false }, () => {}, cancelled)).pages;
+        }
+      }
       if (actions.ocr) {
         const scans = [];
         for (const p of doc.pages) if (await needsOcr(doc, p)) scans.push(p);

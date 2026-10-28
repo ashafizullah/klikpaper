@@ -190,7 +190,7 @@ pub async fn pdf_assemble(job: AssembleJob, temp: State<'_, Temp>) -> AppResult<
     for source in &job.sources {
         files::check_readable(&temp, Path::new(&source.path))?;
     }
-    for extra in job.pages.iter().flat_map(|p| p.raster.iter().chain(p.ocr.iter().map(|l| &l.path))) {
+    for extra in job.pages.iter().flat_map(|p| p.raster.iter().chain(p.ocr.iter().map(|l| &l.path)).chain(p.scan.iter().map(|c| &c.path))) {
         files::check_readable(&temp, Path::new(extra))?;
     }
     files::check_writable(Path::new(&job.output))?;

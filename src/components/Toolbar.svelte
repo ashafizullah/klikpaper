@@ -163,8 +163,10 @@
     <button class="menu-item" onclick={() => command("split")}><Icon name="split" />{t("menu.split")}</button>
     <button class="menu-item" onclick={() => command("resize")}><Icon name="resize" />{t("menu.resize")}</button>
     <button class="menu-item" onclick={() => command("export-images")}><Icon name="images" />{t("menu.exportImages")}</button>
+    <button class="menu-item" onclick={() => command("clean-scan")}><Icon name="clean" />{t("menu.cleanScan")}</button>
     <button class="menu-item" onclick={() => command("ocr")}><Icon name="ocr" />{t("menu.ocr")}</button>
     <button class="menu-item" onclick={() => command("personal")}><Icon name="redact" />{t("menu.personal")}</button>
+    <button class="menu-item" onclick={() => command("compare")}><Icon name="compare" />{t("menu.compare")}</button>
     <div class="menu-sep"></div>
     <button class="menu-item" onclick={() => command("watermark")}><Icon name="watermark" />{t("menu.watermark")}</button>
     <button class="menu-item" onclick={() => command("page-numbers")}><Icon name="hash" />{t("menu.pageNumbers")}</button>

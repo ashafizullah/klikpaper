@@ -19,12 +19,12 @@ type Matrix = number[];
 export type Share = (item: TextItem, chars: number) => number;
 
 /** Without font metrics: every character equally wide. */
-const evenShare: Share = (item, chars) => chars / (item.str.length || 1);
+export const evenShare: Share = (item, chars) => chars / (item.str.length || 1);
 
 const apply = (m: Matrix, x: number, y: number): [number, number] => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 
 /** Box of characters [from, to) of an item, mapped by `toPage` (user space → page space). */
-function itemRect(item: TextItem, from: number, to: number, toPage: Matrix, share: Share): Rect {
+export function itemRect(item: TextItem, from: number, to: number, toPage: Matrix, share: Share): Rect {
   const [a, b, c, d, e, f] = item.transform;
   const len = Math.hypot(a, b) || 1;
   const [ux, uy] = [a / len, b / len];

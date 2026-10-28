@@ -150,6 +150,7 @@ mod tests {
             redact: Vec::new(),
             raster: None,
             ocr: None,
+            scan: None,
         };
         let job = AssembleJob {
             sources: vec![Source { id: "a".into(), path: a, password: None }],

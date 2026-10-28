@@ -25,8 +25,10 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Resize Pages…" => "Ubah Ukuran Halaman…",
         "Export as Images…" => "Ekspor sebagai Gambar…",
         "Recognize Text (OCR)…" => "Kenali Teks (OCR)…",
+        "Clean Up Scans…" => "Rapikan Hasil Scan…",
         "Black Out Personal Data…" => "Sensor Data Pribadi…",
         "Process Many Files…" => "Proses Banyak File…",
+        "Compare with Another Version…" => "Bandingkan dengan Versi Lain…",
         "Print…" => "Cetak…",
         "Close Tab" => "Tutup Tab",
         "Exit" => "Keluar",
@@ -103,8 +105,10 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .item(&item(app, "compress", t("Compress…"), None)?)
         .item(&item(app, "resize", t("Resize Pages…"), None)?)
         .item(&item(app, "export-images", t("Export as Images…"), None)?)
+        .item(&item(app, "clean-scan", t("Clean Up Scans…"), None)?)
         .item(&item(app, "ocr", t("Recognize Text (OCR)…"), None)?)
         .item(&item(app, "personal", t("Black Out Personal Data…"), None)?)
+        .item(&item(app, "compare", t("Compare with Another Version…"), None)?)
         .separator()
         .item(&item(app, "print", t("Print…"), Some("CmdOrCtrl+P"))?)
         .separator()

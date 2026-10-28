@@ -8,6 +8,7 @@ pub mod images;
 pub mod ocr;
 pub mod outline;
 pub mod redact;
+pub mod scan;
 pub mod sheet;
 pub mod signatures;
 mod std14;
@@ -60,6 +61,9 @@ pub struct PageRef {
     /// Recognized text (OCR) to put on the page as an invisible layer.
     #[serde(default)]
     pub ocr: Option<ocr::TextLayer>,
+    /// A cleaned-up picture of the scanned page replaces its content.
+    #[serde(default)]
+    pub scan: Option<scan::Cleanup>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -136,6 +140,8 @@ pub struct AssembleResult {
     /// Positions of redacted pages whose content couldn't be taken apart; they
     /// must be saved again with a picture of the page (`PageRef::raster`).
     pub raster_needed: Vec<usize>,
+    /// The skew undone on each cleaned-up scan, in degrees.
+    pub straightened: Vec<f64>,
 }
 
 /// What building the document did beyond arranging pages.
@@ -143,6 +149,8 @@ pub struct AssembleResult {
 struct Report {
     redacted: usize,
     raster_needed: Vec<usize>,
+    /// The skew undone on each cleaned-up scan, in degrees.
+    straightened: Vec<f64>,
 }
 
 #[derive(Serialize, Debug)]
@@ -278,7 +286,14 @@ pub fn assemble(job: &AssembleJob) -> AppResult<AssembleResult> {
     let (mut doc, report) = build(&job.sources, &job.pages, job.outline.as_deref())?;
     let images = finish(&mut doc, &job.options, report.redacted)?;
     let bytes = save(&mut doc, &output, job.options.compress.is_some())?;
-    Ok(AssembleResult { pages: job.pages.len(), bytes, images, redacted: report.redacted, raster_needed: report.raster_needed })
+    Ok(AssembleResult {
+        pages: job.pages.len(),
+        bytes,
+        images,
+        redacted: report.redacted,
+        raster_needed: report.raster_needed,
+        straightened: report.straightened,
+    })
 }
 
 pub fn has_extension(path: &Path, allowed: &[&str]) -> bool {
@@ -342,6 +357,9 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
         let id = if used.insert(orig) { orig } else { doc.new_object_id() };
         if let Some(threads) = &p.comments {
             comments::write(&mut doc, &mut dict, id, threads)?;
+        }
+        if let Some(cleanup) = &p.scan {
+            report.straightened.push(scan::apply(&mut doc, &mut dict, cleanup)?);
         }
         // Before redaction, so recognized words under a black box go too.
         if let Some(layer) = &p.ocr {
@@ -745,7 +763,17 @@ pub(crate) mod tests {
     }
 
     fn page(source: &str, index: u32, rotate: i64) -> PageRef {
-        PageRef { source: source.into(), index, rotate, sheet: None, comments: None, redact: Vec::new(), raster: None, ocr: None }
+        PageRef {
+            source: source.into(),
+            index,
+            rotate,
+            sheet: None,
+            comments: None,
+            redact: Vec::new(),
+            raster: None,
+            ocr: None,
+            scan: None,
+        }
     }
 
     fn src(id: &str, path: &str) -> Source {

@@ -1494,6 +1494,7 @@ mod tests {
             redact,
             raster,
             ocr: None,
+            scan: None,
         };
         let mut job = AssembleJob {
             sources: vec![Source { id: "a".into(), path: a, password: None }],

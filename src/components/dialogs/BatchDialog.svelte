@@ -18,6 +18,8 @@
   let outDir = $state<string | null>(null);
   let suffix = $state(t("batch.suffixDefault"));
 
+  let clean = $state(false);
+  let cleanBw = $state(true);
   let ocr = $state(false);
   let personal = $state(false);
   let kinds = $state<PiiKind[]>([...PII_KINDS]);
@@ -39,6 +41,7 @@
   onDestroy(() => (cancelled = true));
 
   const actions = $derived<BatchActions>({
+    cleanup: clean ? { deskew: true, borders: true, blackWhite: cleanBw } : null,
     ocr,
     personal: personal && kinds.length ? kinds : null,
     watermark: watermark && watermarkText.trim() ? { text: watermarkText.trim(), size: 64, opacity: 0.18, color: "#7a7a7a", angle: 45 } : null,
@@ -94,6 +97,7 @@
   /** Notes on one file's result, in plain words. */
   function notes(r: BatchReport): string[] {
     const out: string[] = [];
+    if (r.cleaned) out.push(t("batch.noteClean", { n: r.cleaned }));
     if (r.ocrPages) out.push(t("batch.noteOcr", { n: r.ocrPages }));
     const blacked = Object.values(r.personal).reduce((a, b) => a + (b ?? 0), 0);
     if (actions.personal) out.push(blacked ? t("batch.notePersonal", { n: blacked }) : t("batch.notePersonalNone"));
@@ -146,6 +150,13 @@
 
     <section class="actions">
       <span class="label section">{t("batch.steps")}</span>
+      <label class="row"><input type="checkbox" bind:checked={clean} />{t("batch.clean")}</label>
+      {#if clean}
+        <div class="sub">
+          <label class="row"><input type="checkbox" bind:checked={cleanBw} />{t("clean.blackWhite")}</label>
+          <p class="hint">{t("clean.blackWhiteHint")}</p>
+        </div>
+      {/if}
       <label class="row"><input type="checkbox" bind:checked={ocr} />{t("batch.ocr")}</label>
       <label class="row"><input type="checkbox" bind:checked={personal} />{t("batch.personal")}</label>
       {#if personal}
@@ -268,6 +279,11 @@
     grid-template-columns: 1fr 1fr 1fr;
     gap: 2px 12px;
     font-size: 12px;
+  }
+  .hint {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--muted);
   }
   .warn {
     margin: 0;

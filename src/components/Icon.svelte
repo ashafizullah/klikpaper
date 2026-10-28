@@ -21,6 +21,8 @@
     BookmarkPlus,
     Printer,
     ScanText,
+    GitCompareArrows,
+    Wand,
     FilePlus,
     FileStack,
     FileText,
@@ -162,6 +164,8 @@
     "bookmark-add": BookmarkPlus,
     print: Printer,
     ocr: ScanText,
+    compare: GitCompareArrows,
+    clean: Wand,
   };
 </script>
 

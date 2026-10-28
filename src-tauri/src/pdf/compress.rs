@@ -263,6 +263,7 @@ mod tests {
                 redact: Vec::new(),
                 raster: None,
                 ocr: None,
+                scan: None,
             }],
             output: out.display().to_string(),
             options: Options { compress: Some(Level::High.into()), ..Default::default() },

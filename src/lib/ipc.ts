@@ -53,6 +53,8 @@ export interface PageSpec {
   raster?: string | null;
   /** Recognized text (a text-only PDF from Tesseract) laid invisibly over the page; `rotation` is how the page was shown when read. */
   ocr?: { path: string; rotation: number } | null;
+  /** A picture of the scanned page (PNG, unrotated) to clean up and show instead of its content. */
+  scan?: { path: string; deskew: boolean; borders: boolean; blackWhite: boolean } | null;
 }
 
 /** A bookmark as written into the file. */
@@ -111,6 +113,8 @@ export interface AssembleResult {
   redacted: number;
   /** Redacted pages (0-based positions) to save again as pictures. */
   rasterNeeded: number[];
+  /** The skew undone on each cleaned-up scan, in degrees. */
+  straightened: number[];
 }
 export interface PdfInfo {
   pages: number;

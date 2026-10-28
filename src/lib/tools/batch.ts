@@ -19,7 +19,9 @@ function actions(args: Args): BatchActions {
   const kinds = args.black_out_personal_data === true ? PII_KINDS : Array.isArray(args.black_out_personal_data) ? args.black_out_personal_data.map(String).filter((k): k is PiiKind => (PII_KINDS as string[]).includes(k)) : [];
   const watermark = typeof args.watermark === "string" ? args.watermark.trim() : "";
   const numbers = typeof args.page_numbers === "string" ? args.page_numbers.trim() : args.page_numbers === true ? "{n}" : "";
+  const clean = args.clean_scans;
   return {
+    cleanup: clean === true ? { deskew: true, borders: true, blackWhite: true } : clean && typeof clean === "object" ? { deskew: (clean as Args).deskew !== false, borders: (clean as Args).remove_borders !== false, blackWhite: (clean as Args).black_and_white !== false } : null,
     ocr: args.recognize_text === true,
     personal: kinds.length ? kinds : null,
     watermark: watermark ? { text: watermark, size: 64, opacity: 0.18, color: "#7a7a7a", angle: 45 } : null,
@@ -35,12 +37,16 @@ export const BATCH_TOOLS: ToolSpec[] = [
   {
     name: "process_files",
     description:
-      "Processes many PDFs at once, like Process many files in the app. For each file it can recognize text on scanned pages, black out personal data (found items are blacked out without a review, so tell the user to check the results), add a watermark or page numbers, compress, protect with a password and remove metadata, writing a new file to output_folder (the originals are never changed; names get `suffix`, and a number when taken). check_signatures alone only reports. Returns one line per file: output path, sizes, pages recognized, personal data blacked out, signature status, or the error (password-protected files are skipped). Processing a digitally signed file makes its signatures not valid in the new file.",
+      "Processes many PDFs at once, like Process many files in the app. For each file it can clean up scanned pages (straighten, whiten dark edges, black and white), recognize text on scanned pages, black out personal data (found items are blacked out without a review, so tell the user to check the results), add a watermark or page numbers, compress, protect with a password and remove metadata, writing a new file to output_folder (the originals are never changed; names get `suffix`, and a number when taken). check_signatures alone only reports. Returns one line per file: output path, sizes, pages recognized, personal data blacked out, signature status, or the error (password-protected files are skipped). Processing a digitally signed file makes its signatures not valid in the new file.",
     parameters: obj({
       files: { type: "array", items: { type: "string" }, description: "Absolute paths of PDFs." },
       folder: { type: "string", description: "Absolute path of a folder: its PDFs (not subfolders) are added." },
       output_folder: { type: "string", description: "Absolute path of the folder for the new files. Required unless only check_signatures is asked." },
       suffix: { type: "string", description: 'Added to each file name. Default "-processed"; in the input folder an empty suffix becomes "-processed".' },
+      clean_scans: {
+        description: "Clean up scanned pages first: true for all of straighten, whiten dark edges and black and white, or an object choosing them (black and white makes files much smaller but drops color).",
+        anyOf: [{ type: "boolean" }, { type: "object", properties: { deskew: { type: "boolean" }, remove_borders: { type: "boolean" }, black_and_white: { type: "boolean" } }, additionalProperties: false }],
+      },
       recognize_text: { type: "boolean" },
       black_out_personal_data: { description: "true for every kind, or a list of: nik, npwp, phone, email, account, birthdate.", anyOf: [{ type: "boolean" }, { type: "array", items: { type: "string", enum: PII_KINDS } }] },
       watermark: { type: "string", description: "Watermark text." },
@@ -70,6 +76,7 @@ export const BATCH_TOOLS: ToolSpec[] = [
           pages: r.pages,
           bytesBefore: r.bytesBefore,
           bytesAfter: r.bytesAfter,
+          pagesCleanedUp: r.cleaned || undefined,
           pagesRecognized: r.ocrPages || undefined,
           personalDataBlackedOut: Object.keys(r.personal).length ? r.personal : undefined,
           pagesSavedAsPictures: r.pictures || undefined,

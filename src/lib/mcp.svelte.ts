@@ -15,7 +15,8 @@ const INSTRUCTIONS = [
   "Page numbers are 1-based. Positions for add_text, add_shape and add_image are points from the top-left of the page as displayed (document_info gives page sizes).",
   "Annotations (text boxes, highlights, shapes, images) stay editable until the document is saved; the add_* tools return ids that remove_annotations takes. To mark a phrase, use highlight_text rather than guessing coordinates; to change printed words, use replace_text. Scanned pages have no text until recognize_text reads them. To hide private information for good, use redact_text, redact_area or redact_personal_data (find_personal_data lists it first): saving removes the content under the marks from the file, while white-out boxes and replace_text only cover it.",
   "Saving a digitally signed document rewrites it, so its signatures stop being valid: check_signatures first, and save signed documents to a new path. Changes to printed text and blacked-out areas are noted in the file's edit history (document_info shows it).",
-  "For many files at once (OCR, black out personal data, watermark, page numbers, compress, password, remove metadata, signature report), use process_files: it writes new files to an output folder and never changes the originals.",
+  "For many files at once (clean up scans, OCR, black out personal data, watermark, page numbers, compress, password, remove metadata, signature report), use process_files: it writes new files to an output folder and never changes the originals.",
+  "To see what changed between two versions of a document, use compare_pdfs. For tilted or dark-edged scans, clean_scans straightens them and can make them black and white (smaller files) before recognize_text.",
 ].join("\n");
 
 export async function startMcp() {

@@ -174,6 +174,7 @@ mod tests {
                 redact: Vec::new(),
                 raster: None,
                 ocr: Some(TextLayer { path: layer_path.display().to_string(), rotation: 0 }),
+                scan: None,
             }],
             output: out.clone(),
             options: Options::default(),
