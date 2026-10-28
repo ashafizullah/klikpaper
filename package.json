@@ -1,6 +1,6 @@
 {
   "name": "klikpaper",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Free, open-source, lightweight PDF tool: view, organize, compress, sign and chat with your PDFs, offline",
   "private": true,
   "type": "module",
