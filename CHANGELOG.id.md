@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.16
+
+- Perbaikan: tombol GitHub di Pengaturan → Tentang, link di dalam PDF, dan bookmark yang mengarah ke situs web kini terbuka di browser; sebelumnya tidak terjadi apa-apa saat diklik
+
 ## 0.1.15
 
 - Sensor data pribadi (menu ⋯, atau Berkas → Sensor Data Pribadi): mencari NIK, NPWP, nomor HP, email, nomor rekening dan kartu, serta tanggal lahir di seluruh dokumen. Nomor diperiksa, bukan sekadar dicocokkan polanya (kode wilayah dan tanggal lahir NIK, digit pemeriksa kartu), dan nomor rekening serta tanggal lahir hanya diambil kalau ada label di dekatnya, jadi nomor invoice, total, dan tanggal biasa tidak ikut. Anda memeriksa daftarnya dan menghilangkan centang yang bukan data pribadi sebelum ditandai

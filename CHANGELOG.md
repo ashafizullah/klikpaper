@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.16
+
+- Fixes: the GitHub button in Settings → About, links inside PDFs and bookmarks that point to a website now open in your browser; before, clicking them did nothing
+
 ## 0.1.15
 
 - Black out personal data (⋯ menu, or File → Black Out Personal Data): finds Indonesian ID numbers (NIK), tax numbers (NPWP), mobile numbers, email addresses, bank account and card numbers, and dates of birth across the document. Numbers are checked, not just matched (a NIK's region and birth date, a card's check digit), and account numbers and birth dates are only picked up next to a label, so invoice numbers, totals and ordinary dates stay. You review the list and untick anything that isn't private before it's marked
