@@ -47,6 +47,30 @@ export const OUTLINE_TOOLS: ToolSpec[] = [
     },
   },
   {
+    name: "update_bookmark",
+    description: "Renames a bookmark, points it at another page, or both. Undoable; saved when the user saves.",
+    parameters: obj({ doc: DOC, id: BOOKMARK, title: { type: "string" }, page: { type: "integer", minimum: 1 } }, ["id"]),
+    scope: "both",
+    async run(args) {
+      const doc = findDoc(args);
+      const id = str(args, "id");
+      if (!find(doc.outline, id)) throw new Error(`No bookmark "${id}"; list_bookmarks lists them`);
+      const title = str(args, "title", "");
+      const target = args.page !== undefined ? pageArg(doc, args) : null;
+      if (!title && !target) throw new Error("Pass a new title, a page, or both");
+      doc.editOutline((list) => {
+        const b = find(list, id);
+        if (!b) return;
+        if (title) b.title = title;
+        if (target) {
+          b.page = target.page.id;
+          b.y = null;
+        }
+      });
+      return { updated: { id, title: find(doc.outline, id)?.title, page: target?.n } };
+    },
+  },
+  {
     name: "remove_bookmarks",
     description: "Removes bookmarks by id (their sub-bookmarks go too), or all of them with all: true. Undoable; saved when the user saves.",
     parameters: obj({ doc: DOC, ids: { type: "array", items: { type: "string" } }, all: { type: "boolean" } }),

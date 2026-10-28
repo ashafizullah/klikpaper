@@ -26,6 +26,7 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Export as Images…" => "Ekspor sebagai Gambar…",
         "Recognize Text (OCR)…" => "Kenali Teks (OCR)…",
         "Black Out Personal Data…" => "Sensor Data Pribadi…",
+        "Process Many Files…" => "Proses Banyak File…",
         "Print…" => "Cetak…",
         "Close Tab" => "Tutup Tab",
         "Exit" => "Keluar",
@@ -95,6 +96,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .item(&item(app, "new-tab", t("New Tab"), Some("CmdOrCtrl+T"))?)
         .item(&item(app, "open", t("Open…"), Some("CmdOrCtrl+O"))?)
         .item(&item(app, "images-to-pdf", t("New PDF from Images…"), None)?)
+        .item(&item(app, "batch", t("Process Many Files…"), None)?)
         .separator()
         .item(&item(app, "save", t("Save"), Some("CmdOrCtrl+S"))?)
         .item(&item(app, "save-as", t("Save As…"), Some("CmdOrCtrl+Shift+S"))?)

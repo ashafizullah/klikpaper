@@ -19,6 +19,7 @@
   import OcrDialog from "./dialogs/OcrDialog.svelte";
   import PersonalDialog from "./dialogs/PersonalDialog.svelte";
   import SignaturesDialog from "./dialogs/SignaturesDialog.svelte";
+  import BatchDialog from "./dialogs/BatchDialog.svelte";
 
   const KINDS: Record<string, Component<any>> = {
     password: PasswordDialog,
@@ -39,6 +40,7 @@
     ocr: OcrDialog,
     personal: PersonalDialog,
     signatures: SignaturesDialog,
+    batch: BatchDialog,
   };
 </script>
 

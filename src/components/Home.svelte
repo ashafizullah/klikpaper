@@ -65,6 +65,7 @@
     { icon: "open", label: "home.open", hint: `${mod}O`, run: () => command("open") },
     { icon: "merge", label: "home.merge", hint: "home.mergeHint", run: () => command("merge") },
     { icon: "images", label: "home.images", hint: "home.imagesHint", run: () => imagesToPdf() },
+    { icon: "files", label: "home.batch", hint: "home.batchHint", run: () => command("batch") },
   ] as const;
 </script>
 

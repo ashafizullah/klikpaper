@@ -231,6 +231,7 @@ export const ipc = {
   setShellMenu: (enabled: boolean, labels: { merge: string; compress: string; images: string; toPdf: string }) =>
     invoke<void>("set_shell_menu", { enabled, labels }),
   pdfInfo: (path: string, password?: string | null) => invoke<PdfInfo>("pdf_info", { path, password: password ?? null }),
+  listPdfs: (dir: string) => invoke<string[]>("list_pdfs", { dir }),
   pdfSignatures: (path: string, password?: string | null) => invoke<SignatureReport[]>("pdf_signatures", { path, password: password ?? null }),
   pdfComments: (path: string, password?: string | null) => invoke<{ index: number; threads: CommentThread[] }[]>("pdf_comments", { path, password: password ?? null }),
   userName: () => invoke<string>("user_name"),

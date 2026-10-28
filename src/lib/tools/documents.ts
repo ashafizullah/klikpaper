@@ -1,5 +1,7 @@
 // Tools for open documents: finding, reading and searching them, page changes,
 // undo and redo, saving and closing.
+import { printDoc } from "../print";
+import { summarize } from "../signatures";
 import { ipc } from "../ipc";
 import { parsePages } from "../pagespec";
 import { activate, closeDoc, insertFiles, openPaths, saveDoc, ws } from "../workspace.svelte";
@@ -53,6 +55,11 @@ export const DOCUMENT_TOOLS: ToolSpec[] = [
         annotations: doc.overlays.length,
         passwordOnSave: !!doc.protect,
         metadata: info && { title: info.title, author: info.author, subject: info.subject, producer: info.producer, created: info.created },
+        bookmarks: doc.outline.length,
+        pendingBlackOuts: doc.redactions.length,
+        editHistory: info?.history ?? null,
+        blackedOutNote: info?.redacted ?? null,
+        digitalSignatures: summarize(doc.signatures) ?? "unsigned",
       };
     },
   },
@@ -108,6 +115,18 @@ export const DOCUMENT_TOOLS: ToolSpec[] = [
       activate(doc);
       viewer.goTo(page - 1);
       return `Showing page ${page}`;
+    },
+  },
+  {
+    name: "print_document",
+    description: "Opens the system print dialog for a document as it looks now (unsaved edits included). The user picks the printer and confirms; nothing prints without them.",
+    parameters: obj({ doc: DOC }),
+    scope: "both",
+    async run(args) {
+      const doc = findDoc(args);
+      activate(doc);
+      await printDoc(doc);
+      return `Opened the print dialog for ${doc.name}; the user finishes printing there`;
     },
   },
   {

@@ -153,6 +153,26 @@ pub async fn pdf_comments(path: String, password: Option<String>, temp: State<'_
     blocking(move || pdf::comments::read_file(Path::new(&path), password.as_deref())).await
 }
 
+/// The PDFs directly inside a folder (not its subfolders), sorted by name.
+#[tauri::command]
+pub async fn list_pdfs(dir: String) -> AppResult<Vec<String>> {
+    blocking(move || {
+        let dir = PathBuf::from(dir);
+        if !dir.is_dir() {
+            return Err(AppError::msg(format!("{} is not a folder", dir.display())));
+        }
+        let mut out: Vec<String> = std::fs::read_dir(&dir)?
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| p.is_file() && pdf::has_extension(p, &["pdf"]))
+            .map(|p| p.display().to_string())
+            .collect();
+        out.sort_by_key(|p| p.to_lowercase());
+        Ok(out)
+    })
+    .await
+}
+
 /// The digital signatures in a file, checked.
 #[tauri::command]
 pub async fn pdf_signatures(

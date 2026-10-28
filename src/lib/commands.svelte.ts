@@ -46,6 +46,8 @@ export async function command(id: string) {
       return pickAndOpen(true);
     case "images-to-pdf":
       return imagesToPdf();
+    case "batch":
+      return openDialog("batch");
     case "settings":
       return openDialog("settings");
     case "licenses":

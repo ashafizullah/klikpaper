@@ -5,6 +5,7 @@
 import { errorText } from "../ipc";
 import type { Args, ToolSpec } from "./args";
 import { ANNOTATION_TOOLS } from "./annotations";
+import { BATCH_TOOLS } from "./batch";
 import { COMMENT_TOOLS } from "./comments";
 import { DOCUMENT_TOOLS } from "./documents";
 import { FILE_TOOLS } from "./files";
@@ -16,7 +17,7 @@ import { SIGNATURE_TOOLS } from "./signatures";
 
 export type { ToolSpec };
 
-export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...OCR_TOOLS, ...REDACT_TOOLS, ...PERSONAL_TOOLS, ...SIGNATURE_TOOLS, ...COMMENT_TOOLS, ...OUTLINE_TOOLS, ...FILE_TOOLS];
+export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...OCR_TOOLS, ...REDACT_TOOLS, ...PERSONAL_TOOLS, ...SIGNATURE_TOOLS, ...COMMENT_TOOLS, ...OUTLINE_TOOLS, ...FILE_TOOLS, ...BATCH_TOOLS];
 
 export function toolsFor(scope: "app" | "mcp"): ToolSpec[] {
   return TOOLS.filter((t) => t.scope === "both" || t.scope === scope);

@@ -3,11 +3,18 @@
   // macOS webview are slow and never show on disabled buttons, so each `title`
   // is moved to `data-tip` on hover and drawn here instead.
   import { onMount, tick } from "svelte";
+  import { ui } from "../lib/ui.svelte";
 
   const DELAY = 350;
   let tip = $state<{ text: string; rect: DOMRect } | null>(null);
   let pos = $state<{ left: number; top: number } | null>(null);
   let box = $state<HTMLDivElement>();
+  let clearTip = () => {};
+  // A dialog opening (from a shortcut or the menu bar, with the pointer still) covers what the tip was about.
+  $effect(() => {
+    void ui.dialogs.length;
+    clearTip();
+  });
 
   function target(x: number, y: number): HTMLElement | null {
     for (const el of document.elementsFromPoint(x, y)) {
@@ -48,6 +55,7 @@
     const watch = setInterval(() => {
       if (current && !current.isConnected) clear();
     }, 400);
+    clearTip = clear;
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerdown", clear);
     window.addEventListener("wheel", clear, { passive: true });
