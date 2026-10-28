@@ -44,12 +44,17 @@
         timer = setTimeout(() => (tip = { text, rect: el.getBoundingClientRect() }), DELAY);
       });
     };
+    // An element that goes away under a still pointer (a tab closed from the keyboard) takes its tip along.
+    const watch = setInterval(() => {
+      if (current && !current.isConnected) clear();
+    }, 400);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerdown", clear);
     window.addEventListener("wheel", clear, { passive: true });
     window.addEventListener("keydown", clear);
     window.addEventListener("blur", clear);
     return () => {
+      clearInterval(watch);
       cancelAnimationFrame(frame);
       clearTimeout(timer);
       window.removeEventListener("pointermove", onMove);

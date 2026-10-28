@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Black out personal data (⋯ menu, or File → Black Out Personal Data): finds Indonesian ID numbers (NIK), tax numbers (NPWP), mobile numbers, email addresses, bank account and card numbers, and dates of birth across the document. Numbers are checked, not just matched (a NIK's region and birth date, a card's check digit), and account numbers and birth dates are only picked up next to a label, so invoice numbers, totals and ordinary dates stay. You review the list and untick anything that isn't private before it's marked
+- AI agents can find and black out personal data too (`find_personal_data`, `redact_personal_data`)
+- Fixes: a tooltip no longer stays on screen after its button goes away; the empty Bookmarks panel's button fits the sidebar; the toolbar fits more often in medium-sized windows
+
 ## 0.1.14
 
 - Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back; on scanned pages the ink of every word taken out goes too. KlikPaper suggests saving the result as a new file, so you keep the original, and the file notes that parts were blacked out

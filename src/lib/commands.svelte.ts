@@ -103,6 +103,8 @@ export async function command(id: string) {
       return openDialog("info", { doc });
     case "ocr":
       return openDialog("ocr", { doc });
+    case "personal":
+      return openDialog("personal", { doc });
     case "undo":
       if (editing()) return document.execCommand("undo");
       return doc.undo();

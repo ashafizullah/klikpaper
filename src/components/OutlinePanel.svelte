@@ -240,6 +240,13 @@
     gap: 10px;
     padding: 10px 8px;
   }
+  .empty .btn {
+    max-width: 100%;
+    height: auto;
+    min-height: 28px;
+    white-space: normal;
+    text-align: left;
+  }
   .empty p {
     margin: 0;
     font-size: 12px;

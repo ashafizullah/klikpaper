@@ -2,6 +2,12 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Sensor data pribadi (menu ⋯, atau Berkas → Sensor Data Pribadi): mencari NIK, NPWP, nomor HP, email, nomor rekening dan kartu, serta tanggal lahir di seluruh dokumen. Nomor diperiksa, bukan sekadar dicocokkan polanya (kode wilayah dan tanggal lahir NIK, digit pemeriksa kartu), dan nomor rekening serta tanggal lahir hanya diambil kalau ada label di dekatnya, jadi nomor invoice, total, dan tanggal biasa tidak ikut. Anda memeriksa daftarnya dan menghilangkan centang yang bukan data pribadi sebelum ditandai
+- Agen AI juga bisa mencari dan menyensor data pribadi (`find_personal_data`, `redact_personal_data`)
+- Perbaikan: tooltip tidak lagi tertinggal di layar setelah tombolnya hilang; tombol di panel Bookmark yang kosong muat di sidebar; toolbar lebih sering muat di jendela berukuran sedang
+
 ## 0.1.14
 
 - Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan; di halaman hasil scan, tinta setiap kata yang dihapus ikut hilang. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada, dan file diberi keterangan bahwa ada bagian yang disensor
