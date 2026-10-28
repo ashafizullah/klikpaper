@@ -1,6 +1,9 @@
 <script lang="ts">
-  import type { Doc } from "../lib/doc.svelte";
-  import { ui } from "../lib/ui.svelte";
+  import type { Doc, Redaction } from "../lib/doc.svelte";
+  import { busy, toast, ui } from "../lib/ui.svelte";
+  import { textRects } from "../lib/pdfjs";
+  import { padForRedaction } from "../lib/selection";
+  import { newId } from "../lib/settings.svelte";
   import { viewer } from "../lib/viewer.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
@@ -52,6 +55,23 @@
     }
   }
 
+  /** Marks every match on the pages found for redaction, as one undoable change. */
+  async function redactAll() {
+    const q = ui.findQuery.trim();
+    if (!q || !hits.length) return;
+    const marks = await busy(t("common.working"), async () => {
+      const out: Redaction[] = [];
+      for (const i of hits) {
+        const page = doc.pages[i];
+        for (const match of await textRects(await doc.pdfPage(page), q)) out.push({ id: newId("x"), page: page.id, rects: match.map(padForRedaction) });
+      }
+      return out;
+    });
+    if (!marks?.length) return;
+    doc.addRedactions(marks);
+    toast(t("find.redacted", { n: marks.length }), "ok");
+  }
+
   $effect(() => {
     if (ui.findQuery) search(ui.findQuery);
     return () => {
@@ -69,6 +89,7 @@
   </span>
   <button class="icon-btn" onclick={() => go(position - 1)} disabled={!hits.length} aria-label={t("find.prev")} title={t("find.prev")}><Icon name="up" /></button>
   <button class="icon-btn" onclick={() => go(position + 1)} disabled={!hits.length} aria-label={t("find.next")} title={t("find.next")}><Icon name="down" /></button>
+  <button class="icon-btn" onclick={redactAll} disabled={!hits.length || searching} aria-label={t("find.redactAll")} title={t("find.redactAll")}><Icon name="redact" /></button>
   <button class="icon-btn" onclick={() => (ui.findOpen = false)} aria-label={t("common.close")} title={t("common.close")}><Icon name="close" /></button>
 </div>
 

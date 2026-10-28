@@ -14,6 +14,7 @@ export type Tool =
   | "arrow"
   | "image"
   | "whiteout"
+  | "redact"
   | "comment";
 
 export const DEFAULT_COLORS: Record<string, string> = {

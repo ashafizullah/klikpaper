@@ -9,6 +9,7 @@
   import { viewer } from "../lib/viewer.svelte";
   import { numberAnchor, pageLabel } from "../lib/layout";
   import OverlayLayer from "./OverlayLayer.svelte";
+  import RedactLayer from "./RedactLayer.svelte";
   import CommentLayer from "./CommentLayer.svelte";
 
   let { doc, page, index, scale, visible }: { doc: Doc; page: PageItem; index: number; scale: number; visible: boolean } = $props();
@@ -204,6 +205,7 @@
       <div class="pn" style:left="{numberPos.left}px" style:top="{numberPos.top}px" style:font-size="{pn.size * contentScale}px" style:color={pn.color}>{numberLabel}</div>
     {/if}
     <OverlayLayer {doc} {page} scale={contentScale} {rotation} {pageEl} />
+    <RedactLayer {doc} {page} scale={contentScale} {rotation} {pageEl} />
     <CommentLayer {doc} {page} scale={contentScale} {rotation} />
   </div>
 </div>

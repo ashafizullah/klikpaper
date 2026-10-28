@@ -5,7 +5,10 @@
 pub mod comments;
 pub mod compress;
 pub mod images;
+pub mod outline;
+pub mod redact;
 pub mod sheet;
+mod std14;
 
 use crate::error::{AppError, AppResult};
 use lopdf::encryption::crypt_filters::{Aes256CryptFilter, CryptFilter};
@@ -45,6 +48,13 @@ pub struct PageRef {
     /// The page's comment threads, replacing the ones in the file; None leaves them as they are.
     #[serde(default)]
     pub comments: Option<Vec<comments::Thread>>,
+    /// Areas whose content is removed and painted black (see `redact`).
+    #[serde(default)]
+    pub redact: Vec<redact::Area>,
+    /// A JPEG of the page (already redacted) that replaces its content, for pages
+    /// whose content couldn't be redacted piece by piece.
+    #[serde(default)]
+    pub raster: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -76,6 +86,9 @@ pub struct AssembleJob {
     pub output: String,
     #[serde(default)]
     pub options: Options,
+    /// Bookmarks replacing the document's outline; None keeps the base file's.
+    #[serde(default)]
+    pub outline: Option<Vec<outline::Bookmark>>,
 }
 
 #[derive(Serialize, Debug)]
@@ -85,6 +98,18 @@ pub struct AssembleResult {
     pub bytes: u64,
     /// Images re-encoded by compression.
     pub images: usize,
+    /// Areas redacted.
+    pub redacted: usize,
+    /// Positions of redacted pages whose content couldn't be taken apart; they
+    /// must be saved again with a picture of the page (`PageRef::raster`).
+    pub raster_needed: Vec<usize>,
+}
+
+/// What building the document did beyond arranging pages.
+#[derive(Default)]
+struct Report {
+    redacted: usize,
+    raster_needed: Vec<usize>,
 }
 
 #[derive(Serialize, Debug)]
@@ -209,10 +234,10 @@ pub fn assemble(job: &AssembleJob) -> AppResult<AssembleResult> {
     if !has_extension(&output, &["pdf"]) {
         return Err(AppError::msg("The output file must end in .pdf"));
     }
-    let mut doc = build(&job.sources, &job.pages)?;
-    let images = finish(&mut doc, &job.options)?;
+    let (mut doc, report) = build(&job.sources, &job.pages, job.outline.as_deref())?;
+    let images = finish(&mut doc, &job.options, report.redacted)?;
     let bytes = save(&mut doc, &output, job.options.compress.is_some())?;
-    Ok(AssembleResult { pages: job.pages.len(), bytes, images })
+    Ok(AssembleResult { pages: job.pages.len(), bytes, images, redacted: report.redacted, raster_needed: report.raster_needed })
 }
 
 pub fn has_extension(path: &Path, allowed: &[&str]) -> bool {
@@ -221,7 +246,7 @@ pub fn has_extension(path: &Path, allowed: &[&str]) -> bool {
 
 /// Merges the used sources into the first page's document and gives it a new
 /// page tree holding exactly `pages`, in order.
-fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
+fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Bookmark]>) -> AppResult<(Document, Report)> {
     let Some(first) = pages.first() else { return Err(AppError::msg("There are no pages to save")) };
     let by_id: HashMap<&str, &Source> = sources.iter().map(|s| (s.id.as_str(), s)).collect();
     let source = |id: &str| by_id.get(id).copied().ok_or_else(|| AppError::msg(format!("Unknown source {id}")));
@@ -257,7 +282,9 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
     let mut kids: Vec<Object> = Vec::with_capacity(pages.len());
     let mut used: HashSet<ObjectId> = HashSet::new();
     let mut moved_annots: HashSet<ObjectId> = HashSet::new();
-    for p in pages {
+    let mut report = Report::default();
+    let mut removed_annots: HashSet<ObjectId> = HashSet::new();
+    for (position, p) in pages.iter().enumerate() {
         let ids = &page_ids[p.source.as_str()];
         let Some(&orig) = ids.get(p.index as usize) else {
             return Err(AppError::msg(format!(
@@ -275,6 +302,17 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
         if let Some(threads) = &p.comments {
             comments::write(&mut doc, &mut dict, id, threads)?;
         }
+        if let Some(picture) = &p.raster {
+            redact::rasterize(&mut doc, &mut dict, Path::new(picture))?;
+        }
+        if !p.redact.is_empty() {
+            let outcome = redact::apply(&mut doc, &mut dict, &p.redact, p.raster.is_none())?;
+            removed_annots.extend(outcome.removed);
+            if outcome.issue.is_some() {
+                report.raster_needed.push(position);
+            }
+            report.redacted += p.redact.len();
+        }
         // After the comments, so they move with the content.
         if let Some(paper) = &p.sheet {
             sheet::fit_page(&mut doc, &mut dict, paper, &mut moved_annots)?;
@@ -283,6 +321,7 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
         kids.push(id.into());
     }
 
+    let kids_ids: Vec<ObjectId> = kids.iter().filter_map(|k| k.as_reference().ok()).collect();
     let mut tree = Dictionary::new();
     tree.set("Type", "Pages");
     tree.set("Count", kids.len() as i64);
@@ -302,8 +341,15 @@ fn build(sources: &[Source], pages: &[PageRef]) -> AppResult<Document> {
         }
     }
     merge_forms(&mut doc, catalog_id, other_forms)?;
+    if !removed_annots.is_empty() {
+        redact::prune_fields(&mut doc, catalog_id, &removed_annots)?;
+    }
+    if let Some(items) = bookmarks {
+        let page_objects: Vec<ObjectId> = kids_ids;
+        outline::write(&mut doc, catalog_id, &page_objects, items)?;
+    }
     doc.prune_objects();
-    Ok(doc)
+    Ok((doc, report))
 }
 
 /// The page dictionary with inherited attributes copied onto it, so it can be
@@ -379,9 +425,12 @@ fn merge_forms(doc: &mut Document, catalog_id: ObjectId, others: Vec<Dictionary>
 }
 
 /// Applies the save options; returns how many images compression re-encoded.
-fn finish(doc: &mut Document, options: &Options) -> AppResult<usize> {
+fn finish(doc: &mut Document, options: &Options, redacted: usize) -> AppResult<usize> {
     if options.strip_metadata {
         strip_metadata(doc)?;
+    }
+    if redacted > 0 {
+        note_redaction(doc, redacted)?;
     }
     let images = match options.compress {
         Some(level) => compress::run(doc, level),
@@ -394,6 +443,41 @@ fn finish(doc: &mut Document, options: &Options) -> AppResult<usize> {
         encrypt(doc, protect)?;
     }
     Ok(images)
+}
+
+/// Says in the document information that content was removed, so a reader
+/// can tell the black boxes are redactions and not part of the original.
+fn note_redaction(doc: &mut Document, areas: usize) -> AppResult<()> {
+    let note = format!(
+        "Some parts of this file were blacked out with KlikPaper {} on {}: what was under the {areas} black box{} was deleted, so the boxes are not part of the original.",
+        env!("CARGO_PKG_VERSION"),
+        today(),
+        if areas == 1 { "" } else { "es" }
+    );
+    let mut info = match doc.trailer.get(b"Info").and_then(|o| doc.dereference(o)).and_then(|(_, o)| o.as_dict()) {
+        Ok(d) => d.clone(),
+        Err(_) => Dictionary::new(),
+    };
+    info.set("Redacted", comments::text_object(&note));
+    let id = doc.add_object(info);
+    doc.trailer.set("Info", id);
+    Ok(())
+}
+
+/// Today's date (UTC) as YYYY-MM-DD.
+fn today() -> String {
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    // Days to a civil date (Howard Hinnant's algorithm).
+    let z = (secs / 86_400) as i64 + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}")
 }
 
 pub fn strip_metadata(doc: &mut Document) -> AppResult<()> {
@@ -568,7 +652,7 @@ pub(crate) mod tests {
     }
 
     fn page(source: &str, index: u32, rotate: i64) -> PageRef {
-        PageRef { source: source.into(), index, rotate, sheet: None, comments: None }
+        PageRef { source: source.into(), index, rotate, sheet: None, comments: None, redact: Vec::new(), raster: None }
     }
 
     fn src(id: &str, path: &str) -> Source {
@@ -586,6 +670,7 @@ pub(crate) mod tests {
             pages: vec![page("b", 1, 0), page("a", 0, 90), page("a", 2, -90), page("b", 0, 0)],
             output: out.clone(),
             options: Options::default(),
+            outline: None,
         };
         let res = assemble(&job).unwrap();
         assert_eq!(res.pages, 4);
@@ -610,6 +695,7 @@ pub(crate) mod tests {
             pages: vec![PageRef { sheet: Some(a4), ..page("a", 0, 0) }, page("a", 1, 0)],
             output: out.clone(),
             options: Options::default(),
+            outline: None,
         };
         assemble(&job).unwrap();
         let doc = Document::load(&out).unwrap();
@@ -650,8 +736,13 @@ pub(crate) mod tests {
         let dir = temp_dir();
         let a = write_sample(&dir, "a.pdf", &["A1", "A2", "A3"]);
         let out = dir.join("one.pdf").display().to_string();
-        let job =
-            AssembleJob { sources: vec![src("a", &a)], pages: vec![page("a", 0, 0)], output: out.clone(), options: Options::default() };
+        let job = AssembleJob {
+            sources: vec![src("a", &a)],
+            pages: vec![page("a", 0, 0)],
+            output: out.clone(),
+            options: Options::default(),
+            outline: None,
+        };
         assemble(&job).unwrap();
         let doc = Document::load(&out).unwrap();
         assert_eq!(labels(&doc), ["A1"]);
@@ -671,6 +762,7 @@ pub(crate) mod tests {
             pages: vec![page("a", 1, 0), page("a", 1, 90)],
             output: out.clone(),
             options: Options::default(),
+            outline: None,
         };
         assemble(&job).unwrap();
         assert_eq!(labels(&Document::load(&out).unwrap()), ["A2", "A2"]);
@@ -691,6 +783,7 @@ pub(crate) mod tests {
                 compress: None,
                 protect: Some(Protect { user_password: "rahasia".into(), owner_password: None }),
             },
+            outline: None,
         };
         assemble(&job).unwrap();
         let locked = info(&out, None).unwrap();
@@ -709,6 +802,7 @@ pub(crate) mod tests {
             pages: vec![page("l", 0, 0)],
             output: open.display().to_string(),
             options: Options::default(),
+            outline: None,
         };
         assemble(&job).unwrap();
         assert!(!info(&open, None).unwrap().encrypted);
@@ -736,6 +830,7 @@ pub(crate) mod tests {
             pages: vec![page("a", index, 0)],
             output: dir.join(output).display().to_string(),
             options: Options::default(),
+            outline: None,
         };
         assert!(assemble(&job("evil.sh", 0)).is_err());
         assert!(assemble(&job("ok.pdf", 5)).unwrap_err().to_string().contains("Page 6"));

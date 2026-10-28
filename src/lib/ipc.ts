@@ -47,6 +47,25 @@ export interface PageSpec {
   sheet?: { w: number; h: number; margin: number } | null;
   /** The page's comment threads, replacing the ones in the file; null leaves them as they are. */
   comments?: CommentThread[] | null;
+  /** Areas whose content is removed for good and painted black (page space). */
+  redact?: { x: number; y: number; w: number; h: number }[];
+  /** A JPEG of the page, already redacted, replacing its content (when it couldn't be redacted piece by piece). */
+  raster?: string | null;
+}
+
+/** A bookmark as written into the file. */
+export interface BookmarkSpec {
+  title: string;
+  /** 0-based position of the page in the output; null for a heading or web link. */
+  page: number | null;
+  /** Points from the page's top (unrotated); null shows the whole page. */
+  y: number | null;
+  url: string | null;
+  bold: boolean;
+  italic: boolean;
+  color: [number, number, number] | null;
+  open: boolean;
+  children: BookmarkSpec[];
 }
 
 export interface CommentReply {
@@ -77,11 +96,17 @@ export interface AssembleJob {
   pages: PageSpec[];
   output: string;
   options?: AssembleOptions;
+  /** Bookmarks replacing the file's outline; null keeps the first file's. */
+  outline?: BookmarkSpec[] | null;
 }
 export interface AssembleResult {
   pages: number;
   bytes: number;
   images: number;
+  /** Areas redacted. */
+  redacted: number;
+  /** Redacted pages (0-based positions) to save again as pictures. */
+  rasterNeeded: number[];
 }
 export interface PdfInfo {
   pages: number;
@@ -168,6 +193,7 @@ export const ipc = {
   pdfComments: (path: string, password?: string | null) => invoke<{ index: number; threads: CommentThread[] }[]>("pdf_comments", { path, password: password ?? null }),
   userName: () => invoke<string>("user_name"),
   assemble: (job: AssembleJob) => invoke<AssembleResult>("pdf_assemble", { job }),
+  printWindow: () => invoke<void>("print_window"),
   imagesToPdf: (job: ImagesJob) => invoke<{ pages: number; bytes: number }>("images_to_pdf", { job }),
   keysStatus: (profileIds: string[]) => invoke<Record<string, boolean>>("api_keys_status", { profileIds }),
   setKey: (profileId: string, key: string) => invoke<void>("api_key_set", { profileId, key }),

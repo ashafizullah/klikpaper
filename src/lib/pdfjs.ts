@@ -90,6 +90,7 @@ export async function renderToBlob(
   rotation: number,
   type: "image/png" | "image/jpeg" = "image/png",
   quality = 0.92,
+  annotations = true,
 ): Promise<Blob> {
   const viewport = page.getViewport({ scale, rotation });
   const canvas = document.createElement("canvas");
@@ -101,7 +102,8 @@ export async function renderToBlob(
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   // The print intent renders without requestAnimationFrame, which the webview
   // pauses while the window is hidden; it also paints filled-in form values.
-  await page.render({ canvas, viewport, intent: "print", annotationMode: pdfjs.AnnotationMode.ENABLE_STORAGE }).promise;
+  const annotationMode = annotations ? pdfjs.AnnotationMode.ENABLE_STORAGE : pdfjs.AnnotationMode.DISABLE;
+  await page.render({ canvas, viewport, intent: "print", annotationMode }).promise;
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
   canvas.width = canvas.height = 0;
   if (!blob) throw new Error("Couldn't encode the image");

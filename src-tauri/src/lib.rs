@@ -108,6 +108,7 @@ pub fn run() {
             commands::pdf_comments,
             commands::user_name,
             commands::images_to_pdf,
+            commands::print_window,
             commands::api_keys_status,
             commands::api_key_set,
             commands::api_key_delete,

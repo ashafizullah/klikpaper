@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out, and a red badge in the toolbar reminds you while it's in use. KlikPaper suggests saving the result as a new file, so you keep the original
+- Bookmarks: the sidebar has a Bookmarks tab with the document's table of contents. Click one to jump there, and add, rename, nest, reorder or delete them; they're saved in the PDF. Merged files keep each file's bookmarks
+- Print (Cmd/Ctrl+P): prints the document as you see it, unsaved changes included
+- AI agents can black out text or areas (`redact_text`, `redact_area`, `remove_redactions`) and work with bookmarks (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
+
 ## 0.1.11
 
 - Right-click menus: right-click a page, selected text, an annotation, a comment pin, a page thumbnail, a tab or a recent file to get the actions for it, such as highlight or copy the selected text, add a comment or text right where you clicked, duplicate or delete an annotation, rotate, insert or delete pages, close other tabs, or show the file in Finder/Explorer

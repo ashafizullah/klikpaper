@@ -36,10 +36,13 @@
 ## Features
 
 - **Viewer**: fast continuous scrolling, zoom and fit width, text selection, find in document, clickable links, fillable forms, tabs for several PDFs
+- **Bookmarks**: browse the document's outline in the sidebar, jump to a section, and add, rename, nest, reorder or delete bookmarks; merged files keep the bookmarks of each file
+- **Print** (Cmd/Ctrl+P) the document as you see it, with unsaved edits
 - **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF, resize pages to A4, Letter, Legal, A3 or A5 (content scaled to fit, never stretched)
 - **Compress**: three levels or a custom quality slider that downscale and re-encode photos; text, vector graphics and fonts are untouched. Every level shows its resulting file size before you save
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
-- **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact)
+- **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact; use Black out for that)
+- **Black out (redact)**: hide private details like ID or account numbers. Drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out. If a page can't be cleaned piece by piece safely, it's saved as an image
 - **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes in any font installed on your computer (embedded when you save), freehand drawing, rectangles, ellipses, arrows, white-out, images
 - **Comments**: pin a comment to any spot on a page, reply, and mark threads done in the Comments panel. Comments are saved inside the PDF as standard notes, so whoever you send the file to can read and answer them in KlikPaper, Acrobat or Preview. Keep the file in a shared folder (Google Drive, Dropbox, OneDrive) and KlikPaper shows new replies as soon as someone saves; no account or server
 - **Sign**: draw, type or upload a signature, place and resize it. This is a picture of your signature, not a certificate-based digital signature

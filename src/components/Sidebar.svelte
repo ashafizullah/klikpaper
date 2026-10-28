@@ -6,10 +6,19 @@
   import { openDialog, toast } from "../lib/ui.svelte";
   import { openMenu } from "../lib/contextmenu.svelte";
   import { t } from "../lib/i18n/index.svelte";
+  import { persist, settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
+  import OutlinePanel from "./OutlinePanel.svelte";
+  let outlinePanel = $state<OutlinePanel | null>(null);
+
+  function showTab(tab: "pages" | "outline") {
+    settings.sidebarTab = tab;
+    persist();
+  }
 
   let { doc }: { doc: Doc } = $props();
-  let list: HTMLDivElement;
+  // Only there while the Pages tab is shown.
+  let list = $state() as HTMLDivElement;
   let anchorId: string | null = null;
 
   const selection = $derived(doc.selectedPages);
@@ -157,12 +166,28 @@
 </script>
 
 <aside class="sidebar">
-  <div class="head">
-    <span class="title">{t("pages.title", { n: doc.pages.length })}</span>
-    <button class="icon-btn" onclick={() => insertFiles(doc, selection.length ? doc.pages.findLastIndex((p) => selection.includes(p.id)) + 1 : doc.pages.length)} title={t("pages.insert")} aria-label={t("pages.insert")}>
-      <Icon name="insert" />
-    </button>
+  <div class="head" class:ruled={settings.sidebarTab === "outline"}>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected={settings.sidebarTab === "pages"} class:on={settings.sidebarTab === "pages"} onclick={() => showTab("pages")}>
+        {t("sidebar.pages")}<span class="n">{doc.pages.length}</span>
+      </button>
+      <button class="tab" role="tab" aria-selected={settings.sidebarTab === "outline"} class:on={settings.sidebarTab === "outline"} onclick={() => showTab("outline")}>
+        {t("sidebar.outline")}
+      </button>
+    </div>
+    {#if settings.sidebarTab === "outline"}
+      <button class="icon-btn" onclick={() => outlinePanel?.add()} title={t("outline.add")} aria-label={t("outline.add")}>
+        <Icon name="bookmark-add" />
+      </button>
+    {:else}
+      <button class="icon-btn" onclick={() => insertFiles(doc, selection.length ? doc.pages.findLastIndex((p) => selection.includes(p.id)) + 1 : doc.pages.length)} title={t("pages.insert")} aria-label={t("pages.insert")}>
+        <Icon name="insert" />
+      </button>
+    {/if}
   </div>
+  {#if settings.sidebarTab === "outline"}
+    <OutlinePanel {doc} bind:this={outlinePanel} />
+  {:else}
   <div class="actions">
     <button class="icon-btn" onclick={() => doc.rotatePages(targets, -90)} title={t("pages.rotateLeft")} aria-label={t("pages.rotateLeft")}><Icon name="rotate-ccw" /></button>
     <button class="icon-btn" onclick={() => doc.rotatePages(targets, 90)} title={t("pages.rotateRight")} aria-label={t("pages.rotateRight")}><Icon name="rotate-cw" /></button>
@@ -190,13 +215,14 @@
       >
         <div class="frame" style:width="{THUMB_WIDTH}px" style:aspect-ratio={`${doc.shownSize(p)[0]} / ${doc.shownSize(p)[1]}`}>
           <img use:lazyThumb={p} alt={t("pages.page", { n: i + 1 })} draggable="false" />
-          {#if doc.overlays.some((o) => o.page === p.id)}<span class="badge" title={t("pages.hasAnnotations")}></span>{/if}
+          {#if doc.overlays.some((o) => o.page === p.id) || doc.redactions.some((r) => r.page === p.id)}<span class="badge" title={t("pages.hasAnnotations")}></span>{/if}
         </div>
         <span class="num">{i + 1}</span>
       </div>
     {/each}
     {#if drag?.active && drag.insert === doc.pages.length}<div class="insert-line"></div>{/if}
   </div>
+  {/if}
 </aside>
 
 <style>
@@ -215,11 +241,37 @@
     justify-content: space-between;
     padding: 8px 6px 2px 12px;
   }
-  .title {
+  .head.ruled {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+  .tabs {
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+  }
+  .tab {
+    padding: 4px 0;
+    border: none;
+    background: none;
     font: 500 10px var(--mono);
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.12em;
+    border-bottom: 1.5px solid transparent;
+    white-space: nowrap;
+  }
+  .tab:hover {
+    color: var(--text);
+  }
+  .tab.on {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab .n {
+    margin-left: 5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
   }
   .actions {
     display: flex;

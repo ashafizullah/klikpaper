@@ -158,8 +158,18 @@ pub async fn pdf_assemble(job: AssembleJob, temp: State<'_, Temp>) -> AppResult<
     for source in &job.sources {
         files::check_readable(&temp, Path::new(&source.path))?;
     }
+    for picture in job.pages.iter().filter_map(|p| p.raster.as_deref()) {
+        files::check_readable(&temp, Path::new(picture))?;
+    }
     files::check_writable(Path::new(&job.output))?;
     blocking(move || pdf::assemble(&job)).await
+}
+
+/// Opens the system print dialog for the window; the page shows only the
+/// pages prepared for printing (see print.ts).
+#[tauri::command]
+pub fn print_window(window: tauri::WebviewWindow) -> AppResult<()> {
+    window.print().map_err(|e| AppError::msg(format!("Couldn't print: {e}")))
 }
 
 #[tauri::command]

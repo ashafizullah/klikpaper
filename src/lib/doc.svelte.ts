@@ -1,8 +1,9 @@
 // An open document: an ordered list of pages taken from one or more source
 // files, plus the annotations drawn on them. Nothing touches the files until
 // the user saves; every edit can be undone.
-import { displaySize, normRotation, type Rotation } from "./geometry";
+import { displaySize, normRotation, type Rect, type Rotation } from "./geometry";
 import type { CommentReply, CommentThread } from "./ipc";
+import { dropPages, insertionIndex, type Bookmark } from "./outline";
 import type { Sheet } from "./paper";
 import { newId } from "./settings.svelte";
 import { closePdf, pageText, type PDFDocumentProxy } from "./pdfjs";
@@ -47,6 +48,13 @@ export type OverlayKind = Overlay["kind"];
 /** A comment thread on a page: a note and its replies, kept in the PDF as standard notes. */
 export type Comment = CommentThread & { page: string };
 
+/** Areas marked for redaction on a page (page space); their content is removed when saving. */
+export interface Redaction {
+  id: string;
+  page: string;
+  rects: Rect[];
+}
+
 export interface Watermark {
   text: string;
   size: number;
@@ -74,6 +82,8 @@ interface Snapshot {
   watermark: Watermark | null;
   pageNumbers: PageNumbers | null;
   comments: Comment[];
+  redactions: Redaction[];
+  outline: Bookmark[];
 }
 
 const MAX_HISTORY = 100;
@@ -89,6 +99,11 @@ export class Doc {
   comments = $state<Comment[]>([]);
   /** Sources whose comments were read; pages of the others keep the file's comments untouched when saved. */
   commentSources = new Set<string>();
+  redactions = $state<Redaction[]>([]);
+  /** Bookmarks of the document (from the first file, or all of them when merged). */
+  outline = $state<Bookmark[]>([]);
+  /** The bookmarks were edited or combined: saving writes them instead of keeping the file's own. */
+  outlineChanged = $state(false);
   /** When the file at `path` last changed, as last seen (to notice changes made elsewhere). */
   stamp = 0;
   watermark = $state<Watermark | null>(null);
@@ -107,6 +122,7 @@ export class Doc {
   selectedPages = $state<string[]>([]);
   selectedOverlay = $state<string | null>(null);
   selectedComment = $state<string | null>(null);
+  selectedRedaction = $state<string | null>(null);
 
   #undo: Snapshot[] = [];
   #redo: Snapshot[] = [];
@@ -165,7 +181,15 @@ export class Doc {
   // ---- history ------------------------------------------------------------
 
   #snapshot(): Snapshot {
-    return $state.snapshot({ pages: this.pages, overlays: this.overlays, watermark: this.watermark, pageNumbers: this.pageNumbers, comments: this.comments });
+    return $state.snapshot({
+      pages: this.pages,
+      overlays: this.overlays,
+      watermark: this.watermark,
+      pageNumbers: this.pageNumbers,
+      comments: this.comments,
+      redactions: this.redactions,
+      outline: this.outline,
+    });
   }
 
   #restore(s: Snapshot) {
@@ -174,10 +198,13 @@ export class Doc {
     this.watermark = s.watermark;
     this.pageNumbers = s.pageNumbers;
     this.comments = s.comments;
+    this.redactions = s.redactions;
+    this.outline = s.outline;
     this.current = Math.min(this.current, Math.max(0, this.pages.length - 1));
     this.selectedPages = this.selectedPages.filter((id) => this.pages.some((p) => p.id === id));
     if (this.selectedOverlay && !this.overlays.some((o) => o.id === this.selectedOverlay)) this.selectedOverlay = null;
     if (this.selectedComment && !this.comments.some((c) => c.id === this.selectedComment)) this.selectedComment = null;
+    if (this.selectedRedaction && !this.redactions.some((r) => r.id === this.selectedRedaction)) this.selectedRedaction = null;
   }
 
   /** Records the current state so the next change can be undone. */
@@ -233,6 +260,8 @@ export class Doc {
       this.pages = this.pages.filter((p) => !ids.includes(p.id));
       this.overlays = this.overlays.filter((o) => !ids.includes(o.page));
       this.comments = this.comments.filter((c) => !ids.includes(c.page));
+      this.redactions = this.redactions.filter((r) => !ids.includes(r.page));
+      if (dropPages(this.outline, new Set(ids))) this.outlineChanged = true;
       this.selectedPages = [];
       this.current = Math.min(this.current, this.pages.length - 1);
     });
@@ -248,9 +277,14 @@ export class Doc {
     });
   }
 
-  insertPages(items: PageItem[], at: number) {
+  /** Adds pages at `at`, with the bookmarks of the file they come from. */
+  insertPages(items: PageItem[], at: number, bookmarks: Bookmark[] = []) {
     this.change(() => {
       const i = Math.max(0, Math.min(at, this.pages.length));
+      if (bookmarks.length) {
+        this.outline.splice(insertionIndex(this.outline, this.pages, i), 0, ...bookmarks);
+        this.outlineChanged = true;
+      }
       this.pages = [...this.pages.slice(0, i), ...items, ...this.pages.slice(i)];
     });
   }
@@ -276,6 +310,7 @@ export class Doc {
           const copy = { ...$state.snapshot(p), id: newId("pg") };
           out.push(copy);
           for (const o of this.overlays.filter((o) => o.page === p.id)) this.overlays.push({ ...$state.snapshot(o), id: newId("o"), page: copy.id });
+          for (const r of this.redactions.filter((r) => r.page === p.id)) this.redactions.push({ ...$state.snapshot(r), id: newId("x"), page: copy.id });
         }
       }
       this.pages = out;
@@ -300,6 +335,37 @@ export class Doc {
       this.overlays = this.overlays.filter((o) => o.id !== id);
     });
     if (this.selectedOverlay === id) this.selectedOverlay = null;
+  }
+
+  // ---- redaction ----------------------------------------------------------
+
+  addRedactions(list: Redaction[]) {
+    if (!list.length) return;
+    this.change(() => {
+      this.redactions.push(...list);
+    });
+  }
+
+  removeRedactions(ids: string[]) {
+    this.change(() => {
+      this.redactions = this.redactions.filter((r) => !ids.includes(r.id));
+    });
+    if (this.selectedRedaction && ids.includes(this.selectedRedaction)) this.selectedRedaction = null;
+  }
+
+  /** Areas marked on a page, for saving. */
+  redactedAreas(page: string): Rect[] {
+    return this.redactions.filter((r) => r.page === page).flatMap((r) => $state.snapshot(r.rects));
+  }
+
+  // ---- bookmarks ----------------------------------------------------------
+
+  /** One undoable change to the bookmarks. */
+  editOutline(fn: (list: Bookmark[]) => void) {
+    this.change(() => {
+      fn(this.outline);
+      this.outlineChanged = true;
+    });
   }
 
   // ---- comments -----------------------------------------------------------

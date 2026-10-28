@@ -24,6 +24,7 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Compress…" => "Kompres…",
         "Resize Pages…" => "Ubah Ukuran Halaman…",
         "Export as Images…" => "Ekspor sebagai Gambar…",
+        "Print…" => "Cetak…",
         "Close Tab" => "Tutup Tab",
         "Exit" => "Keluar",
         "Zoom In" => "Perbesar",
@@ -31,6 +32,7 @@ fn tr(locale: &str, en: &'static str) -> &'static str {
         "Fit Width" => "Pas Lebar",
         "Find…" => "Cari…",
         "Show/Hide Pages" => "Tampilkan/Sembunyikan Halaman",
+        "Show Bookmarks" => "Tampilkan Bookmark",
         "Show/Hide AI Chat" => "Tampilkan/Sembunyikan Chat AI",
         "Show/Hide Comments" => "Tampilkan/Sembunyikan Komentar",
         "Show/Hide Terminal" => "Tampilkan/Sembunyikan Terminal",
@@ -98,6 +100,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .item(&item(app, "resize", t("Resize Pages…"), None)?)
         .item(&item(app, "export-images", t("Export as Images…"), None)?)
         .separator()
+        .item(&item(app, "print", t("Print…"), Some("CmdOrCtrl+P"))?)
+        .separator()
         .item(&item(app, "close-tab", t("Close Tab"), Some("CmdOrCtrl+W"))?);
     if !cfg!(target_os = "macos") {
         file = file.separator().text("quit", t("Exit"));
@@ -111,6 +115,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
         .separator()
         .item(&item(app, "find", t("Find…"), Some("CmdOrCtrl+F"))?)
         .item(&item(app, "toggle-sidebar", t("Show/Hide Pages"), Some("CmdOrCtrl+B"))?)
+        .item(&item(app, "toggle-outline", t("Show Bookmarks"), None)?)
         .item(&item(app, "toggle-comments", t("Show/Hide Comments"), Some("CmdOrCtrl+Shift+K"))?)
         .item(&item(app, "toggle-ai", t("Show/Hide AI Chat"), Some("CmdOrCtrl+J"))?)
         .item(&item(app, "toggle-terminal", t("Show/Hide Terminal"), None)?)

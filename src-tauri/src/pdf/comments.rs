@@ -134,7 +134,7 @@ pub fn iso_to_pdf_date(s: &str) -> Option<String> {
 }
 
 /// A text string: plain when it is printable ASCII, else UTF-16 with a byte order mark.
-fn text_object(s: &str) -> Object {
+pub(crate) fn text_object(s: &str) -> Object {
     if s.chars().all(|c| c == '\n' || (' '..='~').contains(&c)) {
         return Object::String(s.as_bytes().to_vec(), StringFormat::Literal);
     }

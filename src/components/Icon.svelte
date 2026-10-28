@@ -16,6 +16,10 @@
     Eraser,
     ExternalLink,
     Eye,
+    EyeOff,
+    Bookmark,
+    BookmarkPlus,
+    Printer,
     FilePlus,
     FileStack,
     FileText,
@@ -152,6 +156,10 @@
     resize: Scaling,
     list: List,
     terminal: SquareTerminal,
+    redact: EyeOff,
+    bookmark: Bookmark,
+    "bookmark-add": BookmarkPlus,
+    print: Printer,
   };
 </script>
 

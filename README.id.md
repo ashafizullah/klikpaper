@@ -36,10 +36,13 @@
 ## Fitur
 
 - **Penampil**: gulir kontinu yang cepat, zoom dan pas lebar, pilih teks, cari di dokumen, tautan yang bisa diklik, formulir yang bisa diisi, tab untuk beberapa PDF
+- **Bookmark**: lihat daftar isi dokumen di sidebar, lompat ke bagian tertentu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; file yang digabung tetap membawa bookmark masing-masing
+- **Cetak** (Cmd/Ctrl+P) dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan
 - **Atur halaman**: seret thumbnail untuk mengurutkan ulang, putar, hapus, gandakan, sisipkan halaman dari PDF lain, gabung beberapa file, pisah per rentang atau setiap N halaman, simpan halaman terpilih sebagai PDF baru, ubah ukuran halaman ke A4, Letter, Legal, A3, atau A5 (isi diskalakan agar pas, tidak ditarik)
 - **Kompres**: tiga tingkat atau slider kualitas sendiri yang mengecilkan dan mengodekan ulang foto; teks, grafik vektor, dan font tidak diubah. Setiap tingkat menampilkan ukuran file hasilnya sebelum Anda menyimpan
 - **Konversi**: gambar (JPG, PNG, WebP, GIF, BMP, TIFF) ke PDF, dan halaman ke PNG atau JPEG
-- **Edit teks**: klik satu baris untuk mengubah kata-katanya; KlikPaper menutup baris lama dan menuliskannya lagi dengan font, ukuran, dan warna yang mirip (kata lama tetap tersembunyi di bawahnya, jadi bukan cara untuk menyensor)
+- **Edit teks**: klik satu baris untuk mengubah kata-katanya; KlikPaper menutup baris lama dan menuliskannya lagi dengan font, ukuran, dan warna yang mirip (kata lama tetap tersembunyi di bawahnya, jadi bukan cara untuk menyensor; pakai Sensor untuk itu)
+- **Sensor (redaksi)**: sembunyikan data pribadi seperti NIK atau nomor rekening. Tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor. Kalau isi sebuah halaman tidak bisa dihapus per bagian dengan aman, halaman itu disimpan sebagai gambar
 - **Anotasi**: sorot, garis bawah, dan coret teks (disimpan sebagai anotasi PDF asli yang bisa dilihat penampil lain), kotak teks dengan font apa pun yang terpasang di komputer Anda (disematkan saat disimpan), gambar tangan, persegi, elips, panah, penghapus putih, gambar
 - **Komentar**: sematkan komentar di bagian mana pun pada halaman, balas, dan tandai selesai di panel Komentar. Komentar disimpan di dalam PDF sebagai catatan standar, jadi orang yang Anda kirimi file bisa membaca dan membalasnya di KlikPaper, Acrobat, atau Preview. Taruh filenya di folder bersama (Google Drive, Dropbox, OneDrive), dan KlikPaper langsung menampilkan balasan baru begitu ada yang menyimpan; tanpa akun atau server
 - **Tanda tangan**: gambar, ketik, atau unggah tanda tangan, lalu tempatkan dan ubah ukurannya. Ini gambar tanda tangan Anda, bukan tanda tangan digital berbasis sertifikat

@@ -42,6 +42,8 @@ interface Stored {
   /** The agent the MCP setup steps are shown for. */
   mcpClient: string;
   showSidebar: boolean;
+  /** What the sidebar shows: page thumbnails or bookmarks. */
+  sidebarTab: "pages" | "outline";
   showChat: boolean;
   showComments: boolean;
   /** The name comments are signed with; "" = the computer account's name. */
@@ -73,6 +75,7 @@ function load(): Stored {
     mcpEnabled: false,
     mcpClient: "claude",
     showSidebar: true,
+    sidebarTab: "pages",
     showChat: false,
     showComments: false,
     commentAuthor: "",

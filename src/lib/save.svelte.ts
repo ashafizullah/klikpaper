@@ -1,8 +1,13 @@
 // Writing documents: page work goes to Rust (lopdf), drawing to pdf-lib.
 import type { Doc, PageItem } from "./doc.svelte";
-import { ipc, type AssembleResult, type Compression, type PageSpec, type SourceSpec } from "./ipc";
+import { ipc, type AssembleResult, type BookmarkSpec, type Compression, type PageSpec, type SourceSpec } from "./ipc";
 import { baseName, joinPath, stripExt } from "./pagespec";
 import { fontFile } from "./fonts.svelte";
+import { outlineSpec } from "./outline";
+import { closePdf, openPdf, renderToBlob } from "./pdfjs";
+
+/** Resolution of the picture that replaces a redacted page whose content couldn't be taken apart. */
+const PICTURE_DPI = 200;
 
 let fontCache: Promise<{ regular: Uint8Array; bold: Uint8Array }> | null = null;
 
@@ -23,8 +28,12 @@ interface Prepared {
   pages: PageSpec[];
 }
 
-/** Sources and pages that produce the document as it looks now, including form values and drawings. */
+/** Sources and pages that produce the document as it looks now, including form values, drawings and redactions. */
 async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
+  return withPictures(await arrange(doc, temps), temps);
+}
+
+async function arrange(doc: Doc, temps: string[]): Promise<Prepared> {
   const used = new Set(doc.pages.map((p) => p.source));
   const sources: SourceSpec[] = [];
   for (const id of used) {
@@ -42,7 +51,8 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
   const pages = doc.pages.map((p) => ({ source: p.source, index: p.index, rotate: p.rotate }));
   // Comments are written as the file's own notes, replacing the ones it had.
   const comments = (p: PageItem) => (doc.commentSources.has(p.source) ? $state.snapshot(doc.comments.filter((c) => c.page === p.id)).map(({ page: _, ...thread }) => thread) : null);
-  if (!doc.needsDrawing) return { sources, pages: pages.map((spec, i) => ({ ...spec, comments: comments(doc.pages[i]) })) };
+  const redact = (p: PageItem) => doc.redactedAreas(p.id);
+  if (!doc.needsDrawing) return { sources, pages: pages.map((spec, i) => ({ ...spec, comments: comments(doc.pages[i]), redact: redact(doc.pages[i]) })) };
 
   const plain = await ipc.tempFile("pdf");
   temps.push(plain);
@@ -59,7 +69,46 @@ async function prepare(doc: Doc, temps: string[]): Promise<Prepared> {
   const merged = await ipc.tempFile("pdf");
   temps.push(merged);
   await ipc.writeFile(merged, drawn);
-  return { sources: [{ id: "drawn", path: merged }], pages: doc.pages.map((p, i) => ({ source: "drawn", index: i, rotate: 0, comments: comments(p) })) };
+  return { sources: [{ id: "drawn", path: merged }], pages: doc.pages.map((p, i) => ({ source: "drawn", index: i, rotate: 0, comments: comments(p), redact: redact(p) })) };
+}
+
+/**
+ * Redacted pages whose content can't be taken apart safely (a font without
+ * glyph widths, an image encoding that can't be rewritten) are saved as a
+ * picture of the page instead: a trial run finds them, and pdf.js draws them
+ * from that run, black boxes and all.
+ */
+async function withPictures(prepared: Prepared, temps: string[]): Promise<Prepared> {
+  if (!prepared.pages.some((p) => p.redact?.length)) return prepared;
+  const trial = await ipc.tempFile("pdf");
+  temps.push(trial);
+  const { rasterNeeded } = await ipc.assemble({ sources: prepared.sources, pages: prepared.pages, output: trial });
+  if (!rasterNeeded.length) return prepared;
+  const pdf = await openPdf(await ipc.readFile(trial));
+  try {
+    const pages = [...prepared.pages];
+    for (const i of rasterNeeded) {
+      const page = await pdf.getPage(i + 1);
+      const [x0, y0, x1, y1] = page.view;
+      const scale = Math.min(PICTURE_DPI / 72, Math.sqrt(40e6 / Math.max(1, (x1 - x0) * (y1 - y0))));
+      // Unrotated (the page keeps its rotation) and without annotations (they stay annotations).
+      const blob = await renderToBlob(page, scale, 0, "image/jpeg", 0.9, false);
+      page.cleanup();
+      const path = await ipc.tempFile("jpg");
+      temps.push(path);
+      await ipc.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+      pages[i] = { ...pages[i], raster: path };
+    }
+    return { ...prepared, pages };
+  } finally {
+    closePdf(pdf);
+  }
+}
+
+/** Bookmarks for a file of `positions` (indexes into the document's pages): written when edited, or when only some pages are saved. */
+function bookmarks(doc: Doc, positions: number[] | undefined): BookmarkSpec[] | null {
+  if (!doc.outlineChanged && !(positions && doc.outline.length)) return null;
+  return outlineSpec($state.snapshot(doc.outline), doc.pages, positions ?? doc.pages.map((_, i) => i));
 }
 
 export interface WriteOptions {
@@ -70,7 +119,8 @@ export interface WriteOptions {
   password?: string | null;
 }
 
-export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}): Promise<AssembleResult> {
+/** Writes the document; `pictures` counts redacted pages saved as pictures. */
+export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}): Promise<AssembleResult & { pictures: number }> {
   const temps: string[] = [];
   try {
     const prepared = await prepare(doc, temps);
@@ -78,7 +128,7 @@ export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}
     const fitted = prepared.pages.map((p, i) => ({ ...p, sheet: doc.pages[i].sheet ?? null }));
     const pages = opts.pages ? opts.pages.map((i) => fitted[i]) : fitted;
     const password = opts.password !== undefined ? opts.password : doc.protect;
-    return await ipc.assemble({
+    const result = await ipc.assemble({
       sources: prepared.sources,
       pages,
       output,
@@ -87,7 +137,9 @@ export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}
         compress: opts.compress ?? null,
         protect: password ? { userPassword: password } : null,
       },
+      outline: bookmarks(doc, opts.pages),
     });
+    return { ...result, pictures: pages.filter((p) => p.raster).length };
   } finally {
     for (const t of temps) ipc.discardTemp(t).catch(() => {});
   }
@@ -108,6 +160,10 @@ export async function splitDoc(doc: Doc, groups: number[][], dir: string): Promi
         pages: groups[g].map((n) => prepared.pages[n - 1]),
         output,
         options: { stripMetadata: doc.stripMetadata, protect: doc.protect ? { userPassword: doc.protect } : null },
+        outline: bookmarks(
+          doc,
+          groups[g].map((n) => n - 1),
+        ),
       });
       written.push(output);
     }
@@ -124,6 +180,6 @@ export async function snapshotFile(doc: Doc): Promise<string> {
   return path;
 }
 
-export function defaultName(doc: Doc, suffix = ""): string {
+export function defaultName(doc: Doc, suffix = doc.redactions.length ? "-redacted" : ""): string {
   return `${stripExt(baseName(doc.name))}${suffix}.pdf`;
 }

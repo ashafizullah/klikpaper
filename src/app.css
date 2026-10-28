@@ -476,3 +476,41 @@ label.row {
 .annotationLayer .popup {
   display: none;
 }
+
+/* Printing (print.ts): only the prepared page pictures, one per sheet of paper. */
+#print-root {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body::after,
+  body > :not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block;
+  }
+  .print-page {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    break-after: page;
+  }
+  .print-page:last-child {
+    break-after: auto;
+  }
+  .print-page img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}

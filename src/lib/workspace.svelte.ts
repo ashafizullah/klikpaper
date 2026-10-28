@@ -4,11 +4,12 @@ import { Doc } from "./doc.svelte";
 import { loadComments, mergeComments, readComments } from "./comments.svelte";
 import { t } from "./i18n/index.svelte";
 import { errorText, ipc } from "./ipc";
-import { baseName, stripExt } from "./pagespec";
+import { baseName, dirName, joinPath, stripExt } from "./pagespec";
 import { PasswordNeeded, closePdf, openPdf, type PDFDocumentProxy } from "./pdfjs";
 import { defaultName, writePdf } from "./save.svelte";
+import { readOutline } from "./outline";
 import { addRecent, newId, removeRecent } from "./settings.svelte";
-import { busy, openDialog, toast, ui } from "./ui.svelte";
+import { busy, openDialog, showAlert, toast, ui } from "./ui.svelte";
 
 export const ws = $state({
   docs: [] as Doc[],
@@ -83,6 +84,7 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
       doc.pages = await doc.pagesOf(id);
       doc.protect = loaded.password ?? null;
+      doc.outline = await readOutline(loaded.pdf, doc.pages);
       await loadComments(doc, id, doc.pages);
       doc.stamp = await stampOf(path);
       show(doc);
@@ -112,8 +114,11 @@ export async function mergePaths(paths: string[]) {
       doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
       const items = await doc.pagesOf(id);
       doc.pages = [...doc.pages, ...items];
+      doc.outline.push(...(await readOutline(loaded.pdf, items)));
       await loadComments(doc, id, items);
     }
+    // Each file's bookmarks go into the merged file.
+    doc.outlineChanged = true;
   } catch (e) {
     doc.destroy();
     toast(errorText(e), "error");
@@ -144,7 +149,7 @@ export async function insertFiles(doc: Doc, at: number, paths?: string[]) {
     const id = newId("s");
     doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
     const items = await doc.pagesOf(id);
-    doc.insertPages(items, pos);
+    doc.insertPages(items, pos, await readOutline(loaded.pdf, items));
     await loadComments(doc, id, items);
     pos += items.length;
   }
@@ -166,6 +171,10 @@ async function reload(doc: Doc, path: string, password: string | null) {
   doc.selectedComment = doc.selectedComment && doc.comment(doc.selectedComment) ? doc.selectedComment : null;
   doc.stamp = await stampOf(path);
   doc.overlays = [];
+  doc.redactions = [];
+  doc.selectedRedaction = null;
+  doc.outline = await readOutline(pdf, doc.pages);
+  doc.outlineChanged = false;
   doc.watermark = null;
   doc.pageNumbers = null;
   doc.flattenForms = false;
@@ -234,20 +243,37 @@ export function watchFiles() {
 
 export async function saveDoc(doc: Doc, as = false): Promise<boolean> {
   let path = doc.path;
+  // Saving redactions over the original would leave no unredacted copy; a new file is the usual choice.
+  if (!as && path && doc.redactions.length) {
+    const choice = await showAlert({
+      title: t("redact.saveTitle"),
+      message: t("redact.saveMessage", { file: doc.name }),
+      actions: [
+        { label: t("common.cancel"), value: "cancel" },
+        { label: t("redact.overwrite"), value: "overwrite", danger: true },
+        { label: t("redact.saveCopy"), value: "copy", primary: true },
+      ],
+    });
+    if (choice !== "overwrite" && choice !== "copy") return false;
+    as = choice === "copy";
+  }
   if (as || !path) {
-    const chosen = await saveFileDialog({ defaultPath: path ?? defaultName(doc), filters: PDF_FILTER });
+    const suggested = path && doc.redactions.length ? joinPath(dirName(path), defaultName(doc)) : (path ?? defaultName(doc));
+    const chosen = await saveFileDialog({ defaultPath: suggested, filters: PDF_FILTER });
     if (!chosen) return false;
     path = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;
   }
   const target = path;
-  const ok = await busy(t("save.saving"), async () => {
-    await writePdf(doc, target);
+  const result = await busy(t("save.saving"), async () => {
+    const written = await writePdf(doc, target);
     await reload(doc, target, doc.protect);
     addRecent(target);
-    return true;
+    return written;
   });
-  if (ok) toast(t("save.saved", { file: baseName(target) }), "ok");
-  return !!ok;
+  if (!result) return false;
+  if (result.redacted) toast(t(result.pictures ? "redact.savedPictures" : "redact.saved", { file: baseName(target), n: result.redacted, pages: result.pictures }), "ok", undefined, 7000);
+  else toast(t("save.saved", { file: baseName(target) }), "ok");
+  return true;
 }
 
 /** Saves a copy (all pages or some) somewhere else without changing the open document. */

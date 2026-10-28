@@ -7,6 +7,7 @@ import { activeDoc, closeDoc, closeHomeTab, IMAGE_FILTER, openHomeTab, pickAndOp
 import { t } from "./i18n/index.svelte";
 import { ipc } from "./ipc";
 import { checkForUpdates } from "./updates.svelte";
+import { printDoc } from "./print";
 
 export const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
@@ -62,6 +63,11 @@ export async function command(id: string) {
     case "toggle-sidebar":
       settings.showSidebar = !settings.showSidebar;
       return persist();
+    case "toggle-outline":
+      // Shows the bookmarks, or hides the sidebar when they are already shown.
+      settings.showSidebar = !(settings.showSidebar && settings.sidebarTab === "outline");
+      settings.sidebarTab = "outline";
+      return persist();
     case "toggle-terminal":
       ui.terminal = !ui.terminal;
       return;
@@ -75,6 +81,8 @@ export async function command(id: string) {
       return saveDoc(doc);
     case "save-as":
       return saveDoc(doc, true);
+    case "print":
+      return printDoc(doc);
     case "close-tab":
       return closeDoc(doc);
     case "compress":
@@ -121,6 +129,7 @@ export async function command(id: string) {
     case "delete": {
       if (editing()) return;
       if (doc.selectedOverlay) return doc.removeOverlay(doc.selectedOverlay);
+      if (doc.selectedRedaction) return doc.removeRedactions([doc.selectedRedaction]);
       return;
     }
     case "escape":
@@ -131,7 +140,10 @@ export async function command(id: string) {
       ui.pendingImage = null;
       ui.commentDraft = null;
       if (ui.tool !== "select") ui.tool = "select";
-      else doc.selectedOverlay = null;
+      else {
+        doc.selectedOverlay = null;
+        doc.selectedRedaction = null;
+      }
       return;
   }
 }
@@ -153,6 +165,7 @@ export function onKeydown(e: KeyboardEvent) {
           o: "open",
           t: "new-tab",
           s: "save",
+          p: "print",
           w: "close-tab",
           z: "undo",
           y: "redo",

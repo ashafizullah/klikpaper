@@ -5,7 +5,8 @@
   import { tick } from "svelte";
   import { on } from "svelte/events";
   import type { Doc, Overlay, PageItem } from "../lib/doc.svelte";
-  import { displayRectToPage, displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
+  import { displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
+  import { selectionRects } from "../lib/selection";
   import { newId, settings } from "../lib/settings.svelte";
   import { fontStack, showFont } from "../lib/fonts.svelte";
   import { replaceLine } from "../lib/edittext";
@@ -189,22 +190,8 @@
   /** Marks this page's part of the text selection. */
   function markSelection(style: MarkupStyle) {
     const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
-    const bounds = pageEl.getBoundingClientRect();
-    const rects: { x: number; y: number; w: number; h: number }[] = [];
-    for (let i = 0; i < sel.rangeCount; i++) {
-      for (const cr of sel.getRangeAt(i).getClientRects()) {
-        if (cr.width < 1 || cr.height < 1) continue;
-        // Only the parts of the selection on this page.
-        if (cr.right < bounds.left || cr.left > bounds.right || cr.bottom < bounds.top || cr.top > bounds.bottom) continue;
-        const display = { x: (cr.left - bounds.left) / scale, y: (cr.top - bounds.top) / scale, w: cr.width / scale, h: cr.height / scale };
-        const r = displayRectToPage(display, rotation, page.w, page.h);
-        // Skip pieces fully inside one already taken (nested spans report twice).
-        if (rects.some((q) => r.x >= q.x - 0.5 && r.y >= q.y - 0.5 && r.x + r.w <= q.x + q.w + 0.5 && r.y + r.h <= q.y + q.h + 0.5)) continue;
-        rects.push(r);
-      }
-    }
-    if (!rects.length) return;
+    const rects = selectionRects(pageEl, page, scale, rotation);
+    if (!sel || !rects.length) return;
     doc.addOverlay({ id: newId("o"), page: page.id, kind: "markup", style, rects, color: toolColor(style) });
     doc.selectedOverlay = null;
     // Every page sees this mouse-up; clear the selection only after all of them
@@ -235,6 +222,7 @@
       text && { label: t("ctx.highlight"), icon: "highlight", run: () => markFromMenu("highlight") },
       text && { label: t("ctx.underline"), icon: "underline", run: () => markFromMenu("underline") },
       text && { label: t("ctx.strike"), icon: "strike", run: () => markFromMenu("strike") },
+      text && { label: t("ctx.redact"), icon: "redact", run: () => window.dispatchEvent(new CustomEvent("klikpaper:redact")) },
       text && {
         label: t("ctx.findText", { text: short.replace(/\s+/g, " ") }),
         icon: "search",

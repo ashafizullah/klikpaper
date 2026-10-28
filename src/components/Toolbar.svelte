@@ -9,6 +9,7 @@
   import { pickImage } from "../lib/images";
   import Icon from "./Icon.svelte";
   import Popover from "./Popover.svelte";
+  import RedactBadge from "./RedactBadge.svelte";
 
   let { doc }: { doc: Doc } = $props();
   let moreOpen = $state(false);
@@ -27,6 +28,7 @@
     { id: "ellipse", icon: "ellipse", label: "tool.ellipse" },
     { id: "arrow", icon: "arrow", label: "tool.arrow" },
     { id: "whiteout", icon: "whiteout", label: "tool.whiteout" },
+    { id: "redact", icon: "redact", label: "tool.redact" },
     { id: "comment", icon: "comment", label: "comments.tool" },
   ];
 
@@ -34,6 +36,7 @@
     ui.tool = tool;
     ui.pendingImage = null;
     doc.selectedOverlay = null;
+    doc.selectedRedaction = null;
   }
 
   async function addImage() {
@@ -147,6 +150,7 @@
       </button>
     {/snippet}
     <button class="menu-item" onclick={() => command("save-as")}><Icon name="save" />{t("menu.saveAs")}</button>
+    <button class="menu-item" onclick={() => command("print")}><Icon name="print" />{t("menu.print")}</button>
     <button class="menu-item" onclick={() => insertFiles(doc, doc.pages.length)}><Icon name="insert" />{t("menu.insertPdf")}</button>
     <div class="menu-sep"></div>
     <button class="menu-item" onclick={() => command("compress")}><Icon name="compress" />{t("menu.compress")}</button>
@@ -159,6 +163,7 @@
     <button class="menu-item" onclick={() => command("security")}><Icon name="lock" />{t("menu.security")}</button>
     <button class="menu-item" onclick={() => command("info")}><Icon name="info" />{t("menu.info")}</button>
   </Popover>
+  <RedactBadge {doc} />
   <span class="status" title={doc.path ?? ""}>
     <span class="status-dot" class:dirty={doc.dirty}></span>{doc.dirty ? t("toolbar.unsaved") : t("toolbar.saved")}
   </span>

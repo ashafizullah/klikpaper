@@ -2,6 +2,13 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor, dan badge merah di toolbar mengingatkan selama fitur ini dipakai. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada
+- Bookmark: sidebar punya tab Bookmark berisi daftar isi dokumen. Klik untuk langsung ke bagian itu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; semuanya tersimpan di PDF. File yang digabung tetap membawa bookmark masing-masing
+- Cetak (Cmd/Ctrl+P): mencetak dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan
+- Agen AI bisa menyensor teks atau area (`redact_text`, `redact_area`, `remove_redactions`) dan mengelola bookmark (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
+
 ## 0.1.11
 
 - Menu klik kanan: klik kanan halaman, teks yang diblok, anotasi, penanda komentar, thumbnail halaman, tab, atau file terbaru untuk memunculkan aksi yang sesuai, misalnya menstabilo atau menyalin teks yang diblok, menambah komentar atau teks tepat di titik yang diklik, menggandakan atau menghapus anotasi, memutar, menyisipkan, atau menghapus halaman, menutup tab lain, atau membuka lokasi file di Finder/Explorer
