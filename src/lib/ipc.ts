@@ -92,6 +92,8 @@ export interface AssembleOptions {
   stripMetadata?: boolean;
   compress?: Compression | null;
   protect?: { userPassword: string; ownerPassword?: string | null } | null;
+  /** Changes to printed content in this save, added to the file's edit history (pages are 1-based). */
+  edits?: { textLines: number; textPages: number[]; covers: number; coverPages: number[] } | null;
 }
 export interface AssembleJob {
   sources: SourceSpec[];
@@ -124,6 +126,10 @@ export interface PdfInfo {
   producer: string | null;
   created: string | null;
   modified: string | null;
+  /** The note left when part of the file was blacked out (redacted). */
+  redacted: string | null;
+  /** Changes KlikPaper made to the printed content, one line per save. */
+  history: string | null;
 }
 export type PageSize = "fit" | "a4" | "letter";
 export type Orientation = "auto" | "portrait" | "landscape";

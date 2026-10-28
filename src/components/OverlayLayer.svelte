@@ -83,7 +83,7 @@
         draft = { id: newId("o"), page: page.id, kind: ui.tool, x, y, w: 0, h: 0, color, fill: null, width: ui.strokeWidth };
         break;
       case "whiteout":
-        draft = { id: newId("o"), page: page.id, kind: "rect", x, y, w: 0, h: 0, color: "#ffffff", fill: "#ffffff", width: 0 };
+        draft = { id: newId("o"), page: page.id, kind: "rect", x, y, w: 0, h: 0, color: "#ffffff", fill: "#ffffff", width: 0, origin: "whiteout" };
         break;
       case "arrow":
         draft = { id: newId("o"), page: page.id, kind: "arrow", x1: x, y1: y, x2: x, y2: y, color, width: ui.strokeWidth };

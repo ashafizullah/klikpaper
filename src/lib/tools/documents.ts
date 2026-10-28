@@ -241,7 +241,7 @@ export const DOCUMENT_TOOLS: ToolSpec[] = [
       else requirePdf(path);
       const prev = doc.path;
       doc.path = path;
-      const ok = await saveDoc(doc);
+      const ok = await saveDoc(doc, false, path !== prev);
       if (!ok) {
         doc.path = prev;
         throw new Error("Saving failed (see the app for details)");

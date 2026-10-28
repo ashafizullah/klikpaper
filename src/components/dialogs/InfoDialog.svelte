@@ -38,6 +38,8 @@
     [t("info.producer"), info?.producer],
     [t("info.created"), date(info?.created ?? null)],
     [t("info.modified"), date(info?.modified ?? null)],
+    [t("info.redacted"), info?.redacted],
+    [t("info.history"), info?.history],
   ]);
 </script>
 
@@ -64,5 +66,7 @@
   dd {
     margin: 0;
     word-break: break-all;
+    /* The edit history has one line per save. */
+    white-space: pre-line;
   }
 </style>

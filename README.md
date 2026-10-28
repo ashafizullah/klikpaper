@@ -36,14 +36,14 @@
 ## Features
 
 - **Viewer**: fast continuous scrolling, zoom and fit width, text selection, find in document, clickable links, fillable forms, tabs for several PDFs
-- **Recognize text (OCR)**: make scanned pages searchable. KlikPaper reads Indonesian and English on this computer (Tesseract, built in, nothing uploaded) and lays the words invisibly over the scan, so you can search, select and copy them, the AI can read them, and Black out removes them word by word. The page looks the same
+- **Recognize text (OCR)**: make scanned pages searchable. KlikPaper reads Indonesian and English on this computer (Tesseract, built in, nothing uploaded) and lays the words invisibly over the scan, so you can search, select and copy them, the AI can read them, and Black out removes them word by word. The page looks the same. OCR can misread blurry or handwritten text, so don't rely on search alone to find everything
 - **Bookmarks**: browse the document's outline in the sidebar, jump to a section, and add, rename, nest, reorder or delete bookmarks; merged files keep the bookmarks of each file
-- **Print** (Cmd/Ctrl+P) the document as you see it, with unsaved edits
+- **Print** (Cmd/Ctrl+P) the document as you see it, with unsaved edits. Pages are sent to the printer as 200 DPI pictures
 - **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF, resize pages to A4, Letter, Legal, A3 or A5 (content scaled to fit, never stretched)
 - **Compress**: three levels or a custom quality slider that downscale and re-encode photos; text, vector graphics and fonts are untouched. Every level shows its resulting file size before you save
 - **Convert**: images (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF, and pages to PNG or JPEG
-- **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color (the old words stay hidden underneath, so it isn't a way to redact; use Black out for that)
-- **Black out (redact)**: hide private details like ID or account numbers. Drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out. If a page can't be cleaned piece by piece safely, it's saved as an image
+- **Edit text**: click a line to change its words; KlikPaper covers the old line and retypes it in a matching font, size and color. The old words stay in the file underneath, so **never use Edit text or White-out to hide private information**; use Black out. Changes to printed text and white-out boxes are noted in the file's edit history (see [What KlikPaper writes into your PDFs](#what-klikpaper-writes-into-your-pdfs))
+- **Black out (redact)**: hide private details like ID or account numbers. Drag a box over them, right-click selected text, or black out every match of a search at once. Until you save, the marks are shaded so you can check them, and Undo takes them back. When you save, the text, image pixels, shapes, links and form fields under the black boxes are deleted from the file, not just covered, so nobody can copy them or bring them back. If a page can't be cleaned piece by piece safely, that page is saved as a picture of itself. KlikPaper suggests saving the result as a new file, so you keep the original. See [Sharing private documents safely](#sharing-private-documents-safely)
 - **Annotate**: highlight, underline and strike through text (saved as real PDF annotations other viewers can list), text boxes in any font installed on your computer (embedded when you save), freehand drawing, rectangles, ellipses, arrows, white-out, images
 - **Comments**: pin a comment to any spot on a page, reply, and mark threads done in the Comments panel. Comments are saved inside the PDF as standard notes, so whoever you send the file to can read and answer them in KlikPaper, Acrobat or Preview. Keep the file in a shared folder (Google Drive, Dropbox, OneDrive) and KlikPaper shows new replies as soon as someone saves; no account or server
 - **Sign**: draw, type or upload a signature, place and resize it. This is a picture of your signature, not a certificate-based digital signature
@@ -56,9 +56,31 @@
 - **Right-click actions** (optional): merge, compress or convert PDFs, or turn images into a PDF, straight from the Windows File Explorer menu or macOS Finder Quick Actions
 - **English and Bahasa Indonesia** throughout: the interface, the menu bar, update messages and the "What's new" notes; **automatic updates** from GitHub Releases (signed packages), which you can set to install by themselves, ask first or stay off
 
+## Sharing private documents safely
+
+Black out deletes what is under the black boxes on the pages. Before you send a blacked-out file:
+
+1. **Mark every place the information appears.** Use Find and "Black out every match" for numbers and names. On scanned pages, run Recognize text first; OCR can misread, so look through the pages and draw boxes over anything search missed.
+2. **Save as a new file** and keep the original to yourself.
+3. **Check what Black out doesn't touch**, because it isn't on the pages: the file name, bookmark titles, document info such as title and subject (tick “Remove document info and metadata” under ⋯ → Password & privacy), comments, and files attached inside the PDF.
+4. **Open the saved file and try to select or copy** the blacked-out areas. Nothing should come out.
+
+Edit text and White-out only cover content; the original stays in the file. They are not for hiding anything.
+
+## What KlikPaper writes into your PDFs
+
+Besides the changes you make, a saved file can carry:
+
+- **Comments**, with the name you comment under (set it in Settings)
+- **Bookmarks**
+- **An edit history**, when you changed printed text (Edit text), covered content (White-out) or blacked out areas: one line per save with the date, "KlikPaper" and its version, which pages changed and how many lines or boxes. Never your name, your computer or the text itself
+- **A note that parts were blacked out**, so readers know the black boxes aren't part of the original
+
+The edit history and the note are shown by KlikPaper (the badges in the toolbar, and Document info) and by Acrobat under File → Properties → Custom. They are there for transparency, so honest readers know a file was changed; they can't stop someone determined to forge a PDF, since any PDF editor can remove them. Ticking **“Remove document info and metadata”** under ⋯ → Password & privacy saves the file without them, along with the title, author and other document info.
+
 ## Privacy
 
-KlikPaper works offline. Your files never leave your computer, with two exceptions you control:
+KlikPaper works offline, text recognition (OCR) included. Your files never leave your computer, with two exceptions you control:
 
 - **Update checks** ask GitHub Releases for a newer version and, when there is one, fetch its changelog from GitHub (once a day, or only when you ask if you turn automatic checks off).
 - **AI chat**, when you set it up and use it, sends the open document's text and your question to the AI provider you chose, with your own API key. Nothing is sent to KlikPaper or its author.

@@ -1,6 +1,7 @@
 <script lang="ts">
-  // Toolbar notice while redaction is in use: saving removes the marked content
-  // for good and notes the redaction in the file's properties (metadata).
+  // Toolbar notice about blacking out (redaction): while marks wait to be saved
+  // (saving deletes what's under them and notes it in the file), and on a file
+  // that was blacked out before.
   import type { Doc } from "../lib/doc.svelte";
   import { showAlert, ui } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
@@ -8,9 +9,14 @@
 
   let { doc }: { doc: Doc } = $props();
   const n = $derived(doc.redactions.length);
-  const title = $derived(n ? t("redact.badgeTitle", { n }) : t("redact.badgeIdle"));
+  const pending = $derived(n > 0 || ui.tool === "redact");
+  const title = $derived(n ? t("redact.badgeTitle", { n }) : ui.tool === "redact" ? t("redact.badgeIdle") : t("redact.fileTitle"));
 
   async function explain() {
+    if (!pending) {
+      await showAlert({ title: t("redact.fileHeading"), message: t("redact.fileTitle"), markdown: doc.redactedNote ? `${t("redact.fileNote")}\n\n> ${doc.redactedNote}` : undefined });
+      return;
+    }
     const choice = await showAlert({
       title: t("redact.badgeHeading"),
       message: title,
@@ -25,10 +31,10 @@
   }
 </script>
 
-{#if n || ui.tool === "redact"}
-  <button class="badge" {title} aria-label={title} onclick={explain}>
+{#if pending || doc.redactedNote}
+  <button class="badge" class:done={!pending} {title} aria-label={title} onclick={explain}>
     <Icon name="redact" size={12} />
-    {n ? t("redact.badge", { n }) : t("redact.badgeTool")}
+    <span class="text">{n ? t("redact.badge", { n }) : pending ? t("redact.badgeTool") : t("redact.badgeFile")}</span>
   </button>
 {/if}
 
@@ -50,5 +56,24 @@
   }
   .badge:hover {
     background: color-mix(in srgb, var(--danger) 22%, transparent);
+  }
+  /* A file blacked out before: a quieter reminder. */
+  .badge.done {
+    background: none;
+    border-color: var(--line);
+    color: var(--muted);
+  }
+  .badge.done:hover {
+    color: var(--text);
+    background: var(--hover);
+  }
+  /* In a narrow window only the icon shows; the tooltip and a click still explain. */
+  @media (max-width: 1180px) {
+    .text {
+      display: none;
+    }
+    .badge {
+      padding: 0 6px;
+    }
   }
 </style>

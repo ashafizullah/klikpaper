@@ -10,6 +10,7 @@
   import Icon from "./Icon.svelte";
   import Popover from "./Popover.svelte";
   import RedactBadge from "./RedactBadge.svelte";
+  import EditBadge from "./EditBadge.svelte";
 
   let { doc }: { doc: Doc } = $props();
   let moreOpen = $state(false);
@@ -32,14 +33,17 @@
     { id: "comment", icon: "comment", label: "comments.tool" },
   ];
 
+  /** Picks a tool; clicking the active one again puts it away (back to Select). */
   function choose(tool: Tool) {
-    ui.tool = tool;
+    ui.tool = ui.tool === tool ? "select" : tool;
     ui.pendingImage = null;
     doc.selectedOverlay = null;
     doc.selectedRedaction = null;
   }
 
   async function addImage() {
+    // An image waiting to be placed is put away by clicking again.
+    if (ui.tool === "image" && ui.pendingImage) return choose("image");
     const img = await pickImage();
     if (img) {
       ui.pendingImage = img;
@@ -94,7 +98,8 @@
 
   <div class="spacer"></div>
 
-  <div class="group">
+  <!-- Rotating (also in the page list), Compress and Export (also under ⋯) give way in a narrow window. -->
+  <div class="group wide-only">
     <button class="icon-btn" onclick={() => doc.rotatePages(selectedPages, -90)} title={t("pages.rotateLeft")} aria-label={t("pages.rotateLeft")}>
       <Icon name="rotate-ccw" />
     </button>
@@ -102,7 +107,7 @@
       <Icon name="rotate-cw" />
     </button>
   </div>
-  <span class="sep"></span>
+  <span class="sep wide-only"></span>
   <div class="group nav">
     {#if editingPage}
       <!-- svelte-ignore a11y_autofocus -->
@@ -137,10 +142,10 @@
   <button class="icon-btn" class:on={ui.findOpen} onclick={() => command("find")} title="{t('find.title')} ({mod}F)" aria-label={t("find.title")}>
     <Icon name="search" />
   </button>
-  <button class="icon-btn" onclick={() => command("compress")} title={t("menu.compress")} aria-label={t("menu.compress")}>
+  <button class="icon-btn wide-only" onclick={() => command("compress")} title={t("menu.compress")} aria-label={t("menu.compress")}>
     <Icon name="compress" />
   </button>
-  <button class="icon-btn" onclick={() => command("export-images")} title={t("menu.exportImages")} aria-label={t("menu.exportImages")}>
+  <button class="icon-btn wide-only" onclick={() => command("export-images")} title={t("menu.exportImages")} aria-label={t("menu.exportImages")}>
     <Icon name="images" />
   </button>
   <Popover bind:open={moreOpen}>
@@ -164,6 +169,7 @@
     <button class="menu-item" onclick={() => command("security")}><Icon name="lock" />{t("menu.security")}</button>
     <button class="menu-item" onclick={() => command("info")}><Icon name="info" />{t("menu.info")}</button>
   </Popover>
+  <EditBadge {doc} />
   <RedactBadge {doc} />
   <span class="status" title={doc.path ?? ""}>
     <span class="status-dot" class:dirty={doc.dirty}></span>{doc.dirty ? t("toolbar.unsaved") : t("toolbar.saved")}
@@ -188,6 +194,19 @@
     display: flex;
     align-items: center;
     gap: 1px;
+  }
+  /* In a narrow window the tools scroll sideways, so Save and the menus stay in view. */
+  .group.tools {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .group.tools::-webkit-scrollbar {
+    display: none;
+  }
+  .group.tools > :global(*) {
+    flex: none;
   }
   .boxed {
     border: 1px solid var(--line);
@@ -245,7 +264,8 @@
     animation: pulse 2s ease-in-out infinite;
   }
   @media (max-width: 1180px) {
-    .status {
+    .status,
+    .wide-only {
       display: none;
     }
   }

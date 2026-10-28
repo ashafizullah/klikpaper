@@ -80,9 +80,10 @@ export async function replaceLine(doc: Doc, page: PageItem, line: PageLine, text
     rot: 0,
     ...(bold ? { bold: true } : {}),
     ...(family ? { font: family } : {}),
+    origin: "edittext",
   };
   doc.change(() => {
-    doc.overlays.push({ id: newId("o"), page: page.id, kind: "rect", ...cover, color: bg, fill: bg, width: 0 }, box);
+    doc.overlays.push({ id: newId("o"), page: page.id, kind: "rect", ...cover, color: bg, fill: bg, width: 0, origin: "edittext" }, box);
   });
   return box;
 }

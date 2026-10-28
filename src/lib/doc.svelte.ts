@@ -34,11 +34,14 @@ export interface PageItem {
 
 export type MarkupKind = "highlight" | "underline" | "strike";
 
+/** Made by Edit text (a retyped line and its cover) or White-out: changes to the printed content, kept in the file's edit history. */
+export type ContentEdit = "edittext" | "whiteout";
+
 /** Coordinates are in page space: points from the unrotated page's top-left, y down. */
 export type Overlay =
-  | { id: string; page: string; kind: "text"; x: number; y: number; w: number; text: string; size: number; color: string; rot: number; bold?: boolean; font?: string }
+  | { id: string; page: string; kind: "text"; x: number; y: number; w: number; text: string; size: number; color: string; rot: number; bold?: boolean; font?: string; origin?: ContentEdit }
   | { id: string; page: string; kind: "image"; x: number; y: number; w: number; h: number; src: string; rot: number }
-  | { id: string; page: string; kind: "rect" | "ellipse"; x: number; y: number; w: number; h: number; color: string; fill: string | null; width: number }
+  | { id: string; page: string; kind: "rect" | "ellipse"; x: number; y: number; w: number; h: number; color: string; fill: string | null; width: number; origin?: ContentEdit }
   | { id: string; page: string; kind: "line" | "arrow"; x1: number; y1: number; x2: number; y2: number; color: string; width: number }
   | { id: string; page: string; kind: "ink"; points: number[]; color: string; width: number }
   | { id: string; page: string; kind: "markup"; style: MarkupKind; rects: { x: number; y: number; w: number; h: number }[]; color: string };
@@ -100,6 +103,10 @@ export class Doc {
   /** Sources whose comments were read; pages of the others keep the file's comments untouched when saved. */
   commentSources = new Set<string>();
   redactions = $state<Redaction[]>([]);
+  /** The file's note that it was blacked out before (null when it wasn't). */
+  redactedNote = $state<string | null>(null);
+  /** The file's edit history (one line per save that changed printed content), if it has one. */
+  editHistory = $state<string | null>(null);
   /** Bookmarks of the document (from the first file, or all of them when merged). */
   outline = $state<Bookmark[]>([]);
   /** The bookmarks were edited or combined: saving writes them instead of keeping the file's own. */
@@ -352,6 +359,15 @@ export class Doc {
       this.overlays = this.overlays.filter((o) => o.id !== id);
     });
     if (this.selectedOverlay === id) this.selectedOverlay = null;
+  }
+
+  /** Changes to printed content on a page: lines retyped with Edit text, and white-out boxes. */
+  contentEdits(page: string): { lines: number; covers: number } {
+    const mine = this.overlays.filter((o) => o.page === page && "origin" in o && o.origin);
+    return {
+      lines: mine.filter((o) => o.kind === "text" && o.origin === "edittext").length,
+      covers: mine.filter((o) => o.kind === "rect" && o.origin === "whiteout").length,
+    };
   }
 
   // ---- redaction ----------------------------------------------------------

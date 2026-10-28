@@ -486,9 +486,10 @@ label.row {
     margin: 0;
   }
   html,
-  body {
+  body,
+  #print-root {
     background: #fff !important;
-    height: auto !important;
+    height: 100% !important;
     overflow: visible !important;
   }
   body::after,
@@ -498,8 +499,9 @@ label.row {
   #print-root {
     display: block;
   }
+  /* A share of the page box: vh would be the window's height, not the paper's. */
   .print-page {
-    height: 100vh;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;

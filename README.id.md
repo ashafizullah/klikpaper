@@ -36,14 +36,14 @@
 ## Fitur
 
 - **Penampil**: gulir kontinu yang cepat, zoom dan pas lebar, pilih teks, cari di dokumen, tautan yang bisa diklik, formulir yang bisa diisi, tab untuk beberapa PDF
-- **Kenali teks (OCR)**: ubah halaman hasil scan jadi bisa dicari. KlikPaper membaca bahasa Indonesia dan Inggris di komputer ini (Tesseract, sudah termasuk, tidak ada yang diunggah) lalu menaruh teksnya tak terlihat di atas scan, jadi bisa dicari, diblok, dan disalin, dibaca AI, dan disensor per kata. Tampilan halaman tidak berubah
+- **Kenali teks (OCR)**: ubah halaman hasil scan jadi bisa dicari. KlikPaper membaca bahasa Indonesia dan Inggris di komputer ini (Tesseract, sudah termasuk, tidak ada yang diunggah) lalu menaruh teksnya tak terlihat di atas scan, jadi bisa dicari, diblok, dan disalin, dibaca AI, dan disensor per kata. Tampilan halaman tidak berubah. OCR bisa salah membaca tulisan yang buram atau tulisan tangan, jadi jangan hanya mengandalkan pencarian untuk menemukan semuanya
 - **Bookmark**: lihat daftar isi dokumen di sidebar, lompat ke bagian tertentu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; file yang digabung tetap membawa bookmark masing-masing
-- **Cetak** (Cmd/Ctrl+P) dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan
+- **Cetak** (Cmd/Ctrl+P) dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan. Halaman dikirim ke printer sebagai gambar 200 DPI
 - **Atur halaman**: seret thumbnail untuk mengurutkan ulang, putar, hapus, gandakan, sisipkan halaman dari PDF lain, gabung beberapa file, pisah per rentang atau setiap N halaman, simpan halaman terpilih sebagai PDF baru, ubah ukuran halaman ke A4, Letter, Legal, A3, atau A5 (isi diskalakan agar pas, tidak ditarik)
 - **Kompres**: tiga tingkat atau slider kualitas sendiri yang mengecilkan dan mengodekan ulang foto; teks, grafik vektor, dan font tidak diubah. Setiap tingkat menampilkan ukuran file hasilnya sebelum Anda menyimpan
 - **Konversi**: gambar (JPG, PNG, WebP, GIF, BMP, TIFF) ke PDF, dan halaman ke PNG atau JPEG
-- **Edit teks**: klik satu baris untuk mengubah kata-katanya; KlikPaper menutup baris lama dan menuliskannya lagi dengan font, ukuran, dan warna yang mirip (kata lama tetap tersembunyi di bawahnya, jadi bukan cara untuk menyensor; pakai Sensor untuk itu)
-- **Sensor (redaksi)**: sembunyikan data pribadi seperti NIK atau nomor rekening. Tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor. Kalau isi sebuah halaman tidak bisa dihapus per bagian dengan aman, halaman itu disimpan sebagai gambar
+- **Edit teks**: klik satu baris untuk mengubah kata-katanya; KlikPaper menutup baris lama dan menuliskannya lagi dengan font, ukuran, dan warna yang mirip. Kata lama tetap ada di file, di bawahnya, jadi **jangan pernah memakai Edit teks atau Tutup putih untuk menyembunyikan data pribadi**; pakai Sensor. Perubahan teks dan kotak tutup putih dicatat di riwayat edit file (lihat [Apa saja yang ditulis KlikPaper ke PDF Anda](#apa-saja-yang-ditulis-klikpaper-ke-pdf-anda))
+- **Sensor (redaksi)**: sembunyikan data pribadi seperti NIK atau nomor rekening. Tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Sebelum disimpan, tandanya masih transparan supaya bisa dicek, dan bisa dibatalkan dengan Urungkan. Saat disimpan, teks, piksel gambar, bentuk, tautan, dan isian formulir di bawah kotak hitam dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. Kalau isi sebuah halaman tidak bisa dihapus per bagian dengan aman, halaman itu disimpan sebagai gambar. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada. Lihat [Membagikan dokumen pribadi dengan aman](#membagikan-dokumen-pribadi-dengan-aman)
 - **Anotasi**: sorot, garis bawah, dan coret teks (disimpan sebagai anotasi PDF asli yang bisa dilihat penampil lain), kotak teks dengan font apa pun yang terpasang di komputer Anda (disematkan saat disimpan), gambar tangan, persegi, elips, panah, penghapus putih, gambar
 - **Komentar**: sematkan komentar di bagian mana pun pada halaman, balas, dan tandai selesai di panel Komentar. Komentar disimpan di dalam PDF sebagai catatan standar, jadi orang yang Anda kirimi file bisa membaca dan membalasnya di KlikPaper, Acrobat, atau Preview. Taruh filenya di folder bersama (Google Drive, Dropbox, OneDrive), dan KlikPaper langsung menampilkan balasan baru begitu ada yang menyimpan; tanpa akun atau server
 - **Tanda tangan**: gambar, ketik, atau unggah tanda tangan, lalu tempatkan dan ubah ukurannya. Ini gambar tanda tangan Anda, bukan tanda tangan digital berbasis sertifikat
@@ -56,9 +56,31 @@
 - **Aksi klik kanan** (opsional): gabung, kompres, atau konversi PDF, atau ubah gambar jadi PDF, langsung dari menu File Explorer di Windows atau Quick Actions Finder di macOS
 - **English dan Bahasa Indonesia** di seluruh aplikasi: antarmuka, bilah menu, pesan pembaruan, dan catatan "Yang baru"; **pembaruan otomatis** dari GitHub Releases (paket bertanda tangan), yang bisa Anda atur untuk terpasang sendiri, bertanya dulu, atau mati
 
+## Membagikan dokumen pribadi dengan aman
+
+Sensor menghapus isi di bawah kotak hitam pada halaman. Sebelum mengirim file yang sudah disensor:
+
+1. **Tandai setiap tempat data itu muncul.** Pakai Cari lalu "Sensor semua hasil pencarian" untuk nomor dan nama. Untuk halaman hasil scan, jalankan Kenali teks dulu; OCR bisa salah baca, jadi periksa halamannya dan tarik kotak di atas apa pun yang terlewat oleh pencarian.
+2. **Simpan sebagai file baru**, dan simpan file aslinya untuk diri sendiri.
+3. **Periksa bagian yang tidak tersentuh Sensor**, karena tidak ada di halaman: nama file, judul bookmark, info dokumen seperti judul dan subjek (centang “Hapus info dokumen dan metadata” di ⋯ → Kata sandi & privasi), komentar, dan file lampiran di dalam PDF.
+4. **Buka file hasilnya dan coba blok atau salin** area yang disensor. Seharusnya tidak ada yang keluar.
+
+Edit teks dan Tutup putih hanya menutupi; isi aslinya tetap ada di file. Keduanya bukan untuk menyembunyikan apa pun.
+
+## Apa saja yang ditulis KlikPaper ke PDF Anda
+
+Selain perubahan yang Anda buat, file yang disimpan bisa membawa:
+
+- **Komentar**, dengan nama yang Anda pakai untuk berkomentar (atur di Pengaturan)
+- **Bookmark**
+- **Riwayat edit**, kalau Anda mengubah teks (Edit teks), menutupi isi (Tutup putih), atau menyensor area: satu baris per kali simpan berisi tanggal, "KlikPaper" dan versinya, halaman mana yang berubah, dan berapa baris atau kotak. Tidak pernah berisi nama Anda, komputer Anda, atau isi teksnya
+- **Keterangan bahwa ada bagian yang disensor**, supaya pembaca tahu kotak hitam itu bukan bagian dari dokumen asli
+
+Riwayat edit dan keterangan ini ditampilkan KlikPaper (badge di toolbar dan Info dokumen) dan Acrobat di File → Properties → Custom. Tujuannya transparansi, supaya pembaca yang jujur tahu file itu pernah diubah; catatan ini tidak bisa mencegah orang yang memang berniat memalsukan PDF, karena editor PDF apa pun bisa menghapusnya. Mencentang **“Hapus info dokumen dan metadata”** di ⋯ → Kata sandi & privasi menyimpan file tanpa catatan ini, sekaligus tanpa judul, penulis, dan info dokumen lainnya.
+
 ## Privasi
 
-KlikPaper bekerja offline. File Anda tidak pernah keluar dari komputer, dengan dua pengecualian yang Anda kendalikan:
+KlikPaper bekerja offline, termasuk pengenalan teks (OCR). File Anda tidak pernah keluar dari komputer, dengan dua pengecualian yang Anda kendalikan:
 
 - **Cek pembaruan** menanyakan versi yang lebih baru ke GitHub Releases dan, jika ada, mengambil catatan perubahannya dari GitHub (sekali sehari, atau hanya saat Anda minta jika cek otomatis dimatikan).
 - **Chat AI**, jika Anda siapkan dan pakai, mengirim teks dokumen yang terbuka dan pertanyaan Anda ke penyedia AI yang Anda pilih, dengan API key Anda sendiri. Tidak ada yang dikirim ke KlikPaper atau pembuatnya.

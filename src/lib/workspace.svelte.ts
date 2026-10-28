@@ -87,6 +87,7 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       doc.outline = await readOutline(loaded.pdf, doc.pages);
       await loadComments(doc, id, doc.pages);
       doc.stamp = await stampOf(path);
+      readNotes(doc, path, loaded.password);
       show(doc);
       addRecent(path);
     } catch (e) {
@@ -170,6 +171,7 @@ async function reload(doc: Doc, path: string, password: string | null) {
   await loadComments(doc, id, doc.pages);
   doc.selectedComment = doc.selectedComment && doc.comment(doc.selectedComment) ? doc.selectedComment : null;
   doc.stamp = await stampOf(path);
+  readNotes(doc, path, password ?? undefined);
   doc.overlays = [];
   doc.redactions = [];
   doc.selectedRedaction = null;
@@ -186,6 +188,17 @@ async function reload(doc: Doc, path: string, password: string | null) {
   doc.path = path;
   doc.name = baseName(path);
   doc.dirty = false;
+}
+
+/** What the file says about earlier changes: blacked-out parts and its edit history (read in the background). */
+function readNotes(doc: Doc, path: string, password?: string) {
+  ipc
+    .pdfInfo(path, password)
+    .then((info) => {
+      doc.redactedNote = info.redacted;
+      doc.editHistory = info.history;
+    })
+    .catch(() => {});
 }
 
 /** When the file last changed (0 when unknown). */
@@ -241,10 +254,11 @@ export function watchFiles() {
   }, 3000);
 }
 
-export async function saveDoc(doc: Doc, as = false): Promise<boolean> {
+/** Saves `doc`; `newFile` says the caller already picked a new target, so there's no original to overwrite. */
+export async function saveDoc(doc: Doc, as = false, newFile = false): Promise<boolean> {
   let path = doc.path;
   // Saving redactions over the original would leave no unredacted copy; a new file is the usual choice.
-  if (!as && path && doc.redactions.length) {
+  if (!as && !newFile && path && doc.redactions.length) {
     const choice = await showAlert({
       title: t("redact.saveTitle"),
       message: t("redact.saveMessage", { file: doc.name }),

@@ -152,7 +152,7 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
   {
     name: "replace_text",
     description:
-      "Changes words already printed in the PDF. Each line containing `text` is covered with a box in the page's background color and written again with `text` replaced, in the same size and color and the closest installed font. The original stays in the file underneath (covered, not removed), so never use this to hide sensitive information (use redact_text for that). Matching is exact (case-sensitive) within a line. Works best on pages the user has scrolled to. Undoable; saved when the user saves.",
+      "Changes words already printed in the PDF. Each line containing `text` is covered with a box in the page's background color and written again with `text` replaced, in the same size and color and the closest installed font. The original stays in the file underneath (covered, not removed), so never use this to hide sensitive information (use redact_text for that). Saving adds a line to the file's edit history saying text was changed on that page. Matching is exact (case-sensitive) within a line. Works best on pages the user has scrolled to. Undoable; saved when the user saves.",
     parameters: obj({ doc: DOC, text: { type: "string" }, replacement: { type: "string" }, pages: PAGES }, ["text", "replacement"]),
     scope: "both",
     async run(args) {

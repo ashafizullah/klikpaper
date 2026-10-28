@@ -217,7 +217,7 @@
           }}
         />
       {:else}
-        <span class="label" class:bold={b.bold} class:italic={b.italic} class:dim={!n && !b.url}>{b.title || "—"}</span>
+        <span class="name" class:bold={b.bold} class:italic={b.italic} class:dim={!n && !b.url}>{b.title || "—"}</span>
         {#if n}<span class="num">{n}</span>{/if}
       {/if}
     </div>
@@ -261,7 +261,7 @@
   .row.selected {
     background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
-  .row.current .label {
+  .row.current .name {
     color: var(--accent);
   }
   .twisty {
@@ -279,7 +279,7 @@
   button.twisty:hover {
     color: var(--text);
   }
-  .label {
+  .name {
     flex: 1;
     min-width: 0;
     font-size: 12px;
@@ -288,13 +288,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .label.bold {
+  .name.bold {
     font-weight: 600;
   }
-  .label.italic {
+  .name.italic {
     font-style: italic;
   }
-  .label.dim {
+  .name.dim {
     color: var(--muted);
   }
   .num {

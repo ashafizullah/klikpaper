@@ -432,6 +432,12 @@ impl State {
 struct Redactor<'a> {
     doc: &'a mut Document,
     areas: Vec<Bounds>,
+    /// Where image pixels are cleared: the areas, and the boxes of glyphs removed from
+    /// the page. On a scan the recognized (OCR) words lie over the letters in the picture,
+    /// so a word taken out of the text takes its ink with it even where the area falls short.
+    image_areas: Vec<Bounds>,
+    /// Boxes of the glyphs removed so far.
+    removed_glyphs: Vec<Bounds>,
     fonts: HashMap<ObjectId, Rc<Font>>,
     /// Why the page has to become a picture, if it does.
     issue: Option<String>,
@@ -510,6 +516,7 @@ impl Redactor<'_> {
                         let b = Bounds::around(gs.glyph_space(*tm), gw.min(0.0), font.descent, gw.max(0.0), font.ascent);
                         if covered(&b, &self.areas, GLYPH_SHARE) {
                             removed = true;
+                            self.removed_glyphs.push(b);
                             if !kept.is_empty() {
                                 out.push(Object::String(std::mem::take(&mut kept), *format));
                             }
@@ -553,11 +560,11 @@ impl Redactor<'_> {
         let subtype = stream.dict.get(b"Subtype").and_then(Object::as_name).unwrap_or(b"");
         let new = match subtype {
             b"Image" => {
-                if !touches_any(&Bounds::around(ctm, 0.0, 0.0, 1.0, 1.0), &self.areas) {
+                if !touches_any(&Bounds::around(ctm, 0.0, 0.0, 1.0, 1.0), &self.image_areas) {
                     return false;
                 }
                 let mut image = stream.clone();
-                match mask_image(self.doc, &mut image, ctm, &self.areas) {
+                match mask_image(self.doc, &mut image, ctm, &self.image_areas) {
                     Ok(false) => return false,
                     Ok(true) => {}
                     Err(why) => {
@@ -570,7 +577,7 @@ impl Redactor<'_> {
                     && let Ok(mask) = self.doc.get_object(mask_id).and_then(Object::as_stream)
                 {
                     let mut mask = mask.clone();
-                    match mask_image(self.doc, &mut mask, ctm, &self.areas) {
+                    match mask_image(self.doc, &mut mask, ctm, &self.image_areas) {
                         Ok(true) => {
                             let new_mask = self.doc.add_object(mask);
                             image.dict.set("SMask", new_mask);
@@ -594,7 +601,7 @@ impl Redactor<'_> {
                 if let Ok(bbox) = form.dict.get(b"BBox").and_then(Object::as_array) {
                     let v: Vec<f64> = bbox.iter().filter_map(number).collect();
                     if let [x0, y0, x1, y1] = v[..]
-                        && !touches_any(&Bounds::around(m, x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1)), &self.areas)
+                        && !touches_any(&Bounds::around(m, x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1)), &self.image_areas)
                     {
                         return false;
                     }
@@ -774,10 +781,10 @@ impl Redactor<'_> {
                 }
                 "BI" => {
                     if let Some(Object::Stream(image)) = o.first()
-                        && touches_any(&Bounds::around(gs.ctm, 0.0, 0.0, 1.0, 1.0), &self.areas)
+                        && touches_any(&Bounds::around(gs.ctm, 0.0, 0.0, 1.0, 1.0), &self.image_areas)
                     {
                         let mut image = image.clone();
-                        match mask_inline(&mut image, gs.ctm, &self.areas) {
+                        match mask_inline(&mut image, gs.ctm, &self.image_areas) {
                             Ok(true) => {
                                 changed = true;
                                 out.push(Operation::new("BI", vec![Object::Stream(image)]));
@@ -1046,7 +1053,14 @@ pub fn apply(doc: &mut Document, dict: &mut Dictionary, areas: &[Area], content:
     if areas.is_empty() {
         return Ok(Outcome::default());
     }
-    let mut r = Redactor { doc: &mut *doc, areas: areas.clone(), fonts: HashMap::new(), issue: None };
+    let mut r = Redactor {
+        doc: &mut *doc,
+        areas: areas.clone(),
+        image_areas: areas.clone(),
+        removed_glyphs: Vec::new(),
+        fonts: HashMap::new(),
+        issue: None,
+    };
     let mut rewritten: Option<Vec<u8>> = None;
     if content {
         let ops = page_content(r.doc, dict).and_then(|bytes| {
@@ -1055,8 +1069,19 @@ pub fn apply(doc: &mut Document, dict: &mut Dictionary, areas: &[Area], content:
         });
         match ops {
             Some(ops) => {
-                let mut res = dict_at(r.doc, dict, b"Resources").unwrap_or_default();
-                let (ops, _) = r.process(ops, &mut res, Matrix::IDENTITY, 0);
+                let original = dict_at(r.doc, dict, b"Resources").unwrap_or_default();
+                let mut res = original.clone();
+                let (mut out, _) = r.process(ops.clone(), &mut res, Matrix::IDENTITY, 0);
+                // Glyphs removed beyond the areas: once more, clearing the pictures under them too
+                // (the first run's copies of images and forms are left unused and pruned).
+                let beyond: Vec<Bounds> = r.removed_glyphs.iter().filter(|g| !covered(g, &areas, 1.0)).copied().collect();
+                if !beyond.is_empty() {
+                    r.image_areas.extend(beyond);
+                    r.issue = None;
+                    res = original;
+                    out = r.process(ops, &mut res, Matrix::IDENTITY, 0).0;
+                }
+                let ops = out;
                 // Close what the content left open, so the boxes are drawn in default user space.
                 let mut depth: i64 = 0;
                 for op in &ops {
@@ -1354,6 +1379,34 @@ mod tests {
     }
 
     #[test]
+    fn clears_the_ink_of_removed_words_beyond_the_area() {
+        // A scan: a 100×100 pt gray picture with recognized words laid over it.
+        let mut doc = Document::with_version("1.5");
+        let image = doc.add_object(Stream::new(
+            dictionary! { "Subtype" => "Image", "Width" => 100, "Height" => 100, "ColorSpace" => "DeviceGray", "BitsPerComponent" => 8 },
+            vec![200u8; 100 * 100],
+        ));
+        let font = doc.add_object(dictionary! { "Type" => "Font", "Subtype" => "TrueType", "BaseFont" => "Calibri", "FirstChar" => 65, "Widths" => vec![500.into(), 500.into()] });
+        // "AB" at size 20 from x 10: A spans 10..20, B 20..30, at y 45..70.
+        let content =
+            doc.add_object(Stream::new(dictionary! {}, b"q 100 0 0 100 0 0 cm /Im1 Do Q BT 3 Tr /F1 20 Tf 10 50 Td (AB) Tj ET".to_vec()));
+        let mut page = dictionary! {
+            "MediaBox" => vec![0.into(), 0.into(), 100.into(), 100.into()],
+            "Contents" => content,
+            "Resources" => dictionary! { "XObject" => dictionary! { "Im1" => image }, "Font" => dictionary! { "F1" => font } },
+        };
+        // The area stops at x 26, short of B's end.
+        apply(&mut doc, &mut page, &[Area { x: 9.0, y: 28.0, w: 17.0, h: 30.0 }], true).unwrap();
+        assert_eq!(shown_text(&doc, &page), "|");
+        let res = page.get(b"Resources").unwrap().as_dict().unwrap();
+        let id = res.get(b"XObject").unwrap().as_dict().unwrap().get(b"Im1").unwrap().as_reference().unwrap();
+        let pixels = doc.get_object(id).unwrap().as_stream().unwrap().decompressed_content().unwrap();
+        // Row 40 from the top is y 60; x 28 is under B but outside the area; x 40 is clear of both.
+        assert_eq!(pixels[40 * 100 + 28], 0);
+        assert_eq!(pixels[40 * 100 + 40], 200);
+    }
+
+    #[test]
     fn rewrites_jpeg_photos() {
         let mut doc = Document::with_version("1.5");
         let photo = image::RgbImage::from_pixel(80, 40, image::Rgb([230, 200, 40]));
@@ -1465,6 +1518,7 @@ mod tests {
         assert!(String::from_utf8_lossy(&doc.get_page_content(second)).contains("A2"));
         let info = doc.trailer.get(b"Info").and_then(|o| doc.dereference(o)).unwrap().1.as_dict().unwrap();
         let note = crate::pdf::text_string(&doc, info.get(b"Redacted").unwrap()).unwrap();
+        assert_eq!(crate::pdf::info(Path::new(&out), None).unwrap().redacted.as_deref(), Some(note.as_str()));
         assert!(
             note.starts_with("Some parts of this file were blacked out with KlikPaper") && note.contains("the 1 black box was"),
             "{note}"

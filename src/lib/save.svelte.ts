@@ -1,6 +1,6 @@
 // Writing documents: page work goes to Rust (lopdf), drawing to pdf-lib.
 import type { Doc, PageItem } from "./doc.svelte";
-import { ipc, type AssembleResult, type BookmarkSpec, type Compression, type PageSpec, type SourceSpec } from "./ipc";
+import { ipc, type AssembleOptions, type AssembleResult, type BookmarkSpec, type Compression, type PageSpec, type SourceSpec } from "./ipc";
 import { baseName, joinPath, stripExt } from "./pagespec";
 import { fontFile } from "./fonts.svelte";
 import { outlineSpec } from "./outline";
@@ -105,6 +105,19 @@ async function withPictures(prepared: Prepared, temps: string[]): Promise<Prepar
   }
 }
 
+/** What the file's edit history should get for a file of `positions` (indexes into the document's pages). */
+function contentEdits(doc: Doc, positions: number[]): AssembleOptions["edits"] {
+  const out = { textLines: 0, textPages: [] as number[], covers: 0, coverPages: [] as number[] };
+  positions.forEach((pos, i) => {
+    const { lines, covers } = doc.contentEdits(doc.pages[pos].id);
+    out.textLines += lines;
+    out.covers += covers;
+    if (lines) out.textPages.push(i + 1);
+    if (covers) out.coverPages.push(i + 1);
+  });
+  return out.textLines || out.covers ? out : null;
+}
+
 /** Bookmarks for a file of `positions` (indexes into the document's pages): written when edited, or when only some pages are saved. */
 function bookmarks(doc: Doc, positions: number[] | undefined): BookmarkSpec[] | null {
   if (!doc.outlineChanged && !(positions && doc.outline.length)) return null;
@@ -136,6 +149,7 @@ export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}
         stripMetadata: doc.stripMetadata,
         compress: opts.compress ?? null,
         protect: password ? { userPassword: password } : null,
+        edits: contentEdits(doc, opts.pages ?? doc.pages.map((_, i) => i)),
       },
       outline: bookmarks(doc, opts.pages),
     });
@@ -159,7 +173,14 @@ export async function splitDoc(doc: Doc, groups: number[][], dir: string): Promi
         sources: prepared.sources,
         pages: groups[g].map((n) => prepared.pages[n - 1]),
         output,
-        options: { stripMetadata: doc.stripMetadata, protect: doc.protect ? { userPassword: doc.protect } : null },
+        options: {
+          stripMetadata: doc.stripMetadata,
+          protect: doc.protect ? { userPassword: doc.protect } : null,
+          edits: contentEdits(
+            doc,
+            groups[g].map((n) => n - 1),
+          ),
+        },
         outline: bookmarks(
           doc,
           groups[g].map((n) => n - 1),

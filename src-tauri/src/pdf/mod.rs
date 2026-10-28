@@ -80,6 +80,34 @@ pub struct Options {
     pub compress: Option<compress::Compression>,
     #[serde(default)]
     pub protect: Option<Protect>,
+    /// Changes to the printed content made in this save (Edit text, white-out), recorded in the file.
+    #[serde(default)]
+    pub edits: Option<Edits>,
+}
+
+/// What a save changed in the printed content, for the file's edit history.
+#[derive(Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Edits {
+    /// Lines retyped with Edit text, and the (1-based) pages they are on.
+    #[serde(default)]
+    pub text_lines: usize,
+    #[serde(default)]
+    pub text_pages: Vec<usize>,
+    /// White-out boxes covering content, and their pages.
+    #[serde(default)]
+    pub covers: usize,
+    #[serde(default)]
+    pub cover_pages: Vec<usize>,
+}
+
+fn pages_text(pages: &[usize]) -> String {
+    let list = pages.iter().map(usize::to_string).collect::<Vec<_>>().join(", ");
+    if pages.len() == 1 { format!("page {list}") } else { format!("pages {list}") }
+}
+
+fn plural(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -134,6 +162,10 @@ pub struct PdfInfo {
     pub producer: Option<String>,
     pub created: Option<String>,
     pub modified: Option<String>,
+    /// The note KlikPaper leaves when it blacks out (redacts) part of the file.
+    pub redacted: Option<String>,
+    /// Changes KlikPaper made to the printed content, one line per save.
+    pub history: Option<String>,
 }
 
 fn load_options(password: Option<&str>) -> LoadOptions {
@@ -193,6 +225,8 @@ pub fn info(path: &Path, password: Option<&str>) -> AppResult<PdfInfo> {
         out.producer = text(b"Producer");
         out.created = text(b"CreationDate");
         out.modified = text(b"ModDate");
+        out.redacted = text(b"Redacted");
+        out.history = text(HISTORY);
     }
     Ok(out)
 }
@@ -213,6 +247,8 @@ impl PdfInfo {
             producer: None,
             created: None,
             modified: None,
+            redacted: None,
+            history: None,
         }
     }
 }
@@ -434,12 +470,13 @@ fn merge_forms(doc: &mut Document, catalog_id: ObjectId, others: Vec<Dictionary>
 
 /// Applies the save options; returns how many images compression re-encoded.
 fn finish(doc: &mut Document, options: &Options, redacted: usize) -> AppResult<usize> {
+    // Removing metadata removes these notes too: a file asked to be clean is clean.
     if options.strip_metadata {
         strip_metadata(doc)?;
+    } else {
+        note_changes(doc, options.edits.as_ref(), redacted)?;
     }
-    if redacted > 0 {
-        note_redaction(doc, redacted)?;
-    }
+
     let images = match options.compress {
         Some(level) => compress::run(doc, level),
         None => 0,
@@ -451,6 +488,43 @@ fn finish(doc: &mut Document, options: &Options, redacted: usize) -> AppResult<u
         encrypt(doc, protect)?;
     }
     Ok(images)
+}
+
+/// Notes in the document information how this save changed the content:
+/// blacked-out areas, and a line in the edit history (kept from earlier saves).
+fn note_changes(doc: &mut Document, edits: Option<&Edits>, redacted: usize) -> AppResult<()> {
+    let earlier = info_dict(doc).and_then(|d| d.get(HISTORY).ok().and_then(|o| text_string(doc, o)));
+    if redacted > 0 {
+        note_redaction(doc, redacted)?;
+    }
+    let mut changes = Vec::new();
+    if let Some(e) = edits {
+        if e.text_lines > 0 {
+            changes.push(format!("text changed on {} ({})", pages_text(&e.text_pages), plural(e.text_lines, "line", "lines")));
+        }
+        if e.covers > 0 {
+            changes.push(format!("content covered on {} ({})", pages_text(&e.cover_pages), plural(e.covers, "box", "boxes")));
+        }
+    }
+    if redacted > 0 {
+        changes.push(format!("{} blacked out", plural(redacted, "area", "areas")));
+    }
+    let entry = (!changes.is_empty()).then(|| format!("{} · KlikPaper {} · {}", today(), env!("CARGO_PKG_VERSION"), changes.join("; ")));
+    let history: Vec<String> = earlier.into_iter().chain(entry).collect();
+    if !history.is_empty() {
+        let mut info = info_dict(doc).cloned().unwrap_or_default();
+        info.set(HISTORY, comments::text_object(&history.join("\n")));
+        let id = doc.add_object(info);
+        doc.trailer.set("Info", id);
+    }
+    Ok(())
+}
+
+/// Key of the edit history in the document information.
+const HISTORY: &[u8] = b"EditHistory";
+
+fn info_dict(doc: &Document) -> Option<&Dictionary> {
+    doc.trailer.get(b"Info").and_then(|o| doc.dereference(o)).and_then(|(_, o)| o.as_dict()).ok()
 }
 
 /// Says in the document information that content was removed, so a reader
@@ -790,6 +864,7 @@ pub(crate) mod tests {
                 strip_metadata: true,
                 compress: None,
                 protect: Some(Protect { user_password: "rahasia".into(), owner_password: None }),
+                edits: None,
             },
             outline: None,
         };
@@ -814,6 +889,50 @@ pub(crate) mod tests {
         };
         assemble(&job).unwrap();
         assert!(!info(&open, None).unwrap().encrypted);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn keeps_an_edit_history_across_saves() {
+        let dir = temp_dir();
+        let a = write_sample(&dir, "a.pdf", &["A1", "A2", "A3"]);
+        let once = dir.join("once.pdf").display().to_string();
+        let edits = Edits { text_lines: 2, text_pages: vec![1], covers: 1, cover_pages: vec![2, 3] };
+        let job = AssembleJob {
+            sources: vec![src("a", &a)],
+            pages: vec![page("a", 0, 0), page("a", 1, 0), page("a", 2, 0)],
+            output: once.clone(),
+            options: Options { edits: Some(edits), ..Default::default() },
+            outline: None,
+        };
+        assemble(&job).unwrap();
+        let history = info(Path::new(&once), None).unwrap().history.unwrap();
+        assert!(history.ends_with("text changed on page 1 (2 lines); content covered on pages 2, 3 (1 box)"), "{history}");
+
+        // Saving again adds a line under the earlier ones.
+        let twice = dir.join("twice.pdf").display().to_string();
+        let again = |output: &str, strip_metadata: bool| AssembleJob {
+            sources: vec![src("o", &once)],
+            pages: vec![page("o", 0, 0)],
+            output: output.to_string(),
+            options: Options {
+                strip_metadata,
+                edits: Some(Edits { text_lines: 1, text_pages: vec![1], ..Default::default() }),
+                ..Default::default()
+            },
+            outline: None,
+        };
+        assemble(&again(&twice, false)).unwrap();
+        let read = info(Path::new(&twice), None).unwrap();
+        let lines: Vec<&str> = read.history.as_deref().unwrap().lines().collect();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].ends_with("text changed on page 1 (1 line)"));
+
+        // Removing metadata removes the history as well.
+        let clean = dir.join("clean.pdf").display().to_string();
+        assemble(&again(&clean, true)).unwrap();
+        let read = info(Path::new(&clean), None).unwrap();
+        assert_eq!((read.history, read.title), (None, None));
         let _ = std::fs::remove_dir_all(dir);
     }
 
