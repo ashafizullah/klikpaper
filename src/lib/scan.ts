@@ -48,7 +48,20 @@ export interface CleanupResult {
   recognized: number;
 }
 
+/**
+ * Pages with black-out marks or annotations not saved yet: straightening turns
+ * the picture under them, so they would no longer cover what they were put on.
+ */
+export function pagesWithMarks(doc: Doc, pages: PageItem[]): PageItem[] {
+  return pages.filter((p) => doc.redactions.some((r) => r.page === p.id) || doc.overlays.some((o) => o.page === p.id));
+}
+
 export async function cleanScans(doc: Doc, pages: PageItem[], opts: CleanupOptions, onProgress: (done: number, total: number) => void, cancelled: () => boolean): Promise<CleanupResult> {
+  const marked = pagesWithMarks(doc, pages);
+  if (marked.length) {
+    const numbers = marked.map((p) => doc.pages.indexOf(p) + 1).join(", ");
+    throw new Error(`Page ${numbers} has black-out marks or annotations that aren't saved; save or remove them before cleaning up the page`);
+  }
   const temps: string[] = [];
   // Per source: the picture of each page index to clean.
   const pictures = new Map<string, Map<number, string>>();
@@ -59,7 +72,8 @@ export async function cleanScans(doc: Doc, pages: PageItem[], opts: CleanupOptio
       const p = pages[i];
       const page = await doc.pdfPage(p);
       const [x0, y0, x1, y1] = page.view;
-      const scale = Math.min(DPI / 72, Math.sqrt(30e6 / Math.max(1, (x1 - x0) * (y1 - y0))));
+      // Up to 16 megapixels: an A4 page at 300 DPI is under 9; larger paper gets less.
+      const scale = Math.min(DPI / 72, Math.sqrt(16e6 / Math.max(1, (x1 - x0) * (y1 - y0))));
       const blob = await renderToBlob(page, scale, 0, "image/png", undefined, false);
       const path = await ipc.tempFile("png");
       temps.push(path);
@@ -85,7 +99,7 @@ export async function cleanScans(doc: Doc, pages: PageItem[], opts: CleanupOptio
       });
       straightened.push(...result.straightened);
       const id = newId("s");
-      doc.addSource({ id, path: output, pdf: await openPdf(await ipc.readFile(output)) });
+      doc.addSource({ id, path: output, pdf: await openPdf(await ipc.readFile(output)), temp: true });
       if (doc.commentSources.has(sourceId)) doc.commentSources.add(id);
       for (const item of done) if (item.source === sourceId) moves.push({ item, source: id });
     }

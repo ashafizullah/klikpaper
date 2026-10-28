@@ -17,7 +17,11 @@ export interface PiiMatch {
   value: string;
 }
 
-/** A run of digits that may be split by single spaces, dots or dashes ("3201 2345", "0812-3456"). */
+/**
+ * A run of digits that may be split by up to three spaces, dots, dashes or
+ * brackets ("3201 2345", "0812 - 3456", "(+62) 812"), or a line break: text read
+ * from a tilted scan can break a number where its digits climb to the next line.
+ */
 interface Run {
   start: number;
   /** The digit groups, each with where it starts in the text. */
@@ -26,7 +30,7 @@ interface Run {
 
 function digitRuns(text: string): Run[] {
   const runs: Run[] = [];
-  const re = /\d(?:[ .\-]?\d)*/g;
+  const re = /\d(?:[ .\-()\n]{0,3}\d)*/g;
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const groups: Run["groups"] = [];
     const part = /\d+/g;
@@ -80,14 +84,19 @@ const DATE = new RegExp(`\\d{1,2}\\s*[-/.]\\s*\\d{1,2}\\s*[-/.]\\s*\\d{2,4}|\\d{
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
 const NPWP_FORMATTED = /\d{2}\s?\.\s?\d{3}\s?\.\s?\d{3}\s?\.\s?\d\s?-\s?\d{3}\s?\.\s?\d{3}/g;
 
-/** Where each keyword match ends, on the same line as the text after it. */
+/**
+ * The text right after each keyword match: the rest of its line and the next
+ * one, since a form may put the value under its label, and text read from a
+ * tilted scan can put every word on a line of its own.
+ */
 function after(text: string, words: RegExp, reach: number): { from: number; to: number }[] {
   const out: { from: number; to: number }[] = [];
   words.lastIndex = 0;
   for (let m = words.exec(text); m; m = words.exec(text)) {
     const from = m.index + m[0].length;
     const eol = text.indexOf("\n", from);
-    out.push({ from, to: Math.min(from + reach, eol < 0 ? text.length : eol) });
+    const next = eol < 0 ? -1 : text.indexOf("\n", eol + 1);
+    out.push({ from, to: Math.min(from + reach, next < 0 ? text.length : next) });
   }
   return out;
 }
@@ -128,7 +137,8 @@ export function findPii(text: string, kinds: PiiKind[] = PII_KINDS): PiiMatch[] 
       const local = /^08[1-9]\d{7,10}$/.test(w.digits);
       const intl = /^628[1-9]\d{7,10}$/.test(w.digits);
       if (!local && !intl) continue;
-      const plus = text[w.start - 1] === "+" ? 1 : 0;
+      // A leading "+" or "(+" is part of the number.
+      const plus = text.slice(Math.max(0, w.start - 2), w.start) === "(+" ? 2 : text[w.start - 1] === "+" ? 1 : 0;
       add("phone", w.start - plus, w.end);
     }
     if (near(accountWords, run.start)) {

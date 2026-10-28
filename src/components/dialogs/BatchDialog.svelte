@@ -8,6 +8,7 @@
   import { baseName, dirName, formatBytes } from "../../lib/pagespec";
   import { PII_KINDS, type PiiKind } from "../../lib/pii";
   import { closeDialog } from "../../lib/ui.svelte";
+  import { passwordFits } from "../../lib/save.svelte";
   import { PDF_FILTER } from "../../lib/workspace.svelte";
   import { t, type Key } from "../../lib/i18n/index.svelte";
   import Icon from "../Icon.svelte";
@@ -52,7 +53,7 @@
     checkSignatures: signatures,
   });
   const writes = $derived(writesFiles(actions));
-  const ready = $derived(files.length > 0 && (writes ? !!outDir : signatures) && !(lock && !password));
+  const ready = $derived(files.length > 0 && (writes ? !!outDir : signatures) && !(lock && !(password && passwordFits(password))));
 
   async function addFiles() {
     const picked = await openFileDialog({ multiple: true, filters: PDF_FILTER });
@@ -101,6 +102,7 @@
     if (r.ocrPages) out.push(t("batch.noteOcr", { n: r.ocrPages }));
     const blacked = Object.values(r.personal).reduce((a, b) => a + (b ?? 0), 0);
     if (actions.personal) out.push(blacked ? t("batch.notePersonal", { n: blacked }) : t("batch.notePersonalNone"));
+    if (r.unread) out.push(t("batch.noteUnread", { n: r.unread }));
     if (r.pictures) out.push(t("batch.notePictures", { n: r.pictures }));
     if (r.signatures) out.push(t(`sig.badge.${r.signatures}` as Key) + (r.output ? ` · ${t("batch.noteSignatureBroken")}` : ""));
     else if (actions.checkSignatures) out.push(t("batch.noteUnsigned"));
@@ -118,7 +120,7 @@
           <div class="file">
             <strong>{baseName(r.input)}</strong>
             {#if r.error}
-              <span class="err">{r.error === "password" ? t("batch.needsPassword") : r.error}</span>
+              <span class="err">{r.error === "password" ? t("batch.needsPassword") : r.error === "cancelled" ? t("batch.cancelled") : r.error}</span>
             {:else}
               <span class="muted">
                 {r.pages} {t("batch.pages")}{#if r.bytesAfter != null} · {formatBytes(r.bytesBefore)} → {formatBytes(r.bytesAfter)}{/if}
@@ -192,7 +194,7 @@
         </div>
       {/if}
       <label class="row"><input type="checkbox" bind:checked={lock} />{t("batch.password")}</label>
-      {#if lock}<div class="sub"><input class="field" type="password" bind:value={password} placeholder={t("batch.passwordHint")} aria-label={t("batch.password")} /></div>{/if}
+      {#if lock}<div class="sub"><input class="field" type="password" bind:value={password} placeholder={t("batch.passwordHint")} aria-label={t("batch.password")} />{#if !passwordFits(password)}<p class="error-text">{t("security.badChars")}</p>{/if}</div>{/if}
       <label class="row"><input type="checkbox" bind:checked={strip} />{t("security.strip")}</label>
       <label class="row"><input type="checkbox" bind:checked={signatures} />{t("batch.signatures")}</label>
     </section>

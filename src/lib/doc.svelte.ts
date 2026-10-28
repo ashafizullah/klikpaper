@@ -2,7 +2,7 @@
 // files, plus the annotations drawn on them. Nothing touches the files until
 // the user saves; every edit can be undone.
 import { displaySize, normRotation, type Rect, type Rotation } from "./geometry";
-import type { CommentReply, CommentThread, SignatureReport } from "./ipc";
+import { ipc, type CommentReply, type CommentThread, type SignatureReport } from "./ipc";
 import { dropPages, insertionIndex, type Bookmark } from "./outline";
 import type { Sheet } from "./paper";
 import { newId } from "./settings.svelte";
@@ -14,6 +14,8 @@ export interface Source {
   path: string;
   password?: string;
   pdf: PDFDocumentProxy;
+  /** A temporary file made by KlikPaper (recognized text, cleaned-up scans), discarded with the document. */
+  temp?: boolean;
 }
 
 export interface PageItem {
@@ -197,7 +199,8 @@ export class Doc {
     const src = this.sources.get(id);
     if (!src) return;
     closePdf(src.pdf);
-    this.sources.set(id, { id, path, pdf });
+    if (src.temp) ipc.discardTemp(src.path).catch(() => {});
+    this.sources.set(id, { id, path, pdf, temp: true });
     for (const key of [...this.#text.keys()]) if (key.startsWith(`${id}:`)) this.#text.delete(key);
     dropThumbnails(this);
     this.revision++;
@@ -475,7 +478,15 @@ export class Doc {
 
   destroy() {
     dropThumbnails(this);
-    for (const s of this.sources.values()) closePdf(s.pdf);
+    this.dropSources();
+  }
+
+  /** Closes every source, discarding the temporary files among them. */
+  dropSources() {
+    for (const s of this.sources.values()) {
+      closePdf(s.pdf);
+      if (s.temp) ipc.discardTemp(s.path).catch(() => {});
+    }
     this.sources.clear();
   }
 }

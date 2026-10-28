@@ -4,8 +4,8 @@
 import { exportImages } from "../export";
 import { ipc, type CompressLevel, type Compression, type PageSize } from "../ipc";
 import { baseName, formatPages, joinPath, parsePages, splitGroups, stripExt } from "../pagespec";
-import { writePdf } from "../save.svelte";
-import { DOC, PAGES, obj, str, num, findDoc, requirePdf, checkOutput, pageCount, type ToolSpec } from "./args";
+import { PASSWORD_HINT, passwordFits, writePdf } from "../save.svelte";
+import { DOC, PAGES, obj, str, secret, num, findDoc, requirePdf, checkOutput, pageCount, type ToolSpec } from "./args";
 
 export const FILE_TOOLS: ToolSpec[] = [
   {
@@ -105,7 +105,7 @@ export const FILE_TOOLS: ToolSpec[] = [
   },
   {
     name: "protect_pdf",
-    description: "Writes a copy of a PDF that needs a password to open (AES-256).",
+    description: "Writes a copy of a PDF that needs a password to open (AES-256). The password must use only letters A-Z without accents, numbers, spaces and keyboard symbols, so every PDF app can open it.",
     parameters: obj({ path: { type: "string" }, password: { type: "string" }, output: { type: "string" }, overwrite: { type: "boolean" } }, ["path", "password", "output"]),
     scope: "mcp",
     async run(args) {
@@ -113,7 +113,8 @@ export const FILE_TOOLS: ToolSpec[] = [
       requirePdf(path);
       const output = str(args, "output");
       await checkOutput(output, args.overwrite === true, [path]);
-      const password = str(args, "password");
+      const password = secret(args, "password");
+      if (!passwordFits(password)) throw new Error(`Password not usable: ${PASSWORD_HINT}`);
       const n = await pageCount(path);
       await ipc.assemble({
         sources: [{ id: "s", path }],
@@ -134,7 +135,7 @@ export const FILE_TOOLS: ToolSpec[] = [
       requirePdf(path);
       const output = str(args, "output");
       await checkOutput(output, args.overwrite === true, [path]);
-      const password = str(args, "password");
+      const password = secret(args, "password");
       const n = await pageCount(path, password);
       await ipc.assemble({ sources: [{ id: "s", path, password }], pages: Array.from({ length: n }, (_, i) => ({ source: "s", index: i, rotate: 0 })), output });
       return `Wrote ${output}`;
@@ -229,6 +230,7 @@ export const FILE_TOOLS: ToolSpec[] = [
       await checkOutput(output, args.overwrite === true, doc.path ? [doc.path] : []);
       const nums = args.pages ? parsePages(str(args, "pages"), doc.pages.length) : null;
       if (args.pages && !nums) throw new Error("Invalid page list");
+      if (typeof args.password === "string" && !passwordFits(args.password)) throw new Error(`Password not usable: ${PASSWORD_HINT}`);
       const res = await writePdf(doc, output, {
         pages: nums?.map((n) => n - 1),
         compress: (["low", "medium", "high"].includes(String(args.compress)) ? args.compress : null) as CompressLevel | null,

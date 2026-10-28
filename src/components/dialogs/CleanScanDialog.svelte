@@ -3,7 +3,7 @@
   import Dialog from "../Dialog.svelte";
   import type { Doc, PageItem } from "../../lib/doc.svelte";
   import { errorText } from "../../lib/ipc";
-  import { cleanScans, isScan } from "../../lib/scan";
+  import { cleanScans, isScan, pagesWithMarks } from "../../lib/scan";
   import { closeDialog, toast } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
@@ -27,9 +27,12 @@
   });
 
   const selected = $derived(doc.pages.filter((p) => doc.selectedPages.includes(p.id)));
-  const pages = $derived(
+  const chosen = $derived(
     which === "scans" ? (scans ?? []) : which === "current" ? (doc.pages[doc.current] ? [doc.pages[doc.current]] : []) : which === "selected" ? selected : doc.pages,
   );
+  // Pages with marks not saved yet are left out: straightening would move the picture from under them.
+  const marked = $derived(pagesWithMarks(doc, chosen));
+  const pages = $derived(chosen.filter((p) => !marked.includes(p)));
 
   async function run() {
     error = null;
@@ -71,6 +74,7 @@
     {#if blackWhite}<p class="hint">{t("clean.blackWhiteHint")}</p>{/if}
     <label class="row"><input type="checkbox" bind:checked={ocr} />{t("clean.ocr")}</label>
   </div>
+  {#if marked.length}<p class="warn">{t("clean.marked", { pages: marked.map((p) => doc.pages.indexOf(p) + 1).join(", ") })}</p>{/if}
   <p class="note muted">{t("clean.undo")}</p>
   {#if progress}
     <div class="progress"><div class="bar" style:width="{(progress.done / Math.max(1, progress.total)) * 100}%"></div></div>
@@ -95,6 +99,11 @@
     flex-direction: column;
     gap: 4px;
     font-size: 12.5px;
+  }
+  .warn {
+    margin: 0;
+    font-size: 12px;
+    color: var(--accent);
   }
   .hint {
     margin: 0 0 2px 24px;

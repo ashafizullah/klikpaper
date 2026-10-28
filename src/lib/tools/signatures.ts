@@ -1,7 +1,6 @@
 // Digital signatures for agents: what check_signatures reports is what the
 // Signatures dialog shows.
-import { ipc } from "../ipc";
-import { summarize } from "../signatures";
+import { readSignatures, summarize } from "../signatures";
 import { DOC, obj, findDoc, requirePdf, type ToolSpec } from "./args";
 
 export const SIGNATURE_TOOLS: ToolSpec[] = [
@@ -15,13 +14,13 @@ export const SIGNATURE_TOOLS: ToolSpec[] = [
       if (typeof args.path === "string" && args.path.trim()) {
         const path = args.path.trim();
         requirePdf(path);
-        const list = await ipc.pdfSignatures(path);
+        const list = await readSignatures(path);
         return { file: path, summary: summarize(list) ?? "unsigned", signatures: list };
       }
       const doc = findDoc(args);
       if (!doc.path) return { doc: doc.name, summary: "unsigned", signatures: [] };
       const source = [...doc.sources.values()].find((s) => s.path === doc.path);
-      const list = await ipc.pdfSignatures(doc.path, source?.password ?? doc.protect);
+      const list = await readSignatures(doc.path, source?.password ?? doc.protect);
       return { doc: doc.name, summary: summarize(list) ?? "unsigned", unsavedChanges: doc.dirty, signatures: list };
     },
   },

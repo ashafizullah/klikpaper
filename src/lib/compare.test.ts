@@ -32,6 +32,35 @@ describe("comparing versions", () => {
     expect(diffWords(a, b, 100)).toBeNull();
   });
 
+  test("matches a plain longest-common-subsequence on random edits, and stays small on long documents", () => {
+    // Reference: classic LCS length, which the edit script must reach.
+    const lcs = (x: string[], y: string[]) => {
+      const t = Array.from({ length: x.length + 1 }, () => new Array(y.length + 1).fill(0));
+      for (let i = 1; i <= x.length; i++) for (let j = 1; j <= y.length; j++) t[i][j] = x[i - 1] === y[j - 1] ? t[i - 1][j - 1] + 1 : Math.max(t[i - 1][j], t[i][j - 1]);
+      return t[x.length][y.length];
+    };
+    let seed = 7;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    for (let round = 0; round < 40; round++) {
+      const a = Array.from({ length: 30 + Math.floor(rand() * 30) }, () => `w${Math.floor(rand() * 8)}`);
+      const b = a.filter(() => rand() > 0.2).flatMap((w) => (rand() > 0.85 ? [w, `w${Math.floor(rand() * 8)}`] : [w]));
+      const changes = diffWords(words(a.join(" ")), words(b.join(" ")))!;
+      const removed = changes.reduce((s, c) => s + c.before.length, 0);
+      const added = changes.reduce((s, c) => s + c.after.length, 0);
+      const common = lcs(a, b);
+      expect(a.length - removed).toBe(common);
+      expect(b.length - added).toBe(common);
+    }
+    // 60 000 words with a handful of changes: quick, and no large copies per step.
+    const long = Array.from({ length: 60000 }, (_, i) => `k${i % 997}`);
+    const edited = [...long];
+    edited.splice(30000, 3, "baru", "kata");
+    const started = performance.now();
+    const changes = diffWords(words(long.join(" ")), words(edited.join(" ")))!;
+    expect(changes.length).toBe(1);
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+
   test("joins the pieces of a word drawn as separate items", () => {
     const item = (str: string, x: number, width: number) => ({ str, transform: [10, 0, 0, 10, x, 700], width, height: 10 });
     // "Perjanjian" drawn as "Perjan" + "jian", then " baru".

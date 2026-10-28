@@ -5,9 +5,10 @@ import { loadComments, mergeComments, readComments } from "./comments.svelte";
 import { t } from "./i18n/index.svelte";
 import { errorText, ipc } from "./ipc";
 import { baseName, dirName, joinPath, stripExt } from "./pagespec";
-import { PasswordNeeded, closePdf, openPdf, type PDFDocumentProxy } from "./pdfjs";
+import { PasswordNeeded, openPdf, type PDFDocumentProxy } from "./pdfjs";
 import { defaultName, writePdf } from "./save.svelte";
 import { readOutline } from "./outline";
+import { readSignatures } from "./signatures";
 import { addRecent, newId, removeRecent } from "./settings.svelte";
 import { busy, openDialog, showAlert, toast, ui } from "./ui.svelte";
 
@@ -160,8 +161,7 @@ export async function insertFiles(doc: Doc, at: number, paths?: string[]) {
 async function reload(doc: Doc, path: string, password: string | null) {
   const bytes = await ipc.readFile(path);
   const pdf = await openPdf(bytes, password ?? undefined);
-  for (const s of doc.sources.values()) closePdf(s.pdf);
-  doc.sources.clear();
+  doc.dropSources();
   const id = newId("s");
   doc.addSource({ id, path, password: password ?? undefined, pdf });
   const current = doc.current;
@@ -199,10 +199,7 @@ function readNotes(doc: Doc, path: string, password?: string) {
       doc.editHistory = info.history;
     })
     .catch(() => {});
-  ipc
-    .pdfSignatures(path, password)
-    .then((found) => (doc.signatures = found))
-    .catch(() => (doc.signatures = []));
+  readSignatures(path, password).then((found) => (doc.signatures = found));
 }
 
 /** When the file last changed (0 when unknown). */

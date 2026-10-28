@@ -38,7 +38,8 @@
   .badge:hover {
     background: color-mix(in srgb, var(--tone) 22%, transparent);
   }
-  .changed {
+  .changed,
+  .selfSigned {
     --tone: var(--accent);
   }
   .invalid {

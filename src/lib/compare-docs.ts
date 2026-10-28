@@ -9,6 +9,8 @@ import type { TextItem } from "./textmatch";
 
 /** One version: how many pages it has and each page, in reading order. */
 export interface Version {
+  /** Tells versions apart where their names are the same. */
+  id: string;
   name: string;
   count: number;
   page(i: number): Promise<PDFPageProxy>;
@@ -16,12 +18,12 @@ export interface Version {
 }
 
 export function versionOf(doc: Doc): Version {
-  return { name: doc.name, count: doc.pages.length, page: (i) => doc.pdfPage(doc.pages[i]), close: () => {} };
+  return { id: `doc:${doc.id}`, name: doc.name, count: doc.pages.length, page: (i) => doc.pdfPage(doc.pages[i]), close: () => {} };
 }
 
 export async function versionFromFile(path: string): Promise<Version> {
   const pdf = await openPdf(await ipc.readFile(path));
-  return { name: baseName(path), count: pdf.numPages, page: (i) => pdf.getPage(i + 1), close: () => closePdf(pdf) };
+  return { id: `file:${Math.random().toString(36).slice(2)}`, name: baseName(path), count: pdf.numPages, page: (i) => pdf.getPage(i + 1), close: () => closePdf(pdf) };
 }
 
 /** A version's words, and how many of its pages have no text (scans). */

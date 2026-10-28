@@ -631,7 +631,8 @@ fn encrypt(doc: &mut Document, protect: &Protect) -> AppResult<()> {
             | Permissions::COPYABLE
             | Permissions::COPYABLE_FOR_ACCESSIBILITY,
     };
-    let state = EncryptionState::try_from(version).map_err(|e| AppError::msg(format!("Couldn't encrypt: {e}")))?;
+    // Passwords are normalized with SASLprep, which refuses characters such as emoji.
+    let state = EncryptionState::try_from(version).map_err(|_| AppError::msg(BAD_PASSWORD))?;
     // Revision 6 belongs to PDF 2.0; 1.7 readers know it as Adobe extension level 8.
     if doc.version.as_str() < "1.7" {
         doc.version = "1.7".into();
@@ -650,8 +651,19 @@ fn encrypt(doc: &mut Document, protect: &Protect) -> AppResult<()> {
         doc.trailer.set("ID", vec![id.clone(), id]);
     }
     doc.encrypt(&state)?;
+    // lopdf leaves out the key lengths, which are optional for AES-256, but Poppler then
+    // derives a short key and macOS Preview can't read the pages: state them, as Acrobat does.
+    let encrypt_id = doc.trailer.get(b"Encrypt").and_then(Object::as_reference)?;
+    let dict = doc.get_dictionary_mut(encrypt_id)?;
+    dict.set("Length", 256);
+    if let Ok(Object::Dictionary(filter)) = dict.get_mut(b"CF").and_then(|cf| cf.as_dict_mut()?.get_mut(b"StdCF")) {
+        filter.set("Length", 32);
+        filter.set("AuthEvent", Object::Name(b"DocOpen".to_vec()));
+    }
     Ok(())
 }
+
+const BAD_PASSWORD: &str = "This password has characters a PDF password can't hold, such as emoji. Use letters, numbers and symbols.";
 
 /// Writes next to the target and renames, so saving over the open file never
 /// leaves it half-written. Returns the file size.
@@ -887,6 +899,43 @@ pub(crate) mod tests {
         };
         assemble(&job).unwrap();
         assert_eq!(labels(&Document::load(&out).unwrap()), ["A2", "A2"]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn protected_files_state_key_lengths_and_keep_the_password_as_typed() {
+        let dir = temp_dir();
+        let a = write_sample(&dir, "a.pdf", &["A1"]);
+        let protect = |name: &str, password: &str| {
+            let out = dir.join(name);
+            let job = AssembleJob {
+                sources: vec![src("a", &a)],
+                pages: vec![page("a", 0, 0)],
+                output: out.display().to_string(),
+                options: Options { protect: Some(Protect { user_password: password.into(), owner_password: None }), ..Options::default() },
+                outline: None,
+            };
+            assemble(&job).map(|_| out)
+        };
+
+        // Poppler and macOS Preview need the key lengths to derive the right key.
+        let out = protect("lengths.pdf", "Rahasia#2026").unwrap();
+        let raw = Document::load(&out).unwrap();
+        let id = raw.trailer.get(b"Encrypt").and_then(Object::as_reference).unwrap();
+        let dict = raw.get_dictionary(id).unwrap();
+        assert_eq!(dict.get(b"Length").and_then(Object::as_i64).unwrap(), 256);
+        let filter = dict.get(b"CF").and_then(Object::as_dict).and_then(|cf| cf.get(b"StdCF")).and_then(Object::as_dict).unwrap();
+        assert_eq!(filter.get(b"Length").and_then(Object::as_i64).unwrap(), 32);
+
+        // Accented letters and spaces work, and spaces count.
+        let out = protect("accents.pdf", "  kunci éñü  ").unwrap();
+        assert!(load(&out, Some("kunci éñü")).is_err());
+        assert_eq!(labels(&load(&out, Some("  kunci éñü  ")).unwrap()), ["A1"]);
+
+        // Emoji can't be in a PDF password: a clear message, and no file.
+        let err = protect("emoji.pdf", "kunci-🔑").unwrap_err().to_string();
+        assert!(err.contains("such as emoji"), "{err}");
+        assert!(!dir.join("emoji.pdf").exists());
         let _ = std::fs::remove_dir_all(dir);
     }
 

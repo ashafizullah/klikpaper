@@ -124,6 +124,14 @@ function bookmarks(doc: Doc, positions: number[] | undefined): BookmarkSpec[] | 
   return outlineSpec($state.snapshot(doc.outline), doc.pages, positions ?? doc.pages.map((_, i) => i));
 }
 
+/** Whether every PDF app can open a file locked with `password`: keyboard letters without
+ * accents, numbers, spaces and symbols. The standard refuses emoji, and macOS Preview doesn't
+ * open files whose password has accented letters, even ones written by Acrobat. */
+export const PASSWORD_HINT = "use only letters A-Z without accents, numbers, spaces and keyboard symbols, so every PDF app (Preview on Mac too) can open the file";
+export function passwordFits(password: string): boolean {
+  return /^[\x20-\x7e]*$/.test(password);
+}
+
 export interface WriteOptions {
   /** 0-based positions in the document; all pages when omitted. */
   pages?: number[];

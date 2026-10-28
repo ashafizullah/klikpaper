@@ -62,17 +62,22 @@ export function pageWords(items: TextItem[], toPage: number[], page: number, sha
 /** An edit script between two lists: for each step, keep (both), remove (old) or add (new). */
 type Step = { op: "keep" | "remove" | "add"; a: number; b: number };
 
-/** Myers' O((N+M)D) diff. Gives up (null) beyond `limit` edits, to stay quick on unrelated files. */
+/**
+ * Myers' O((N+M)D) diff. One array of furthest reaches is updated in place; for
+ * the way back only the part each step used (diagonals -d..d) is kept, so memory
+ * grows with the number of edits squared, not with the documents' length.
+ * Gives up (null) beyond `limit` edits, to stay quick on unrelated files.
+ */
 function myers(a: string[], b: string[], limit: number): Step[] | null {
   const n = a.length;
   const m = b.length;
   const max = n + m;
   const offset = max + 1;
-  let v = new Int32Array(2 * max + 3);
+  const v = new Int32Array(2 * max + 3);
   const trace: Int32Array[] = [];
   for (let d = 0; d <= Math.min(max, limit); d++) {
-    trace.push(v.slice());
-    const next = v.slice();
+    // The reaches of step d - 1, on diagonals -d..d (index k + d).
+    trace.push(v.slice(offset - d, offset + d + 1));
     for (let k = -d; k <= d; k += 2) {
       let x = k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1]) ? v[offset + k + 1] : v[offset + k - 1] + 1;
       let y = x - k;
@@ -80,17 +85,17 @@ function myers(a: string[], b: string[], limit: number): Step[] | null {
         x++;
         y++;
       }
-      next[offset + k] = x;
+      v[offset + k] = x;
       if (x >= n && y >= m) {
-        // Walk back through the snapshots for the path.
+        // Walk back through the kept reaches for the path.
         const steps: Step[] = [];
         let cx = n;
         let cy = m;
         for (let dd = d; dd > 0; dd--) {
-          const vv = trace[dd];
+          const reach = (kk: number) => trace[dd][kk + dd];
           const kk = cx - cy;
-          const prevK = kk === -dd || (kk !== dd && vv[offset + kk - 1] < vv[offset + kk + 1]) ? kk + 1 : kk - 1;
-          const px = vv[offset + prevK];
+          const prevK = kk === -dd || (kk !== dd && reach(kk - 1) < reach(kk + 1)) ? kk + 1 : kk - 1;
+          const px = reach(prevK);
           const py = px - prevK;
           while (cx > px && cy > py) steps.push({ op: "keep", a: --cx, b: --cy });
           if (cx === px) steps.push({ op: "add", a: cx, b: --cy });
@@ -100,13 +105,12 @@ function myers(a: string[], b: string[], limit: number): Step[] | null {
         return steps.reverse();
       }
     }
-    v = next;
   }
   return null;
 }
 
 /** The changes from `before` to `after`; null when the versions differ too much to compare word by word. */
-export function diffWords(before: Word[], after: Word[], limit = 5000): Change[] | null {
+export function diffWords(before: Word[], after: Word[], limit = 2000): Change[] | null {
   // Common start and end are skipped, so the search covers only what differs.
   let start = 0;
   while (start < before.length && start < after.length && before[start].text === after[start].text) start++;

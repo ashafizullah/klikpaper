@@ -32,6 +32,13 @@ export function str(args: Args, key: string, fallback?: string): string {
   throw new Error(`Missing "${key}"`);
 }
 
+/** A password or other secret: taken as given, spaces included. */
+export function secret(args: Args, key: string): string {
+  const v = args[key];
+  if (typeof v === "string" && v) return v;
+  throw new Error(`Missing "${key}"`);
+}
+
 export function num(args: Args, key: string, fallback?: number): number {
   const v = typeof args[key] === "string" ? Number(args[key]) : args[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;

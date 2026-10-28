@@ -14,7 +14,7 @@ import type { PiiKind } from "./pii";
 import { PasswordNeeded, openPdf } from "./pdfjs";
 import { writePdf } from "./save.svelte";
 import { newId } from "./settings.svelte";
-import { summarize, type SignatureSummary } from "./signatures";
+import { readSignatures, summarize, type SignatureSummary } from "./signatures";
 
 export interface BatchActions {
   /** Clean up scanned pages (straighten, whiten edges, black and white), before recognizing text. */
@@ -53,6 +53,8 @@ export interface BatchReport {
   personal: Partial<Record<PiiKind, number>>;
   /** Pages saved as pictures to black out safely. */
   pictures: number;
+  /** Pages still without text after recognizing it: personal data on them couldn't be looked for. */
+  unread: number;
   signatures: SignatureSummary | null;
 }
 
@@ -98,12 +100,12 @@ export async function runBatch(
     const input = files[i];
     const stage = (s: string) => onProgress({ done: i, total: files.length, file: input, stage: s });
     stage("open");
-    const report: BatchReport = { input, output: null, error: null, pages: 0, bytesBefore: 0, bytesAfter: null, cleaned: 0, ocrPages: 0, personal: {}, pictures: 0, signatures: null };
+    const report: BatchReport = { input, output: null, error: null, pages: 0, bytesBefore: 0, bytesAfter: null, cleaned: 0, ocrPages: 0, personal: {}, pictures: 0, unread: 0, signatures: null };
     reports.push(report);
     let doc: Doc | null = null;
     try {
       report.bytesBefore = (await ipc.fileStats([input]))[0]?.bytes ?? 0;
-      if (actions.checkSignatures || writes) report.signatures = summarize(await ipc.pdfSignatures(input).catch(() => []));
+      if (actions.checkSignatures || writes) report.signatures = summarize(await readSignatures(input));
       let pdf;
       try {
         pdf = await openPdf(await ipc.readFile(input));
@@ -127,7 +129,9 @@ export async function runBatch(
           report.cleaned = (await cleanScans(doc, scans, { ...actions.cleanup, ocr: false }, () => {}, cancelled)).pages;
         }
       }
-      if (actions.ocr) {
+      // Personal data can only be found in text: pages without any are read first, even when
+      // recognizing text wasn't asked for, so a scan isn't written out with its data showing.
+      if (actions.ocr || actions.personal?.length) {
         const scans = [];
         for (const p of doc.pages) if (await needsOcr(doc, p)) scans.push(p);
         if (scans.length) {
@@ -136,11 +140,15 @@ export async function runBatch(
         }
       }
       if (actions.personal?.length) {
+        if (cancelled()) throw new Error("cancelled");
         stage("personal");
-        const { finds } = await scanPersonal(doc, actions.personal);
+        const { finds, scans } = await scanPersonal(doc, actions.personal);
+        report.unread = scans;
         for (const f of finds) report.personal[f.kind] = (report.personal[f.kind] ?? 0) + 1;
         if (finds.length) await markPersonal(doc, finds);
       }
+      // Stopped part way through this file: it isn't written half done.
+      if (cancelled()) throw new Error("cancelled");
       doc.watermark = actions.watermark ?? null;
       doc.pageNumbers = actions.pageNumbers ?? null;
       doc.stripMetadata = !!actions.stripMetadata;

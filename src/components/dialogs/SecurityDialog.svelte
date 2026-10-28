@@ -3,6 +3,7 @@
   import Dialog from "../Dialog.svelte";
   import type { Doc } from "../../lib/doc.svelte";
   import { closeDialog } from "../../lib/ui.svelte";
+  import { passwordFits } from "../../lib/save.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
@@ -16,7 +17,9 @@
   const wasProtected = !!initial.protect;
 
   const mismatch = $derived(protect && password !== confirm);
-  const valid = $derived(!protect || (password.length > 0 && !mismatch));
+  // A password the file was opened with is kept as it is, whatever it holds.
+  const fits = $derived(password === initial.protect || passwordFits(password));
+  const valid = $derived(!protect || (password.length > 0 && fits && !mismatch));
 
   function apply() {
     const next = protect ? password : null;
@@ -34,7 +37,7 @@
   {#if protect}
     <label class="form-row"><span>{t("security.password")}</span><input class="field" type="password" bind:value={password} autocomplete="new-password" /></label>
     <label class="form-row"><span>{t("security.confirm")}</span><input class="field" type="password" bind:value={confirm} autocomplete="new-password" /></label>
-    {#if mismatch && confirm}<p class="error-text">{t("security.mismatch")}</p>{/if}
+    {#if !fits}<p class="error-text">{t("security.badChars")}</p>{:else if mismatch && confirm}<p class="error-text">{t("security.mismatch")}</p>{/if}
     <p class="note">{t("security.protectNote")}</p>
   {:else if wasProtected}
     <p class="note">{t("security.unlockNote")}</p>

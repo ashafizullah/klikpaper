@@ -516,6 +516,14 @@ fn fields(doc: &Document) -> Vec<(ObjectId, Option<String>, Option<u32>)> {
     out
 }
 
+/// The length of the DER value at the start of `bytes`, header included.
+fn der_length(bytes: &[u8]) -> Option<usize> {
+    let mut r = SliceReader::new(bytes).ok()?;
+    let header = der::Header::decode(&mut r).ok()?;
+    let head = usize::try_from(header.encoded_len().ok()?).ok()?;
+    Some(head + usize::try_from(header.length).ok()?)
+}
+
 fn number(o: &Object) -> Option<usize> {
     match o {
         Object::Integer(i) => usize::try_from(*i).ok(),
@@ -574,8 +582,24 @@ pub fn read(path: &Path, password: Option<&str>) -> AppResult<Vec<SignatureRepor
             continue;
         }
         report.covers_all = raw[c + d..].iter().all(|b| b.is_ascii_whitespace());
-        let hex: Vec<u8> = raw[b + 1..c - 1].iter().copied().filter(u8::is_ascii_hexdigit).collect();
+        // The signature's place holds hex digits only (white space allowed), and after the
+        // signature itself only zero padding: anything else was put there afterwards.
+        let gap = &raw[b + 1..c - 1];
+        if gap.iter().any(|b| !b.is_ascii_hexdigit() && !b.is_ascii_whitespace()) {
+            report.status = "invalid".into();
+            report.problem = Some("unexpected data in the signature's place".into());
+            out.push(report);
+            continue;
+        }
+        let hex: Vec<u8> = gap.iter().copied().filter(u8::is_ascii_hexdigit).collect();
         let bytes: Vec<u8> = hex.chunks(2).filter_map(|p| u8::from_str_radix(std::str::from_utf8(p).ok()?, 16).ok()).collect();
+        let used = der_length(&bytes).unwrap_or(bytes.len());
+        if bytes[used.min(bytes.len())..].iter().any(|&b| b != 0) {
+            report.status = "invalid".into();
+            report.problem = Some("unexpected data after the signature".into());
+            out.push(report);
+            continue;
+        }
         match check(&bytes, &[&raw[..b], &raw[c..c + d]]) {
             Ok(r) => {
                 report.status = if r.intact && r.verified { "valid" } else { "invalid" }.into();
@@ -656,6 +680,21 @@ mod tests {
         std::fs::write(&path, raw).unwrap();
         let r = read(&path, None).unwrap().remove(0);
         assert_eq!((r.status.as_str(), r.intact, r.verified), ("invalid", Some(true), Some(false)), "{r:?}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn rejects_data_hidden_in_the_padding() {
+        // The zero padding after the signature replaced with other hex digits.
+        let mut raw = std::fs::read(fixture("signed-rsa.pdf")).unwrap();
+        let start = raw.windows(11).position(|w| w == b"/Contents <").unwrap() + 11;
+        let end = start + raw[start..].iter().position(|&b| b == b'>').unwrap();
+        raw[end - 8..end].copy_from_slice(b"deadbeef");
+        let dir = crate::pdf::tests::temp_dir();
+        let path = dir.join("padded.pdf");
+        std::fs::write(&path, raw).unwrap();
+        let r = read(&path, None).unwrap().remove(0);
+        assert_eq!(r.status, "invalid", "{r:?}");
         let _ = std::fs::remove_dir_all(dir);
     }
 

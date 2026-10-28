@@ -3,6 +3,7 @@
 import { runBatch, writesFiles, type BatchActions } from "../batch";
 import { ipc, type CompressLevel } from "../ipc";
 import { PII_KINDS, type PiiKind } from "../pii";
+import { PASSWORD_HINT, passwordFits } from "../save.svelte";
 import { obj, requirePdf, str, type Args, type ToolSpec } from "./args";
 
 async function inputs(args: Args): Promise<string[]> {
@@ -20,6 +21,8 @@ function actions(args: Args): BatchActions {
   const watermark = typeof args.watermark === "string" ? args.watermark.trim() : "";
   const numbers = typeof args.page_numbers === "string" ? args.page_numbers.trim() : args.page_numbers === true ? "{n}" : "";
   const clean = args.clean_scans;
+  // Checked before any file is worked on, not when the first one is written.
+  if (typeof args.password === "string" && !passwordFits(args.password)) throw new Error(`Password not usable: ${PASSWORD_HINT}`);
   return {
     cleanup: clean === true ? { deskew: true, borders: true, blackWhite: true } : clean && typeof clean === "object" ? { deskew: (clean as Args).deskew !== false, borders: (clean as Args).remove_borders !== false, blackWhite: (clean as Args).black_and_white !== false } : null,
     ocr: args.recognize_text === true,
@@ -37,7 +40,7 @@ export const BATCH_TOOLS: ToolSpec[] = [
   {
     name: "process_files",
     description:
-      "Processes many PDFs at once, like Process many files in the app. For each file it can clean up scanned pages (straighten, whiten dark edges, black and white), recognize text on scanned pages, black out personal data (found items are blacked out without a review, so tell the user to check the results), add a watermark or page numbers, compress, protect with a password and remove metadata, writing a new file to output_folder (the originals are never changed; names get `suffix`, and a number when taken). check_signatures alone only reports. Returns one line per file: output path, sizes, pages recognized, personal data blacked out, signature status, or the error (password-protected files are skipped). Processing a digitally signed file makes its signatures not valid in the new file.",
+      "Processes many PDFs at once, like Process many files in the app. For each file it can clean up scanned pages (straighten, whiten dark edges, black and white), recognize text on scanned pages, black out personal data (pages without text are recognized first; found items are blacked out without a review, so tell the user to check the results, especially pagesNotRead), add a watermark or page numbers, compress, protect with a password and remove metadata, writing a new file to output_folder (the originals are never changed; names get `suffix`, and a number when taken). check_signatures alone only reports. Returns one line per file: output path, sizes, pages recognized, personal data blacked out, signature status, or the error (password-protected files are skipped). Processing a digitally signed file makes its signatures not valid in the new file.",
     parameters: obj({
       files: { type: "array", items: { type: "string" }, description: "Absolute paths of PDFs." },
       folder: { type: "string", description: "Absolute path of a folder: its PDFs (not subfolders) are added." },
@@ -72,7 +75,7 @@ export const BATCH_TOOLS: ToolSpec[] = [
         files: reports.map((r) => ({
           input: r.input,
           output: r.output,
-          error: r.error === "password" ? "protected with a password; skipped" : r.error,
+          error: r.error === "password" ? "protected with a password; skipped" : r.error === "cancelled" ? "cancelled; not written" : r.error,
           pages: r.pages,
           bytesBefore: r.bytesBefore,
           bytesAfter: r.bytesAfter,
@@ -80,6 +83,8 @@ export const BATCH_TOOLS: ToolSpec[] = [
           pagesRecognized: r.ocrPages || undefined,
           personalDataBlackedOut: Object.keys(r.personal).length ? r.personal : undefined,
           pagesSavedAsPictures: r.pictures || undefined,
+          // Scanned pages whose text couldn't be read: personal data on them wasn't looked for.
+          pagesNotRead: r.unread || undefined,
           // A file that couldn't be opened couldn't be checked either.
           signatures: r.error ? undefined : (r.signatures ?? (plan.checkSignatures ? "unsigned" : undefined)),
         })),

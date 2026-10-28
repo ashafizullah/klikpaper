@@ -27,6 +27,10 @@ describe("personal data", () => {
       "phone:+62 812 3456 7891",
       "email:budi.s@mail.co.id",
     ]);
+    // Wider spacing, a dash and a space, and a bracketed country code.
+    expect(values("HP 0812 - 3456 - 7890")).toEqual(["phone:0812 - 3456 - 7890"]);
+    expect(values("Telp. (+62) 812-3456-7890")).toEqual(["phone:(+62) 812-3456-7890"]);
+    expect(values("WA 0812- 3456-7890")).toEqual(["phone:0812- 3456-7890"]);
     // An invoice number starting with 08 but too short is left alone.
     expect(values("Invoice 0812345")).toEqual([]);
   });
@@ -45,6 +49,17 @@ describe("personal data", () => {
     expect(values("Tempat/Tgl Lahir : Bandung, 17-08-1990\nTanggal: 01-01-2026")).toEqual(["birthdate:17-08-1990"]);
     expect(values("Date of birth: 3 March 1985")).toEqual(["birthdate:3 March 1985"]);
     expect(values("Tgl. Lahir 12 Januari 1990")).toEqual(["birthdate:12 Januari 1990"]);
+  });
+
+  test("a value on the line after its label (forms, and text read from tilted scans)", () => {
+    expect(values("Rekening\nBCA\n1234567890\natas nama Budi")).toEqual(["account:1234567890"]);
+    // A tilted scan read word by word, with a number broken where its digits climb a line.
+    expect(values("Rekening\nBCA\n1\n234567890\natas")).toEqual(["account:1\n234567890"]);
+    expect(values("NIK\n3201234507\n900001\nKota")).toEqual(["nik:3201234507\n900001"]);
+    expect(values("No. Rekening\n123 456 7890")).toEqual(["account:123 456 7890"]);
+    expect(values("Tanggal Lahir\n17-08-1990")).toEqual(["birthdate:17-08-1990"]);
+    // Two lines further down is someone else's business.
+    expect(values("Rekening\n\nTotal 1234567890")).toEqual([]);
   });
 
   test("each value once, and only the kinds asked for", () => {

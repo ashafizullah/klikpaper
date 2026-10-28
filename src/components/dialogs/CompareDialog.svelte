@@ -76,7 +76,7 @@
   const WIDTH = 380;
   const pictures = new Map<string, Promise<{ url: string; w: number; h: number }>>();
   function picture(v: Version, side: string, page: number) {
-    const key = `${side}:${v.name}:${page}`;
+    const key = `${side}:${v.id}:${page}`;
     let hit = pictures.get(key);
     if (!hit) {
       hit = (async () => {
