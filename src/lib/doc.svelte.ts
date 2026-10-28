@@ -128,6 +128,8 @@ export class Doc {
   #redo: Snapshot[] = [];
   history = $state({ undo: 0, redo: 0 });
   #text = new Map<string, Promise<string>>();
+  /** Goes up when a source file is replaced (after OCR), so pages and thumbnails are drawn again. */
+  revision = $state(0);
 
   constructor(name: string, path: string | null) {
     this.name = name;
@@ -176,6 +178,21 @@ export class Doc {
       this.#text.set(key, hit);
     }
     return hit;
+  }
+
+  /**
+   * Puts another file in place of a source with the same pages (the source with
+   * recognized text added). Page items, annotations and comments stay as they are.
+   */
+  replaceSource(id: string, path: string, pdf: PDFDocumentProxy) {
+    const src = this.sources.get(id);
+    if (!src) return;
+    closePdf(src.pdf);
+    this.sources.set(id, { id, path, pdf });
+    for (const key of [...this.#text.keys()]) if (key.startsWith(`${id}:`)) this.#text.delete(key);
+    dropThumbnails(this);
+    this.revision++;
+    this.dirty = true;
   }
 
   // ---- history ------------------------------------------------------------

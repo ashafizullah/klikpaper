@@ -9,11 +9,12 @@ import { COMMENT_TOOLS } from "./comments";
 import { DOCUMENT_TOOLS } from "./documents";
 import { FILE_TOOLS } from "./files";
 import { OUTLINE_TOOLS } from "./outline";
+import { OCR_TOOLS } from "./ocr";
 import { REDACT_TOOLS } from "./redact";
 
 export type { ToolSpec };
 
-export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...REDACT_TOOLS, ...COMMENT_TOOLS, ...OUTLINE_TOOLS, ...FILE_TOOLS];
+export const TOOLS: ToolSpec[] = [...DOCUMENT_TOOLS, ...ANNOTATION_TOOLS, ...OCR_TOOLS, ...REDACT_TOOLS, ...COMMENT_TOOLS, ...OUTLINE_TOOLS, ...FILE_TOOLS];
 
 export function toolsFor(scope: "app" | "mcp"): ToolSpec[] {
   return TOOLS.filter((t) => t.scope === "both" || t.scope === scope);

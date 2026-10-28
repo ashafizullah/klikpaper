@@ -5,6 +5,7 @@
 pub mod comments;
 pub mod compress;
 pub mod images;
+pub mod ocr;
 pub mod outline;
 pub mod redact;
 pub mod sheet;
@@ -55,6 +56,9 @@ pub struct PageRef {
     /// whose content couldn't be redacted piece by piece.
     #[serde(default)]
     pub raster: Option<String>,
+    /// Recognized text (OCR) to put on the page as an invisible layer.
+    #[serde(default)]
+    pub ocr: Option<ocr::TextLayer>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -301,6 +305,10 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
         let id = if used.insert(orig) { orig } else { doc.new_object_id() };
         if let Some(threads) = &p.comments {
             comments::write(&mut doc, &mut dict, id, threads)?;
+        }
+        // Before redaction, so recognized words under a black box go too.
+        if let Some(layer) = &p.ocr {
+            ocr::add(&mut doc, &mut dict, layer)?;
         }
         if let Some(picture) = &p.raster {
             redact::rasterize(&mut doc, &mut dict, Path::new(picture))?;
@@ -652,7 +660,7 @@ pub(crate) mod tests {
     }
 
     fn page(source: &str, index: u32, rotate: i64) -> PageRef {
-        PageRef { source: source.into(), index, rotate, sheet: None, comments: None, redact: Vec::new(), raster: None }
+        PageRef { source: source.into(), index, rotate, sheet: None, comments: None, redact: Vec::new(), raster: None, ocr: None }
     }
 
     fn src(id: &str, path: &str) -> Source {

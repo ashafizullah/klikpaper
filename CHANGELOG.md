@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Recognize text (OCR): scanned pages become text you can search, select and copy, that the AI can read and that Black out can remove word by word. Find it in the ⋯ menu, File → Recognize Text (OCR), by right-clicking a page, or in the search bar when a document has scanned pages. It reads Indonesian and English, entirely on this computer: nothing is uploaded, and the page looks the same
+- AI agents can recognize text too (`recognize_text`)
+
 ## 0.1.12
 
 - Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out, and a red badge in the toolbar reminds you while it's in use. KlikPaper suggests saving the result as a new file, so you keep the original

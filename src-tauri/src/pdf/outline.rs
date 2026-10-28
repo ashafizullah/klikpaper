@@ -141,7 +141,16 @@ mod tests {
             bookmark("Pembukaan", Some(1), vec![bookmark("Bagian 1.1 ✓", Some(0), vec![])]),
             Bookmark { title: "Web".into(), url: Some("https://example.com".into()), ..Default::default() },
         ];
-        let page = |index| PageRef { source: "a".into(), index, rotate: 0, sheet: None, comments: None, redact: Vec::new(), raster: None };
+        let page = |index| PageRef {
+            source: "a".into(),
+            index,
+            rotate: 0,
+            sheet: None,
+            comments: None,
+            redact: Vec::new(),
+            raster: None,
+            ocr: None,
+        };
         let job = AssembleJob {
             sources: vec![Source { id: "a".into(), path: a, password: None }],
             pages: vec![page(2), page(0)],

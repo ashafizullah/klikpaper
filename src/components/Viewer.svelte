@@ -124,7 +124,8 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="viewer grain-free" bind:this={el} onscroll={onScroll} onwheel={onWheel} oncontextmenu={onMenu}>
   <div class="pages" style:gap="{GAP}px">
-    {#each doc.pages as page, i (page.id)}
+    <!-- A replaced source file (after OCR) draws every page again. -->
+    {#each doc.pages as page, i (`${page.id}:${doc.revision}`)}
       <div class="slot" data-page-index={i} data-page-id={page.id} use:observe>
         <PageView {doc} {page} index={i} {scale} visible={visible.has(page.id)} />
       </div>

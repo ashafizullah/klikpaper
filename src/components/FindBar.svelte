@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Doc, Redaction } from "../lib/doc.svelte";
-  import { busy, toast, ui } from "../lib/ui.svelte";
+  import { busy, openDialog, toast, ui } from "../lib/ui.svelte";
   import { textRects } from "../lib/pdfjs";
   import { padForRedaction } from "../lib/selection";
   import { newId } from "../lib/settings.svelte";
@@ -12,6 +12,8 @@
   let hits = $state<number[]>([]);
   let searching = $state(false);
   let position = $state(-1);
+  /** Pages with no text to search (scans). */
+  let scans = $state(0);
   let run = 0;
 
   async function search(q: string) {
@@ -23,9 +25,11 @@
     if (!needle) return;
     searching = true;
     const found: number[] = [];
+    let empty = 0;
     for (let i = 0; i < doc.pages.length; i++) {
       const text = (await doc.text(doc.pages[i])).toLowerCase();
       if (id !== run) return;
+      if (text.replace(/\s+/g, "").length < 12) empty++;
       if (text.includes(needle)) {
         found.push(i);
         hits = [...found];
@@ -33,6 +37,7 @@
       }
     }
     searching = false;
+    scans = empty;
   }
 
   function go(n: number) {
@@ -89,6 +94,9 @@
   </span>
   <button class="icon-btn" onclick={() => go(position - 1)} disabled={!hits.length} aria-label={t("find.prev")} title={t("find.prev")}><Icon name="up" /></button>
   <button class="icon-btn" onclick={() => go(position + 1)} disabled={!hits.length} aria-label={t("find.next")} title={t("find.next")}><Icon name="down" /></button>
+  {#if scans}
+    <button class="btn ocr" onclick={() => openDialog("ocr", { doc })} title={t("find.scans", { n: scans })}><Icon name="ocr" size={14} />{t("find.ocr")}</button>
+  {/if}
   <button class="icon-btn" onclick={redactAll} disabled={!hits.length || searching} aria-label={t("find.redactAll")} title={t("find.redactAll")}><Icon name="redact" /></button>
   <button class="icon-btn" onclick={() => (ui.findOpen = false)} aria-label={t("common.close")} title={t("common.close")}><Icon name="close" /></button>
 </div>
@@ -108,5 +116,11 @@
   .status {
     font: 11px var(--mono);
     min-width: 120px;
+  }
+  .ocr {
+    height: 26px;
+    padding: 0 9px;
+    font-size: 11.5px;
+    white-space: nowrap;
   }
 </style>

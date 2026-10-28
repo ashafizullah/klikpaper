@@ -23,8 +23,8 @@ export function selectionRects(pageEl: HTMLElement, page: PageItem, scale: numbe
   return rects;
 }
 
-/** A text box grown a little, so a redaction box also hides accents and descenders. */
+/** A text box grown a little, so a redaction box also hides accents, descenders and letters read by OCR a point off. */
 export function padForRedaction(r: Rect): Rect {
   const dy = r.h * 0.12;
-  return { x: r.x - 0.3, y: r.y - dy, w: r.w + 0.6, h: r.h + 2 * dy };
+  return { x: r.x - 1, y: r.y - dy, w: r.w + 2, h: r.h + 2 * dy };
 }

@@ -28,6 +28,23 @@ function copyPdfjsAssets() {
 }
 copyPdfjsAssets();
 
+// OCR runs Tesseract (WebAssembly) in a worker; its engine and the Indonesian
+// and English language data are served from public/ocr, so nothing is fetched
+// from the internet. Only the LSTM engine is shipped, with and without SIMD.
+function copyOcrAssets() {
+  const out = "public/ocr";
+  if (existsSync(out)) return;
+  mkdirSync(out, { recursive: true });
+  cpSync("node_modules/tesseract.js/dist/worker.min.js", `${out}/worker.min.js`);
+  for (const core of ["tesseract-core-simd-lstm", "tesseract-core-lstm"]) {
+    for (const ext of ["js", "wasm"]) cpSync(`node_modules/tesseract.js-core/${core}.${ext}`, `${out}/${core}.${ext}`);
+  }
+  for (const lang of ["ind", "eng"]) {
+    cpSync(`node_modules/@tesseract.js-data/${lang}/4.0.0_best_int/${lang}.traineddata.gz`, `${out}/${lang}.traineddata.gz`);
+  }
+}
+copyOcrAssets();
+
 // The licenses dialog loads the notices on demand instead of bundling half a megabyte of text.
 if (existsSync("THIRD_PARTY_NOTICES.md")) cpSync("THIRD_PARTY_NOTICES.md", "public/THIRD_PARTY_NOTICES.md");
 

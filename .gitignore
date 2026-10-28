@@ -1,6 +1,7 @@
 node_modules
 /dist
 /public/pdfjs
+/public/ocr
 /public/THIRD_PARTY_NOTICES.md
 .DS_Store
 

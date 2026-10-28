@@ -101,6 +101,8 @@ export async function command(id: string) {
       return openDialog("page-numbers", { doc });
     case "info":
       return openDialog("info", { doc });
+    case "ocr":
+      return openDialog("ocr", { doc });
     case "undo":
       if (editing()) return document.execCommand("undo");
       return doc.undo();

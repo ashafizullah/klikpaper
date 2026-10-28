@@ -11,7 +11,7 @@
   import { fontStack, showFont } from "../lib/fonts.svelte";
   import { replaceLine } from "../lib/edittext";
   import { textLines, type PageLine } from "../lib/pdfjs";
-  import { isMac, mod, toolColor, ui } from "../lib/ui.svelte";
+  import { isMac, mod, openDialog, toolColor, ui } from "../lib/ui.svelte";
   import { arrowHead, LINE_HEIGHT } from "../lib/layout";
   import { copyText, openMenu } from "../lib/contextmenu.svelte";
   import { command } from "../lib/commands.svelte";
@@ -234,6 +234,7 @@
       "sep",
       { label: t("ctx.addComment"), icon: "comment", run: () => addCommentAt(x, y) },
       { label: t("ctx.addText"), icon: "text", run: () => addText(x, y) },
+      { label: t("ctx.ocr"), icon: "ocr", run: () => openDialog("ocr", { doc, which: "current" }) },
       "sep",
       { label: t("pages.rotateLeft"), icon: "rotate-ccw", run: () => doc.rotatePages([page.id], -90) },
       { label: t("pages.rotateRight"), icon: "rotate-cw", run: () => doc.rotatePages([page.id], 90) },

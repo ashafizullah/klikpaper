@@ -16,6 +16,7 @@
   import SignatureDialog from "./dialogs/SignatureDialog.svelte";
   import AlertDialog from "./dialogs/AlertDialog.svelte";
   import ResizeDialog from "./dialogs/ResizeDialog.svelte";
+  import OcrDialog from "./dialogs/OcrDialog.svelte";
 
   const KINDS: Record<string, Component<any>> = {
     password: PasswordDialog,
@@ -33,6 +34,7 @@
     signature: SignatureDialog,
     alert: AlertDialog,
     resize: ResizeDialog,
+    ocr: OcrDialog,
   };
 </script>
 

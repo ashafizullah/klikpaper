@@ -20,6 +20,7 @@
     Bookmark,
     BookmarkPlus,
     Printer,
+    ScanText,
     FilePlus,
     FileStack,
     FileText,
@@ -160,6 +161,7 @@
     bookmark: Bookmark,
     "bookmark-add": BookmarkPlus,
     print: Printer,
+    ocr: ScanText,
   };
 </script>
 

@@ -51,6 +51,8 @@ export interface PageSpec {
   redact?: { x: number; y: number; w: number; h: number }[];
   /** A JPEG of the page, already redacted, replacing its content (when it couldn't be redacted piece by piece). */
   raster?: string | null;
+  /** Recognized text (a text-only PDF from Tesseract) laid invisibly over the page; `rotation` is how the page was shown when read. */
+  ocr?: { path: string; rotation: number } | null;
 }
 
 /** A bookmark as written into the file. */

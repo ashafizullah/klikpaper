@@ -36,6 +36,7 @@
 ## Features
 
 - **Viewer**: fast continuous scrolling, zoom and fit width, text selection, find in document, clickable links, fillable forms, tabs for several PDFs
+- **Recognize text (OCR)**: make scanned pages searchable. KlikPaper reads Indonesian and English on this computer (Tesseract, built in, nothing uploaded) and lays the words invisibly over the scan, so you can search, select and copy them, the AI can read them, and Black out removes them word by word. The page looks the same
 - **Bookmarks**: browse the document's outline in the sidebar, jump to a section, and add, rename, nest, reorder or delete bookmarks; merged files keep the bookmarks of each file
 - **Print** (Cmd/Ctrl+P) the document as you see it, with unsaved edits
 - **Organize pages**: drag thumbnails to reorder, rotate, delete, duplicate, insert pages from other PDFs, merge several files, split by ranges or every N pages, save selected pages as a new PDF, resize pages to A4, Letter, Legal, A3 or A5 (content scaled to fit, never stretched)

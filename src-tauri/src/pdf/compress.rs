@@ -254,7 +254,16 @@ mod tests {
         let out = dir.join("small.pdf");
         let job = AssembleJob {
             sources: vec![Source { id: "p".into(), path: input.display().to_string(), password: None }],
-            pages: vec![PageRef { source: "p".into(), index: 0, rotate: 0, sheet: None, comments: None, redact: Vec::new(), raster: None }],
+            pages: vec![PageRef {
+                source: "p".into(),
+                index: 0,
+                rotate: 0,
+                sheet: None,
+                comments: None,
+                redact: Vec::new(),
+                raster: None,
+                ocr: None,
+            }],
             output: out.display().to_string(),
             options: Options { compress: Some(Level::High.into()), ..Default::default() },
             outline: None,

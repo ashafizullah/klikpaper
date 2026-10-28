@@ -197,7 +197,7 @@
     <span class="count muted">{selection.length > 1 ? t("pages.selected", { n: selection.length }) : ""}</span>
   </div>
   <div class="list" bind:this={list} class:dragging={drag?.active}>
-    {#each doc.pages as p, i (p.id)}
+    {#each doc.pages as p, i (`${p.id}:${doc.revision}`)}
       {#if drag?.active && drag.insert === i}<div class="insert-line"></div>{/if}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div

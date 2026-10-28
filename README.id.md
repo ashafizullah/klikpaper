@@ -36,6 +36,7 @@
 ## Fitur
 
 - **Penampil**: gulir kontinu yang cepat, zoom dan pas lebar, pilih teks, cari di dokumen, tautan yang bisa diklik, formulir yang bisa diisi, tab untuk beberapa PDF
+- **Kenali teks (OCR)**: ubah halaman hasil scan jadi bisa dicari. KlikPaper membaca bahasa Indonesia dan Inggris di komputer ini (Tesseract, sudah termasuk, tidak ada yang diunggah) lalu menaruh teksnya tak terlihat di atas scan, jadi bisa dicari, diblok, dan disalin, dibaca AI, dan disensor per kata. Tampilan halaman tidak berubah
 - **Bookmark**: lihat daftar isi dokumen di sidebar, lompat ke bagian tertentu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; file yang digabung tetap membawa bookmark masing-masing
 - **Cetak** (Cmd/Ctrl+P) dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan
 - **Atur halaman**: seret thumbnail untuk mengurutkan ulang, putar, hapus, gandakan, sisipkan halaman dari PDF lain, gabung beberapa file, pisah per rentang atau setiap N halaman, simpan halaman terpilih sebagai PDF baru, ubah ukuran halaman ke A4, Letter, Legal, A3, atau A5 (isi diskalakan agar pas, tidak ditarik)

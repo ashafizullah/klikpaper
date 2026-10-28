@@ -2,6 +2,11 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## Unreleased
+
+- Kenali teks (OCR): halaman hasil scan jadi teks yang bisa dicari, diblok, dan disalin, bisa dibaca AI, dan bisa disensor per kata. Ada di menu ⋯, Berkas → Kenali Teks (OCR), klik kanan halaman, atau di kolom pencarian kalau dokumen punya halaman hasil scan. Membaca bahasa Indonesia dan Inggris, sepenuhnya di komputer ini: tidak ada yang diunggah, dan tampilan halaman tidak berubah
+- Agen AI juga bisa mengenali teks (`recognize_text`)
+
 ## 0.1.12
 
 - Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor, dan badge merah di toolbar mengingatkan selama fitur ini dipakai. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada
