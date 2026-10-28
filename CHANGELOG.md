@@ -1,16 +1,16 @@
 # Changelog
 
-## 0.1.13
+## 0.1.14
 
+- Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back; on scanned pages the ink of every word taken out goes too. KlikPaper suggests saving the result as a new file, so you keep the original, and the file notes that parts were blacked out
 - Recognize text (OCR): scanned pages become text you can search, select and copy, that the AI can read and that Black out can remove word by word. Find it in the ⋯ menu, File → Recognize Text (OCR), by right-clicking a page, or in the search bar when a document has scanned pages. It reads Indonesian and English, entirely on this computer: nothing is uploaded, and the page looks the same
-- AI agents can recognize text too (`recognize_text`)
-
-## 0.1.12
-
-- Black out (redact): hide private details such as ID or account numbers. Pick the new tool and drag a box over them, right-click selected text, or black out every match of a search at once. When you save, what's under the black boxes is really deleted from the file, not just covered, so nobody can copy it or bring it back. The file also gets a note saying some parts were blacked out, and a red badge in the toolbar reminds you while it's in use. KlikPaper suggests saving the result as a new file, so you keep the original
 - Bookmarks: the sidebar has a Bookmarks tab with the document's table of contents. Click one to jump there, and add, rename, nest, reorder or delete them; they're saved in the PDF. Merged files keep each file's bookmarks
 - Print (Cmd/Ctrl+P): prints the document as you see it, unsaved changes included
-- AI agents can black out text or areas (`redact_text`, `redact_area`, `remove_redactions`) and work with bookmarks (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
+- Edit history: when you change printed text (Edit text), cover content (White-out) or black out areas, saving adds a line to the file's edit history with the date, KlikPaper and the pages changed. Badges in the toolbar say so while you edit, and files changed before show "Edited before" or "Blacked out"; click them, or open Document info, to read more. It's there for transparency (nothing about you is recorded), and "Remove document info and metadata" leaves it out
+- Clicking the active tool again puts it away (back to Select)
+- In a narrow window the toolbar keeps Save, the ⋯ menu and every tool in view
+- The README explains how to share private documents safely and what KlikPaper writes into your PDFs
+- AI agents can black out (`redact_text`, `redact_area`, `remove_redactions`), recognize text (`recognize_text`) and work with bookmarks (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
 
 ## 0.1.11
 

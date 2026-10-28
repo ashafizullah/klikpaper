@@ -2,17 +2,17 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
-## 0.1.13
+## 0.1.14
 
+- Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan; di halaman hasil scan, tinta setiap kata yang dihapus ikut hilang. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada, dan file diberi keterangan bahwa ada bagian yang disensor
 - Kenali teks (OCR): halaman hasil scan jadi teks yang bisa dicari, diblok, dan disalin, bisa dibaca AI, dan bisa disensor per kata. Ada di menu ⋯, Berkas → Kenali Teks (OCR), klik kanan halaman, atau di kolom pencarian kalau dokumen punya halaman hasil scan. Membaca bahasa Indonesia dan Inggris, sepenuhnya di komputer ini: tidak ada yang diunggah, dan tampilan halaman tidak berubah
-- Agen AI juga bisa mengenali teks (`recognize_text`)
-
-## 0.1.12
-
-- Sensor (hitamkan): sembunyikan data pribadi seperti NIK atau nomor rekening. Pilih alat baru lalu tarik kotak di atasnya, klik kanan teks yang diblok, atau sensor semua hasil pencarian sekaligus. Saat disimpan, isi di bawah kotak hitam benar-benar dihapus dari file, bukan cuma ditutupi, jadi tidak bisa disalin atau dikembalikan. File juga diberi keterangan bahwa ada bagian yang disensor, dan badge merah di toolbar mengingatkan selama fitur ini dipakai. KlikPaper menyarankan menyimpan hasilnya sebagai file baru supaya file asli tetap ada
 - Bookmark: sidebar punya tab Bookmark berisi daftar isi dokumen. Klik untuk langsung ke bagian itu, serta tambah, ganti nama, susun bertingkat, urutkan, atau hapus bookmark; semuanya tersimpan di PDF. File yang digabung tetap membawa bookmark masing-masing
 - Cetak (Cmd/Ctrl+P): mencetak dokumen persis seperti yang terlihat, termasuk perubahan yang belum disimpan
-- Agen AI bisa menyensor teks atau area (`redact_text`, `redact_area`, `remove_redactions`) dan mengelola bookmark (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
+- Riwayat edit: saat Anda mengubah teks (Edit teks), menutupi isi (Tutup putih), atau menyensor area, menyimpan file akan menambah catatan di riwayat edit file berisi tanggal, KlikPaper, dan halaman yang diubah. Badge di toolbar memberi tahu hal ini selama mengedit, dan file yang pernah diubah menampilkan "Pernah diedit" atau "Sudah disensor"; klik badge itu atau buka Info dokumen untuk membaca lebih lanjut. Tujuannya transparansi (tidak ada data tentang Anda yang dicatat), dan "Hapus info dokumen dan metadata" tidak menuliskannya
+- Klik lagi tool yang sedang aktif untuk mematikannya (kembali ke Pilih)
+- Di jendela yang sempit, toolbar tetap menampilkan tombol Simpan, menu ⋯, dan semua tool
+- README menjelaskan cara membagikan dokumen pribadi dengan aman dan apa saja yang ditulis KlikPaper ke PDF Anda
+- Agen AI bisa menyensor (`redact_text`, `redact_area`, `remove_redactions`), mengenali teks (`recognize_text`), dan mengelola bookmark (`list_bookmarks`, `add_bookmark`, `remove_bookmarks`)
 
 ## 0.1.11
 
