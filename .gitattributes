@@ -1,0 +1,2 @@
+# PDFs are compared byte for byte (signature byte ranges): never convert their line endings.
+*.pdf binary
