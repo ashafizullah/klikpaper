@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.17
+
+- Perbaikan: AppImage Linux kini bisa dibuka di distribusi yang lebih lama seperti Ubuntu 22.04; sebelumnya butuh library sistem yang lebih baru (glibc 2.39) dan langsung tertutup
+
 ## 0.1.16
 
 - Perbaikan: tombol GitHub di Pengaturan → Tentang, link di dalam PDF, dan bookmark yang mengarah ke situs web kini terbuka di browser; sebelumnya tidak terjadi apa-apa saat diklik

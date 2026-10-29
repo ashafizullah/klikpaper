@@ -2592,7 +2592,7 @@ dependencies = [
 
 [[package]]
 name = "klikpaper"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "axum",
  "base64 0.23.1",

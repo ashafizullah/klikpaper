@@ -1,6 +1,6 @@
 [package]
 name = "klikpaper"
-version = "0.1.16"
+version = "0.1.17"
 description = "Free, open-source, lightweight PDF tool"
 authors = ["Adam Suchi Hafizullah"]
 edition = "2024"

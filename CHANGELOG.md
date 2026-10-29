@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.17
+
+- Fixes: the Linux AppImage now starts on older distributions such as Ubuntu 22.04; before, it needed a newer system library (glibc 2.39) and quit right away
+
 ## 0.1.16
 
 - Fixes: the GitHub button in Settings → About, links inside PDFs and bookmarks that point to a website now open in your browser; before, clicking them did nothing
