@@ -33,6 +33,9 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # The OS key is only "Linux", so without this a 24.04 cache could be
+          # restored on 22.04 and link against glibc symbols it lacks.
+          key: ${{ matrix.platform }}
       - run: bun install --frozen-lockfile
       - name: Read this version's changelog
         id: changelog
