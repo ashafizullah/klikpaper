@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  Part of <a href="https://klikapps.pages.dev"><b>Klik Apps</b></a>, a family of free, open-source desktop apps: <a href="https://klikapps.pages.dev">klikapps.pages.dev</a>
+  Part of <a href="https://klikapps.ashafizullah.com"><b>Klik Apps</b></a>, a family of free, open-source desktop apps: <a href="https://klikapps.ashafizullah.com">klikapps.ashafizullah.com</a>
 </p>
 
 <p align="center">
