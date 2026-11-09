@@ -46,6 +46,26 @@
     }
   }
 
+  // Arrow Up/Down move through the pages; Shift extends the selection.
+  function onListKey(e: KeyboardEvent) {
+    if ((e.key !== "ArrowUp" && e.key !== "ArrowDown") || e.metaKey || e.ctrlKey || e.altKey || drag?.active) return;
+    e.preventDefault();
+    const i = Math.max(0, Math.min(doc.pages.length - 1, doc.current + (e.key === "ArrowDown" ? 1 : -1)));
+    const p = doc.pages[i];
+    if (!p) return;
+    if (e.shiftKey) {
+      if (!anchorId || !doc.pages.some((x) => x.id === anchorId)) anchorId = doc.pages[doc.current]?.id ?? p.id;
+      const a = doc.pages.findIndex((x) => x.id === anchorId);
+      const [lo, hi] = a < i ? [a, i] : [i, a];
+      doc.selectedPages = doc.pages.slice(lo, hi + 1).map((x) => x.id);
+    } else {
+      doc.selectedPages = [p.id];
+      anchorId = p.id;
+    }
+    viewer.goTo(i);
+    list.querySelector<HTMLElement>(`[data-thumb-index="${i}"]`)?.focus({ preventScroll: true });
+  }
+
   function remove() {
     try {
       doc.deletePages(targets);
@@ -196,7 +216,7 @@
     <button class="icon-btn danger" onclick={remove} title={t("pages.delete")} aria-label={t("pages.delete")}><Icon name="trash" /></button>
     <span class="count muted">{selection.length > 1 ? t("pages.selected", { n: selection.length }) : ""}</span>
   </div>
-  <div class="list" bind:this={list} class:dragging={drag?.active}>
+  <div class="list" bind:this={list} class:dragging={drag?.active} role="listbox" tabindex="0" aria-multiselectable="true" aria-label={t("sidebar.pages")} onkeydown={onListKey}>
     {#each doc.pages as p, i (`${p.id}:${p.source}:${p.index}:${doc.revision}`)}
       {#if drag?.active && drag.insert === i}<div class="insert-line"></div>{/if}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -294,6 +314,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+  .list:focus,
+  .thumb:focus {
+    outline: none;
   }
   .list.dragging {
     cursor: grabbing;
