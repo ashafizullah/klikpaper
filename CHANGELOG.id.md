@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.18
+
+- Perbaikan: dokumen yang dicetak kini memakai nama filenya di antrean printer dan sebagai nama bawaan "Save as PDF"; sebelumnya semua job print bernama "KlikPaper"
+
 ## 0.1.17
 
 - Perbaikan: AppImage Linux kini bisa dibuka di distribusi yang lebih lama seperti Ubuntu 22.04; sebelumnya butuh library sistem yang lebih baru (glibc 2.39) dan langsung tertutup

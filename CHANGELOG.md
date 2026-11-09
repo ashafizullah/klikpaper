@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.18
+
+- Fixes: printed documents now keep their file name in the print queue and as the default name for "Save as PDF"; before, every print job was called "KlikPaper"
+
 ## 0.1.17
 
 - Fixes: the Linux AppImage now starts on older distributions such as Ubuntu 22.04; before, it needed a newer system library (glibc 2.39) and quit right away
