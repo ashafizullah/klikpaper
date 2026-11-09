@@ -66,5 +66,10 @@ export async function printDoc(doc: Doc) {
     ui.busy = null;
     if (file) ipc.discardTemp(file).catch(() => {});
   }
+  // The system names the print job (and a "Save as PDF" file) after the page
+  // title, so it carries the document's name instead of "KlikPaper". It is left
+  // as is afterwards: the dialog may read it after printWindow returns, and the
+  // window title shown to the user is set separately.
+  document.title = doc.name;
   await ipc.printWindow().catch((e) => toast(errorText(e), "error"));
 }
