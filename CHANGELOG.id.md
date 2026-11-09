@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.19
+
+- Perbaikan: tombol panah atas dan bawah kini bisa dipakai untuk berpindah halaman di daftar halaman sidebar, dan Shift memperluas pilihan; sebelumnya tombol ini tidak berfungsi di sana
+
 ## 0.1.18
 
 - Perbaikan: dokumen yang dicetak kini memakai nama filenya di antrean printer dan sebagai nama bawaan "Save as PDF"; sebelumnya semua job print bernama "KlikPaper"

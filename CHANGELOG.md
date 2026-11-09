@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.19
+
+- Fixes: the Up and Down arrow keys now move through the page list in the sidebar, and Shift extends the selection; before, they did nothing there
+
 ## 0.1.18
 
 - Fixes: printed documents now keep their file name in the print queue and as the default name for "Save as PDF"; before, every print job was called "KlikPaper"
