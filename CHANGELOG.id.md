@@ -2,6 +2,20 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.20
+
+- Perbaikan: halaman yang diduplikasi tidak lagi ikut memakai rotasi, tanda hitam, atau ukuran kertas salinan pertamanya saat disimpan
+- Perbaikan: Pisahkan PDF kini mempertahankan ukuran kertas yang dipilih di Ubah ukuran halaman
+- Perbaikan: menghitamkan kini juga menghapus teks pengganti dan deskripsi gambar tersembunyi dari isi yang dihapus pada PDF bertag
+- Perbaikan: komentar yang dihapus tidak lagi meninggalkan pop-up (dan teks lamanya) di file, dan anotasi lain di halaman itu tetap ada
+- Perbaikan: Gambar ke PDF kini menampilkan foto dari HP tegak, tidak lagi miring
+- Perbaikan: tanda tangan digital asli dari sebagian alat penanda tangan tidak lagi dilaporkan tidak valid
+- Perbaikan: sebagian PDF tidak lagi tersimpan sebagai halaman kosong setelah Ubah ukuran halaman, dan menggabungkan file dengan referensi rusak tidak lagi mencampur isinya
+- Perbaikan: pengenalan teks kini berfungsi pada PDF berkata sandi yang formulirnya sudah diisi
+- Perbaikan: menempel teks panjang ke terminal tidak lagi membekukan jendela
+- Perbaikan: saat pemeriksaan pembaruan gagal (misalnya sedang offline), pemeriksaan diulang 15 menit kemudian, bukan sehari kemudian
+- Perbaikan: Shift+klik di daftar halaman berfungsi lagi setelah halaman yang diklik sebelumnya dihapus
+
 ## 0.1.19
 
 - Perbaikan: tombol panah atas dan bawah kini bisa dipakai untuk berpindah halaman di daftar halaman sidebar, dan Shift memperluas pilihan; sebelumnya tombol ini tidak berfungsi di sana

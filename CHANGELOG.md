@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.20
+
+- Fixes: a duplicated page no longer picks up the first copy's rotation, black-out marks or paper size when saved
+- Fixes: Split keeps the paper size chosen in Resize pages
+- Fixes: blacking out now also removes the hidden replacement text and image descriptions of the removed content in tagged PDFs
+- Fixes: deleted comments no longer leave their pop-up (and the old text) in the file, and other annotations on the page are kept
+- Fixes: Images to PDF shows phone photos upright instead of on their side
+- Fixes: genuine digital signatures from some signing tools are no longer reported as invalid
+- Fixes: some PDFs no longer save as blank pages after Resize pages, and merging files with broken references no longer mixes up their content
+- Fixes: recognizing text works on a password-protected PDF whose form was filled in
+- Fixes: pasting a lot of text into the terminal no longer freezes the window
+- Fixes: when the update check fails (offline, for example) it is tried again after 15 minutes instead of a day
+- Fixes: Shift-click in the page list works again after the page clicked before it was deleted
+
 ## 0.1.19
 
 - Fixes: the Up and Down arrow keys now move through the page list in the sidebar, and Shift extends the selection; before, they did nothing there
