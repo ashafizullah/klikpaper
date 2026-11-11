@@ -23,12 +23,12 @@ export async function startMcp() {
   const tools = toolsFor("mcp").map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters }));
   try {
     mcp.info = await ipc.mcpStart(tools, INSTRUCTIONS, async (call) => {
-      try {
-        const text = await runTool(call.name, call.arguments, "mcp");
-        await ipc.mcpReply(call.id, { content: [{ type: "text", text }] });
-      } catch (e) {
-        await ipc.mcpReply(call.id, { content: [{ type: "text", text: e instanceof Error ? e.message : String(e) }], isError: true });
-      }
+      // One reply per call, whether the tool worked or not; a reply that can't be sent has nowhere to go.
+      const result = await runTool(call.name, call.arguments, "mcp").then(
+        (text) => ({ content: [{ type: "text" as const, text }] }),
+        (e) => ({ content: [{ type: "text" as const, text: e instanceof Error ? e.message : String(e) }], isError: true }),
+      );
+      await ipc.mcpReply(call.id, result).catch(() => {});
     });
     mcp.error = null;
     settings.mcpEnabled = true;

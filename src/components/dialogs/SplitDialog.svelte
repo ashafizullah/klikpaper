@@ -1,20 +1,25 @@
 <script lang="ts">
   import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
   import { revealItemInDir } from "@tauri-apps/plugin-opener";
+  import { onDestroy } from "svelte";
   import Dialog from "../Dialog.svelte";
   import type { Doc } from "../../lib/doc.svelte";
   import { errorText, ipc } from "../../lib/ipc";
   import { splitDoc } from "../../lib/save.svelte";
   import { joinPath, splitGroups, stripExt } from "../../lib/pagespec";
-  import { closeDialog, toast } from "../../lib/ui.svelte";
+  import { closeDialog, toast, ownDialog } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
+  const done = ownDialog();
   let mode = $state<"every" | "ranges">("every");
   let every = $state(1);
   let ranges = $state("");
   let working = $state(false);
   let error = $state<string | null>(null);
+  // Closing the dialog stops the split; the files written until then stay.
+  let closed = false;
+  onDestroy(() => (closed = true));
 
   const groups = $derived(mode === "every" ? splitGroups(doc.pages.length, { every }) : splitGroups(doc.pages.length, { ranges }));
 
@@ -33,9 +38,10 @@
     working = true;
     error = null;
     try {
-      const files = await splitDoc(doc, groups, dir);
+      const files = await splitDoc(doc, groups, dir, () => closed);
+      if (closed) return;
       toast(t("split.done", { n: files.length }), "ok", { label: t("common.showInFolder"), run: () => revealItemInDir(files[0]) });
-      closeDialog(files);
+      done(files);
     } catch (e) {
       error = errorText(e);
     } finally {

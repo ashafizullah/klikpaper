@@ -4,7 +4,7 @@ import type { Doc, PageItem } from "../doc.svelte";
 import { ipc } from "../ipc";
 import { baseName, parsePages } from "../pagespec";
 import { displayRectToPage, displaySize, displayToPage, type Rect } from "../geometry";
-import { activeDoc, ws } from "../workspace.svelte";
+import { activeDoc, fileInUse, ws } from "../workspace.svelte";
 
 export interface ToolSpec {
   name: string;
@@ -40,7 +40,8 @@ export function secret(args: Args, key: string): string {
 }
 
 export function num(args: Args, key: string, fallback?: number): number {
-  const v = typeof args[key] === "string" ? Number(args[key]) : args[key];
+  // An empty string is a missing number, not 0.
+  const v = typeof args[key] === "string" ? (args[key].trim() ? Number(args[key]) : undefined) : args[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (fallback !== undefined) return fallback;
   throw new Error(`Missing number "${key}"`);
@@ -57,7 +58,8 @@ export function findDoc(args: Args): Doc {
 export function pageIds(doc: Doc, spec: string): string[] {
   const nums = parsePages(spec, doc.pages.length);
   if (!nums) throw new Error(`"${spec}" is not a valid page list for a ${doc.pages.length}-page document`);
-  return nums.map((n) => doc.pages[n - 1].id);
+  // Each page once, however the list names it ("1, 1-2").
+  return [...new Set(nums.map((n) => doc.pages[n - 1].id))];
 }
 
 export function requirePdf(path: string, what = "path") {
@@ -68,6 +70,7 @@ export function requirePdf(path: string, what = "path") {
 export async function checkOutput(output: string, overwrite: boolean, inputs: string[] = []) {
   requirePdf(output, "output");
   if (inputs.includes(output) && !overwrite) throw new Error("output is the same as an input file; pass overwrite: true to replace it");
+  if (fileInUse(output)) throw new Error(`${output} is open in KlikPaper; write to another file (or use save_document for the open document)`);
   const [stat] = await ipc.fileStats([output]);
   if (stat.exists && !overwrite) throw new Error(`${output} already exists; pass overwrite: true to replace it`);
 }

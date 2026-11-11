@@ -20,7 +20,9 @@
   }
 
   function goTo(page: number) {
-    const i = doc.pages.findIndex((p) => p.index === page);
+    // The signatures are the saved file's; pages inserted from other files have their own numbering.
+    const own = [...doc.sources.values()].find((s) => s.path === doc.path)?.id;
+    const i = doc.pages.findIndex((p) => p.index === page && (!own || p.source === own));
     if (i >= 0) viewer.goTo(i, true);
     closeDialog(null);
   }

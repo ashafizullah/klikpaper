@@ -22,6 +22,7 @@
     position = -1;
     ui.findPage = -1;
     const needle = q.trim().toLowerCase();
+    searching = false;
     if (!needle) return;
     searching = true;
     const found: number[] = [];
@@ -78,7 +79,10 @@
   }
 
   $effect(() => {
+    // Text added to the pages (OCR) is searched too.
+    void doc.revision;
     if (ui.findQuery) search(ui.findQuery);
+    else searching = false;
     return () => {
       run++;
       ui.findPage = -1;

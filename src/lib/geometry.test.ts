@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { displayRectToPage, displayToPage, normRotation, pageToDisplay, rotateOffset, type Rotation } from "./geometry";
+import { displayRectToPage, displayToPage, keepOnPage, normRotation, pageToDisplay, rotateOffset, type Rotation } from "./geometry";
 
 test("display and page space round-trip for every rotation", () => {
   for (const r of [0, 90, 180, 270] as Rotation[]) {
@@ -24,4 +24,11 @@ test("offsets rotate counter-clockwise on screen", () => {
 
 test("display rectangles map to page rectangles", () => {
   expect(displayRectToPage({ x: 0, y: 0, w: 10, h: 20 }, 90, 612, 792)).toEqual({ x: 0, y: 782, w: 20, h: 10 });
+});
+
+test("an upright box stays on the page as it is shown, whatever the rotation", () => {
+  // A 600×800 page turned 90° is shown 800 wide and 600 high.
+  const [x, y] = keepOnPage(...displayToPage(795, 595, 90, 600, 800), 20, 90, 600, 800);
+  expect(pageToDisplay(x, y, 90, 600, 800).map(Math.round)).toEqual([780, 580]);
+  expect(keepOnPage(10, 10, 20, 0, 600, 800)).toEqual([10, 10]);
 });

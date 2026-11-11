@@ -5,11 +5,12 @@
   import { errorText } from "../../lib/ipc";
   import { markPersonal, scanPersonal, type PersonalFind } from "../../lib/personal";
   import { PII_KINDS, type PiiKind } from "../../lib/pii";
-  import { closeDialog, openDialog, toast, ui } from "../../lib/ui.svelte";
+  import { closeDialog, openDialog, toast, ui, ownDialog } from "../../lib/ui.svelte";
   import { viewer } from "../../lib/viewer.svelte";
   import { t, type Key } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
+  const done = ownDialog();
   let finds = $state<PersonalFind[] | null>(null);
   let scans = $state(0);
   let kinds = $state<PiiKind[]>([...PII_KINDS]);
@@ -42,7 +43,7 @@
       const boxes = await markPersonal(doc, chosen);
       ui.tool = "select";
       toast(t("pii.marked", { n: chosen.length, boxes }), "ok", undefined, 8000);
-      closeDialog(boxes);
+      done(boxes);
     } catch (e) {
       error = errorText(e);
     } finally {

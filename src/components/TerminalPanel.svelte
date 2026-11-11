@@ -50,6 +50,8 @@
     let disposed = false;
     ipc
       .terminalOpen(cwd, xterm.cols, xterm.rows, (e) => {
+        // A shell that was restarted says it ended; that isn't about the new one.
+        if (disposed) return;
         if (e.type === "data") xterm.write(decode(e.data));
         else exited = true;
       })

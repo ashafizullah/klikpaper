@@ -67,4 +67,12 @@ describe("personal data", () => {
     expect(findPii(text).length).toBe(2);
     expect(findPii(text, ["phone"]).map((m) => m.kind)).toEqual(["phone"]);
   });
+
+  test("a number written in several ways is found in each of them, and to its last digit", () => {
+    // The search for a value ignores spaces only, so the dashed spelling is its own find.
+    expect(values("HP 0812-3456-7890 dan 0812 3456 7890 dan 081234567890")).toEqual(["phone:0812-3456-7890", "phone:0812 3456 7890"]);
+    expect(values("Rek. 1234567890")).toEqual(["account:1234567890"]);
+    expect(values("HP 0812 345 678 90")).toEqual(["phone:0812 345 678 90"]);
+    expect(values("WA +62 812 345 678 90")).toEqual(["phone:+62 812 345 678 90"]);
+  });
 });

@@ -3,7 +3,7 @@
 import type { Corner, Doc, MarkupKind, Overlay } from "../doc.svelte";
 import { ipc } from "../ipc";
 import { newId, settings } from "../settings.svelte";
-import { displaySize, displayToPage, normRect, pageRectToDisplay, type Rect } from "../geometry";
+import { displaySize, displayToPage, normRect, pageRectToDisplay, pageToDisplay, type Rect, type Rotation } from "../geometry";
 import { normalizeImage } from "../images";
 import { fonts, loadSystemFonts, showFont } from "../fonts.svelte";
 import { textLines, textRects } from "../pdfjs";
@@ -36,11 +36,28 @@ function bounds(o: Overlay): Rect {
   }
 }
 
+/**
+ * Where a text box or picture sits as displayed. These stand at their corner
+ * and are turned back by the rotation they were placed under (upright when
+ * that is the page's), unlike shapes, which turn with the page.
+ */
+function shownBox(o: Extract<Overlay, { kind: "text" | "image" }>, rot: Rotation, w: number, h: number): Rect {
+  const size = bounds(o);
+  const [ax, ay] = pageToDisplay(o.x, o.y, rot, w, h);
+  const turn = (((rot - o.rot) % 360) + 360) % 360;
+  // The far corner, turned clockwise around the near one.
+  const [dx, dy] = turn === 90 ? [-size.h, size.w] : turn === 180 ? [-size.w, -size.h] : turn === 270 ? [size.h, -size.w] : [size.w, size.h];
+  return normRect(ax, ay, ax + dx, ay + dy);
+}
+
 /** What list_annotations reports: the kind as the toolbar names it and where it sits as displayed. */
 function describe(doc: Doc, o: Overlay) {
   const index = doc.pages.findIndex((p) => p.id === o.page);
   const page = doc.pages[index];
-  const b = pageRectToDisplay(bounds(o), doc.rotation(page), page.w, page.h);
+  // Its page is gone (removed while the annotation was being added).
+  if (!page) return null;
+  const rot = doc.rotation(page);
+  const b = o.kind === "text" || o.kind === "image" ? shownBox(o, rot, page.w, page.h) : pageRectToDisplay(bounds(o), rot, page.w, page.h);
   const kind = o.kind === "markup" ? o.style : o.kind === "rect" && o.fill === "#ffffff" && o.width === 0 ? "whiteout" : o.kind;
   const round = (v: number) => Math.round(v * 10) / 10;
   return {
@@ -95,7 +112,7 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
       const color = /^#[0-9a-f]{6}$/i.test(String(args.color ?? "")) ? String(args.color) : "#1b1916";
       const rot = doc.rotation(page);
       const [dw] = displaySize(page.w, page.h, rot);
-      const [x, y] = displayToPage(num(args, "x"), num(args, "y"), rot, page.w, page.h);
+      const [x, y] = pointOnPage(doc, page, num(args, "x"), num(args, "y"));
       const font = typeof args.font === "string" && args.font.trim() ? await installedFont(args.font) : undefined;
       const id = newId("o");
       doc.addOverlay({ id, page: page.id, kind: "text", x, y, w: Math.max(40, dw - num(args, "x") - 24), text: str(args, "text"), size, color, rot, ...(font ? { font } : {}) });
@@ -162,10 +179,13 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
       const ids = args.pages ? pageIds(doc, str(args, "pages")) : doc.pages.map((p) => p.id);
       const changed: { page: number; id: string; text: string; font: string }[] = [];
       for (const id of ids) {
-        const page = doc.pageById(id)!;
+        const page = doc.pageById(id);
+        if (!page) continue;
         for (const line of await textLines(await doc.pdfPage(page))) {
           if (!line.text.includes(find)) continue;
-          const box = await replaceLine(doc, page, line, line.text.split(find).join(replacement));
+          // One step to undo for the whole replacement, however many lines it touches.
+          if (!changed.length) doc.checkpoint();
+          const box = await replaceLine(doc, page, line, line.text.split(find).join(replacement), false);
           changed.push({ page: doc.pages.indexOf(page) + 1, id: box.id, text: box.text, font: `${box.font ?? "Liberation Sans"}${box.bold ? " Bold" : ""}` });
         }
       }
@@ -210,7 +230,7 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
           const r = boxOnPage(doc, page, { x: num(args, "x"), y: num(args, "y"), w: num(args, "width"), h: num(args, "height") });
           o =
             kind === "whiteout"
-              ? { id, page: page.id, kind: "rect", ...r, color: "#ffffff", fill: "#ffffff", width: 0 }
+              ? { id, page: page.id, kind: "rect", ...r, color: "#ffffff", fill: "#ffffff", width: 0, origin: "whiteout" }
               : { id, page: page.id, kind, ...r, color: stroke, fill: color(args, "fill", null), width };
           break;
         }
@@ -290,7 +310,7 @@ export const ANNOTATION_TOOLS: ToolSpec[] = [
     async run(args) {
       const doc = findDoc(args);
       const ids = args.pages ? new Set(pageIds(doc, str(args, "pages"))) : null;
-      const list = doc.overlays.filter((o) => !ids || ids.has(o.page)).map((o) => describe(doc, o));
+      const list = doc.overlays.filter((o) => !ids || ids.has(o.page)).map((o) => describe(doc, o)).filter((d) => d !== null);
       list.sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x);
       return list.length ? list : "No annotations";
     },

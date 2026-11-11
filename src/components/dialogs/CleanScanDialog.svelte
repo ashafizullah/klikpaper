@@ -4,10 +4,11 @@
   import type { Doc, PageItem } from "../../lib/doc.svelte";
   import { errorText } from "../../lib/ipc";
   import { cleanScans, isScan, pagesWithMarks } from "../../lib/scan";
-  import { closeDialog, toast } from "../../lib/ui.svelte";
+  import { closeDialog, toast, ownDialog } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
+  const done = ownDialog();
   let which = $state<"scans" | "current" | "selected" | "all">("scans");
   let scans = $state<PageItem[] | null>(null);
   let deskew = $state(true);
@@ -35,6 +36,7 @@
   const pages = $derived(chosen.filter((p) => !marked.includes(p)));
 
   async function run() {
+    cancelled = false;
     error = null;
     progress = { done: 0, total: pages.length };
     try {
@@ -47,7 +49,7 @@
         undefined,
         8000,
       );
-      closeDialog(r);
+      done(r);
     } catch (e) {
       error = errorText(e);
     } finally {

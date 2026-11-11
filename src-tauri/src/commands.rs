@@ -117,6 +117,12 @@ pub fn discard_temp(path: String, temp: State<'_, Temp>) {
     }
 }
 
+/// Leaves the app; the window asks about unsaved changes before calling this.
+#[tauri::command]
+pub fn quit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 /// Files the OS asked KlikPaper to open before the window was ready.
 #[tauri::command]
 pub fn take_opened_files(opened: State<'_, Opened>) -> Vec<String> {

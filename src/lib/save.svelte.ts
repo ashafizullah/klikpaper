@@ -167,8 +167,8 @@ export async function writePdf(doc: Doc, output: string, opts: WriteOptions = {}
   }
 }
 
-/** One file per group of 1-based page positions; returns the written paths. */
-export async function splitDoc(doc: Doc, groups: number[][], dir: string): Promise<string[]> {
+/** One file per group of 1-based page positions; returns the written paths (those until `cancelled` said to stop). */
+export async function splitDoc(doc: Doc, groups: number[][], dir: string, cancelled: () => boolean = () => false): Promise<string[]> {
   const temps: string[] = [];
   const base = stripExt(doc.name);
   try {
@@ -177,7 +177,7 @@ export async function splitDoc(doc: Doc, groups: number[][], dir: string): Promi
     const fitted = prepared.pages.map((p, i) => ({ ...p, sheet: doc.pages[i].sheet ?? null }));
     const written: string[] = [];
     const width = String(groups.length).length;
-    for (let g = 0; g < groups.length; g++) {
+    for (let g = 0; g < groups.length && !cancelled(); g++) {
       const output = joinPath(dir, `${base}-${String(g + 1).padStart(width, "0")}.pdf`);
       await ipc.assemble({
         sources: prepared.sources,

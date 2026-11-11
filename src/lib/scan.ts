@@ -89,19 +89,26 @@ export async function cleanScans(doc: Doc, pages: PageItem[], opts: CleanupOptio
     for (const [sourceId, byIndex] of pictures) {
       const src = doc.sources.get(sourceId)!;
       const output = await ipc.tempFile("pdf");
-      const result = await ipc.assemble({
-        sources: [{ id: sourceId, path: src.path, password: src.password ?? null }],
-        pages: Array.from({ length: src.pdf.numPages }, (_, index) => {
-          const picture = byIndex.get(index);
-          return { source: sourceId, index, rotate: 0, scan: picture ? { path: picture, deskew: opts.deskew, borders: opts.borders, blackWhite: opts.blackWhite } : null };
-        }),
-        output,
-      });
-      straightened.push(...result.straightened);
-      const id = newId("s");
-      doc.addSource({ id, path: output, pdf: await openPdf(await ipc.readFile(output)), temp: true });
-      if (doc.commentSources.has(sourceId)) doc.commentSources.add(id);
-      for (const item of done) if (item.source === sourceId) moves.push({ item, source: id });
+      // Thrown away again when the cleaned file can't be made or opened.
+      let used = false;
+      try {
+        const result = await ipc.assemble({
+          sources: [{ id: sourceId, path: src.path, password: src.password ?? null }],
+          pages: Array.from({ length: src.pdf.numPages }, (_, index) => {
+            const picture = byIndex.get(index);
+            return { source: sourceId, index, rotate: 0, scan: picture ? { path: picture, deskew: opts.deskew, borders: opts.borders, blackWhite: opts.blackWhite } : null };
+          }),
+          output,
+        });
+        straightened.push(...result.straightened);
+        const id = newId("s");
+        doc.addSource({ id, path: output, pdf: await openPdf(await ipc.readFile(output)), temp: true });
+        used = true;
+        if (doc.commentSources.has(sourceId)) doc.commentSources.add(id);
+        for (const item of done) if (item.source === sourceId) moves.push({ item, source: id });
+      } finally {
+        if (!used) ipc.discardTemp(output).catch(() => {});
+      }
     }
     doc.change(() => {
       for (const { item, source } of moves) {

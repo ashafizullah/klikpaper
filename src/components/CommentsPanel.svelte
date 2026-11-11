@@ -30,6 +30,11 @@
   const pageNumber = (c: Comment) => doc.pages.findIndex((p) => p.id === c.page) + 1;
   const draftPage = $derived(ui.commentDraft ? doc.pages.findIndex((p) => p.id === ui.commentDraft!.page) + 1 : 0);
 
+  // A draft placed on a page that is no longer here (deleted, or another tab's) is dropped.
+  $effect(() => {
+    if (ui.commentDraft && !draftPage) ui.commentDraft = null;
+  });
+
   function close() {
     settings.showComments = false;
     persist();
@@ -65,7 +70,10 @@
     const d = ui.commentDraft;
     const text = draftText.trim();
     if (!d || !text) return;
-    doc.addComment(d.page, d.x, d.y, text, await commentAuthor());
+    const author = await commentAuthor();
+    // The page may be gone by now (deleted, or the draft is another document's).
+    if (ui.commentDraft !== d || !doc.pageById(d.page)) return;
+    doc.addComment(d.page, d.x, d.y, text, author);
     ui.commentDraft = null;
     draftText = "";
   }
@@ -92,7 +100,7 @@
 
   /** Enter (or Cmd/Ctrl+Enter) sends; Shift+Enter starts a new line; Escape cancels. */
   function keys(e: KeyboardEvent, send: () => void, cancel?: () => void) {
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       send();
     } else if (e.key === "Escape" && cancel) {

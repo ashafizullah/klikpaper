@@ -1,22 +1,27 @@
 <script lang="ts">
   import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
   import { revealItemInDir } from "@tauri-apps/plugin-opener";
+  import { onDestroy } from "svelte";
   import Dialog from "../Dialog.svelte";
   import type { Doc } from "../../lib/doc.svelte";
   import { errorText, ipc } from "../../lib/ipc";
   import { exportImages } from "../../lib/export";
   import { snapshotFile } from "../../lib/save.svelte";
   import { joinPath, parsePages, stripExt } from "../../lib/pagespec";
-  import { closeDialog, toast } from "../../lib/ui.svelte";
+  import { closeDialog, toast, ownDialog } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
+  const done = ownDialog();
   let which = $state<"all" | "current" | "range">("all");
   let range = $state("");
   let dpi = $state(150);
   let format = $state<"png" | "jpg">("png");
   let progress = $state<string | null>(null);
   let error = $state<string | null>(null);
+  // Closing the dialog stops the export; the pictures written until then stay.
+  let closed = false;
+  onDestroy(() => (closed = true));
 
   const pages = $derived(
     which === "all" ? doc.pages.map((_, i) => i + 1) : which === "current" ? [doc.current + 1] : parsePages(range, doc.pages.length),
@@ -46,10 +51,12 @@
         format,
         dir,
         base,
+        cancelled: () => closed,
         onProgress: (d, total) => (progress = t("export.progress", { done: d, total })),
       });
+      if (closed) return;
       toast(t("export.done", { n: files.length }), "ok", { label: t("common.showInFolder"), run: () => revealItemInDir(files[0]) });
-      closeDialog(files);
+      done(files);
     } catch (e) {
       error = errorText(e);
     } finally {

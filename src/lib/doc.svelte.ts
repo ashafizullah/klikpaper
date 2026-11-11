@@ -353,6 +353,19 @@ export class Doc {
       this.overlays.push(o);
     });
     this.selectedOverlay = o.id;
+    this.selectedRedaction = null;
+  }
+
+  /** Removes an annotation that was just added as if it never was: no step to undo or redo. */
+  forgetOverlay(id: string) {
+    this.overlays = this.overlays.filter((o) => o.id !== id);
+    if (this.selectedOverlay === id) this.selectedOverlay = null;
+    // The step that added it is the latest one whose "before" doesn't have it.
+    const last = this.#undo[this.#undo.length - 1];
+    if (last && !last.overlays.some((o) => o.id === id)) {
+      this.#undo.pop();
+      this.history = { undo: this.#undo.length, redo: this.#redo.length };
+    }
   }
 
   overlay(id: string): Overlay | undefined {

@@ -18,8 +18,12 @@
   const POSITIONS: Corner[] = ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"];
   const preview = $derived(pageLabel({ format, position, start, size, margin, color: "#000" }, 0, doc.pages.length));
 
+  /** A number field's value within its limits; an emptied field (null) gets `fallback`. */
+  const within = (v: unknown, lo: number, hi: number, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback);
+
   function apply() {
-    doc.change(() => (doc.pageNumbers = format.trim() ? { format, position, start, size, margin, color: start0.color } : null));
+    const numbers = { start: Math.trunc(within(start, 0, 99999, 1)), size: within(size, 4, 72, 10), margin: within(margin, 0, 200, 28) };
+    doc.change(() => (doc.pageNumbers = format.trim() ? { format, position, ...numbers, color: start0.color } : null));
     closeDialog(true);
   }
 

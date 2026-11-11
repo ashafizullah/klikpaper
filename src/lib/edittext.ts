@@ -58,9 +58,10 @@ function sampleColors(doc: Doc, page: PageItem, box: Rect): { bg: string; fg: st
 
 /**
  * Covers a line and puts a text box over it saying `text` (the line's own words
- * by default). One undo step removes both. Returns the new text box.
+ * by default). One undo step removes both, unless `record` is false (the caller
+ * took the checkpoint itself). Returns the new text box.
  */
-export async function replaceLine(doc: Doc, page: PageItem, line: PageLine, text = line.text): Promise<TextOverlay> {
+export async function replaceLine(doc: Doc, page: PageItem, line: PageLine, text = line.text, record = true): Promise<TextOverlay> {
   const { family, bold } = await matchFont(line.pdfFont, line.generic, line.bold);
   const size = Math.round(line.size * 10) / 10;
   const pad = size * 0.08;
@@ -82,8 +83,7 @@ export async function replaceLine(doc: Doc, page: PageItem, line: PageLine, text
     ...(family ? { font: family } : {}),
     origin: "edittext",
   };
-  doc.change(() => {
-    doc.overlays.push({ id: newId("o"), page: page.id, kind: "rect", ...cover, color: bg, fill: bg, width: 0, origin: "edittext" }, box);
-  });
+  if (record) doc.checkpoint();
+  doc.overlays.push({ id: newId("o"), page: page.id, kind: "rect", ...cover, color: bg, fill: bg, width: 0, origin: "edittext" }, box);
   return box;
 }

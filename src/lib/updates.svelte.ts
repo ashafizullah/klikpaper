@@ -92,9 +92,10 @@ async function showWhatsNew() {
 
 /** Sends the saved choice to the backend and listens for what it finds. */
 export async function initUpdates() {
-  await ipc.setUpdateMode(settings.updateMode);
+  // Listening first: it must not depend on the backend taking the setting.
   listen<Release>("update-ready", (e) => announce(e.payload));
   listen<Release>("update-available", (e) => offer(e.payload));
+  await ipc.setUpdateMode(settings.updateMode);
   const ready = await ipc.pendingUpdate();
   if (ready) announce(ready);
   await showWhatsNew();

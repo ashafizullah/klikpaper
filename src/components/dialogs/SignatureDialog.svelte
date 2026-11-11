@@ -3,7 +3,7 @@
   import Icon from "../Icon.svelte";
   import { pickImage, fitSize } from "../../lib/images";
   import { newId, persist, settings, type Signature } from "../../lib/settings.svelte";
-  import { closeDialog } from "../../lib/ui.svelte";
+  import { closeDialog, toast } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let tab = $state<"saved" | "draw" | "type">(settings.signatures.length ? "saved" : "draw");
@@ -87,8 +87,14 @@
 
   function finish(sig: Omit<Signature, "id">) {
     if (remember && tab !== "saved") {
-      settings.signatures = [{ ...sig, id: newId("sig") }, ...settings.signatures].slice(0, 8);
-      persist();
+      const before = settings.signatures;
+      settings.signatures = [{ ...sig, id: newId("sig") }, ...before].slice(0, 8);
+      // A very large picture doesn't fit; kept out, or no setting could be saved any more.
+      if (!persist()) {
+        settings.signatures = before;
+        persist();
+        toast(t("signature.tooLarge"), "info", undefined, 8000);
+      }
     }
     closeDialog(sig);
   }

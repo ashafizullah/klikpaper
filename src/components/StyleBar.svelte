@@ -13,7 +13,8 @@
   const selected = $derived(doc.selectedOverlay ? doc.overlay(doc.selectedOverlay) : undefined);
   /** Which tool's style the style controls edit: the selected annotation's, or the active tool's. */
   const styleKey = $derived(
-    selected ? (selected.kind === "markup" ? selected.style : selected.kind) : ui.tool,
+    // A white-out box is a rectangle with no style of its own to change.
+    selected ? (selected.kind === "markup" ? selected.style : selected.kind === "rect" && selected.origin === "whiteout" ? "whiteout" : selected.kind) : ui.tool,
   );
   const showColor = $derived(!["select", "image", "whiteout"].includes(styleKey) && styleKey !== "image");
   const showWidth = $derived(["ink", "rect", "ellipse", "arrow", "line"].includes(styleKey));
@@ -103,7 +104,7 @@
           {#each sizes as s (s)}<option value={s}>{s}</option>{/each}
         </select>
       {/if}
-      {#if selected && (selected.kind === "rect" || selected.kind === "ellipse")}
+      {#if selected && (selected.kind === "rect" || selected.kind === "ellipse") && styleKey !== "whiteout"}
         <button class="btn small" class:on={!!selected.fill} onclick={toggleFill}>{t("toolbar.fill")}</button>
       {/if}
       {#if selected}

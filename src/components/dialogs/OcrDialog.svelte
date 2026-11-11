@@ -4,10 +4,11 @@
   import type { Doc, PageItem } from "../../lib/doc.svelte";
   import { errorText } from "../../lib/ipc";
   import { needsOcr, recognize, type OcrProgress } from "../../lib/ocr";
-  import { closeDialog, toast } from "../../lib/ui.svelte";
+  import { closeDialog, toast, ownDialog } from "../../lib/ui.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc, which: initial = "scans" }: { doc: Doc; which?: "scans" | "current" | "selected" | "all" } = $props();
+  const done = ownDialog();
   // The choice starts from the one asked for; later changes are the user's.
   // svelte-ignore state_referenced_locally
   let which = $state(initial);
@@ -31,13 +32,14 @@
   );
 
   async function run() {
+    cancelled = false;
     error = null;
     starting = true;
     try {
       const result = await recognize(doc, pages, (p) => ((progress = p), (starting = false)), () => cancelled);
-      if (cancelled && !result.pages) return closeDialog(null);
+      if (cancelled && !result.pages) return done(null);
       toast(result.pages ? t("ocr.done", { n: result.pages, words: result.words }) : t("ocr.nothing"), result.pages ? "ok" : "info", undefined, 7000);
-      closeDialog(result);
+      done(result);
     } catch (e) {
       error = errorText(e);
     } finally {

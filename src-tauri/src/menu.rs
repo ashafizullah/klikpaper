@@ -154,7 +154,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>, locale: &str) -> tauri::Result<Menu
             .hide_others_with_text(t("Hide Others"))
             .show_all_with_text(t("Show All"))
             .separator()
-            .quit_with_text(t("Quit KlikPaper"))
+            // The app's own item, not the system one: the window asks about unsaved changes first.
+            .item(&item(app, "quit", t("Quit KlikPaper"), Some("CmdOrCtrl+Q"))?)
             .build()?;
         // Undo and redo are the app's own (they undo page and annotation
         // edits); cut/copy/paste/select all stay native so text fields work.
@@ -184,7 +185,6 @@ pub fn handle(app: &AppHandle, id: &str) {
         let _ = app.opener().open_url(url, None::<&str>);
     };
     match id {
-        "quit" => app.exit(0),
         "website" => open(REPO.to_string()),
         "issues" => open(format!("{REPO}/issues")),
         "releases" => open(format!("{REPO}/releases")),

@@ -4,6 +4,7 @@ import { t } from "./i18n/index.svelte";
 import { ipc, type Message, type Part } from "./ipc";
 import { activeProfile } from "./settings.svelte";
 import { runTool, toolsFor } from "./tools";
+import { ws } from "./workspace.svelte";
 
 export interface ChatEntry {
   role: "user" | "assistant" | "tool";
@@ -91,7 +92,9 @@ export async function send(doc: Doc, chat: Chat, prompt: string) {
         },
       );
       // Never run tools from a truncated or refused turn: their input may be incomplete.
-      const stopped = res.stopReason === "refusal" || res.stopReason === "max_tokens";
+      // Nor after Stop, or once the document was closed: nothing more may change.
+      const gone = signal.cancelled || !ws.docs.includes(doc);
+      const stopped = gone || res.stopReason === "refusal" || res.stopReason === "max_tokens";
       const message = stopped ? { ...res.message, content: res.message.content.filter((p) => p.type !== "toolCall") } : res.message;
       if (message.content.length) chat.history.push(message);
       if (!entry.text.trim()) chat.entries.splice(chat.entries.indexOf(entry), 1);
@@ -103,8 +106,10 @@ export async function send(doc: Doc, chat: Chat, prompt: string) {
         let content: string;
         let isError = false;
         try {
+          if (signal.cancelled) throw new Error("stopped by the user");
           if ("__invalid_json" in call.input) throw new Error("tool arguments were not valid JSON; send them again");
-          content = await runTool(call.name, call.input, "app");
+          // Always the document this chat belongs to, whichever tab is in front by now.
+          content = await runTool(call.name, { ...call.input, doc: doc.id }, "app");
         } catch (e) {
           content = e instanceof Error ? e.message : String(e);
           isError = true;
@@ -115,6 +120,9 @@ export async function send(doc: Doc, chat: Chat, prompt: string) {
       chat.history.push({ role: "user", content: results });
     }
   } catch (e) {
+    // The reply that never came leaves no empty bubble.
+    const empty = chat.entries[chat.entries.length - 1];
+    if (empty?.role === "assistant" && !empty.error && !empty.text.trim()) chat.entries.pop();
     chat.entries.push({ role: "assistant", text: e instanceof Error ? e.message : String(e), error: true });
     // Drop the unanswered user turn so the next message starts clean.
     const last = chat.history[chat.history.length - 1];

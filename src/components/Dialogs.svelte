@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Component } from "svelte";
   import { ui } from "../lib/ui.svelte";
+  import DialogHost from "./DialogHost.svelte";
   import PasswordDialog from "./dialogs/PasswordDialog.svelte";
   import UnsavedDialog from "./dialogs/UnsavedDialog.svelte";
   import SettingsDialog from "./dialogs/SettingsDialog.svelte";
@@ -48,7 +49,7 @@
   };
 </script>
 
-{#each ui.dialogs as d, i (i)}
+{#each ui.dialogs as d (d.id)}
   {@const C = KINDS[d.kind]}
-  {#if C}<C {...d.props} />{/if}
+  {#if C}<DialogHost id={d.id} component={C} props={d.props} />{/if}
 {/each}

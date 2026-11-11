@@ -24,7 +24,10 @@ export const COMPARE_TOOLS: ToolSpec[] = [
     scope: "both",
     async run(args) {
       const before = await version(args, "before");
-      const after = await version(args, "after");
+      const after = await version(args, "after").catch((e) => {
+        if (!before.open) before.v.close();
+        throw e;
+      });
       try {
         const result = await compareVersions(before.v, after.v);
         if (args.show === true && after.open && !before.open) {

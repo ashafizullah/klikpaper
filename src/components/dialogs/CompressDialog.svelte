@@ -9,11 +9,12 @@
   import { errorText, ipc, type CompressLevel, type Compression } from "../../lib/ipc";
   import { writePdf, defaultName } from "../../lib/save.svelte";
   import { baseName, formatBytes } from "../../lib/pagespec";
-  import { closeDialog, toast } from "../../lib/ui.svelte";
-  import { PDF_FILTER } from "../../lib/workspace.svelte";
+  import { closeDialog, toast, ownDialog } from "../../lib/ui.svelte";
+  import { fileInUse, PDF_FILTER, reload } from "../../lib/workspace.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { doc }: { doc: Doc } = $props();
+  const done = ownDialog();
 
   interface Result {
     path: string;
@@ -107,11 +108,14 @@
     const chosen = await saveFileDialog({ defaultPath: defaultName(doc, "-compressed"), filters: PDF_FILTER });
     if (!chosen) return;
     const target = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;
+    if (fileInUse(target, doc)) return void (errors[keyOf(choice)] = t("save.inUse", { file: baseName(target) }));
     try {
       await ipc.moveFile(result.path, target);
       delete results[keyOf(choice)];
+      // Saved over a file this document reads from: it now is that file, as after Save.
+      if (fileInUse(target)) await reload(doc, target, doc.protect);
       toast(t("save.saved", { file: baseName(target) }), "ok");
-      closeDialog(target);
+      done(target);
     } catch (e) {
       errors[keyOf(choice)] = errorText(e);
     }

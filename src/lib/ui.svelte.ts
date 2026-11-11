@@ -1,4 +1,5 @@
 // Interface state shared across components: the active tool, dialogs, toasts and busy indicator.
+import { getContext } from "svelte";
 import { settings } from "./settings.svelte";
 
 export type Tool =
@@ -38,6 +39,7 @@ export interface Toast {
 }
 
 export interface DialogState {
+  id: number;
   kind: string;
   props: Record<string, unknown>;
   resolve: (value: unknown) => void;
@@ -73,6 +75,9 @@ export function toolColor(tool: string): string {
 }
 
 let nextToast = 1;
+let nextDialog = 1;
+/** Context key under which a dialog component finds its own id. */
+export const DIALOG = "dialog";
 /** `ms` = 0 keeps the toast until the user closes it or takes its action. */
 export function toast(text: string, kind: Toast["kind"] = "info", action?: Toast["action"], ms = kind === "error" ? 9000 : 4500) {
   const id = nextToast++;
@@ -109,13 +114,29 @@ export function showAlert(options: AlertOptions): Promise<string | null> {
 /** Shows a dialog component (by kind) and resolves with its result, or null when cancelled. */
 export function openDialog<T = unknown>(kind: string, props: Record<string, unknown> = {}): Promise<T | null> {
   return new Promise((resolve) => {
-    ui.dialogs.push({ kind, props, resolve: resolve as (v: unknown) => void });
+    ui.dialogs.push({ id: nextDialog++, kind, props, resolve: resolve as (v: unknown) => void });
   });
 }
 
+/** Closes the dialog on top: for what the user does in it (a button, Escape). */
 export function closeDialog(value: unknown = null) {
   const top = ui.dialogs.pop();
   top?.resolve(value);
+}
+
+/**
+ * For a dialog component, called while it is set up: closes that dialog and
+ * no other. Work that ends after the dialog was dismissed must use this, or
+ * it would close (and answer) whichever dialog is open by then.
+ */
+export function ownDialog(): (value?: unknown) => void {
+  const id = getContext<number>(DIALOG);
+  return (value = null) => {
+    const i = ui.dialogs.findIndex((d) => d.id === id);
+    if (i < 0) return;
+    const [own] = ui.dialogs.splice(i, 1);
+    own.resolve(value);
+  };
 }
 
 /** Runs `fn` with a busy indicator; errors become toasts. */

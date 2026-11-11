@@ -43,7 +43,7 @@ export const DOCUMENT_TOOLS: ToolSpec[] = [
     async run(args) {
       const doc = findDoc(args);
       const sizes = [...new Set(doc.pages.map((p) => `${Math.round(p.w)}×${Math.round(p.h)} pt`))];
-      const info = doc.path ? await ipc.pdfInfo(doc.path, doc.sources.values().next().value?.password).catch(() => null) : null;
+      const info = doc.path ? await ipc.pdfInfo(doc.path, doc.sources.values().next().value?.password ?? doc.protect ?? undefined).catch(() => null) : null;
       return {
         id: doc.id,
         name: doc.name,

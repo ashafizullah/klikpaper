@@ -229,6 +229,7 @@ export const ipc = {
   tempFile: (ext: "pdf" | "png" | "jpg") => invoke<string>("temp_file", { ext }),
   moveFile: (from: string, to: string) => invoke<void>("move_file", { from, to }),
   discardTemp: (path: string) => invoke<void>("discard_temp", { path }),
+  quit: () => invoke<void>("quit"),
   takeOpenedFiles: () => invoke<string[]>("take_opened_files"),
   takeShellActions: () => invoke<ShellAction[]>("take_shell_actions"),
   shellMenu: () => invoke<boolean | null>("shell_menu"),

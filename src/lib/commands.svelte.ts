@@ -1,9 +1,9 @@
 // App commands, shared by the menu bar, keyboard shortcuts and toolbar buttons.
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { settings, persist } from "./settings.svelte";
-import { closeDialog, openDialog, toast, ui } from "./ui.svelte";
+import { closeDialog, isMac, openDialog, toast, ui } from "./ui.svelte";
 import { viewer } from "./viewer.svelte";
-import { activeDoc, closeDoc, closeHomeTab, IMAGE_FILTER, openHomeTab, pickAndOpen, saveDoc, ws } from "./workspace.svelte";
+import { activeDoc, closeDoc, closeHomeTab, IMAGE_FILTER, openHomeTab, pickAndOpen, quit, saveDoc, ws } from "./workspace.svelte";
 import { t } from "./i18n/index.svelte";
 import { ipc } from "./ipc";
 import { checkForUpdates } from "./updates.svelte";
@@ -34,6 +34,9 @@ export async function imagesToPdf(paths?: string[]) {
 }
 
 export async function command(id: string) {
+  // Menu items wait while a file is written, as the keyboard does.
+  if (ui.busy && !ui.dialogs.length) return;
+  if (id === "quit") return quit();
   // A dialog on top owns the keyboard.
   if (ui.dialogs.length && id !== "close-dialog") return;
   const doc = activeDoc();
@@ -160,7 +163,8 @@ export async function command(id: string) {
 
 /** Keyboard shortcuts; menu accelerators send the same ids. */
 export function onKeydown(e: KeyboardEvent) {
-  const mod = e.metaKey || e.ctrlKey;
+  // On a Mac, Control with a letter moves the cursor in text fields; shortcuts use Command there.
+  const mod = isMac ? e.metaKey : e.ctrlKey;
   const key = e.key.toLowerCase();
   let id: string | null = null;
   if (e.ctrlKey && e.key === "`") id = "toggle-terminal";

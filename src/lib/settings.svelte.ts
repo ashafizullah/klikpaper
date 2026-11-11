@@ -96,10 +96,14 @@ function load(): Stored {
 
 export const settings = $state<Stored>(load());
 
-export function persist() {
+/** Writes the settings down; false when they don't fit in the storage the app is given. */
+export function persist(): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(settings));
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function newId(prefix = ""): string {

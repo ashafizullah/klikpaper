@@ -93,6 +93,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::quit,
             commands::read_file,
             commands::write_file,
             commands::file_stats,

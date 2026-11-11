@@ -3,7 +3,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { activeDoc, openPaths, watchFiles, ws } from "./lib/workspace.svelte";
+  import { activeDoc, openPaths, quit, watchFiles, ws } from "./lib/workspace.svelte";
   import { command, imagesToPdf, onKeydown } from "./lib/commands.svelte";
   import { ipc } from "./lib/ipc";
   import { settings } from "./lib/settings.svelte";
@@ -40,6 +40,13 @@
     document.documentElement.lang = i18n.locale;
     const offs: Promise<() => void>[] = [];
     offs.push(listen<string>("menu", (e) => command(e.payload)));
+    // Closing the window leaves the app, after asking about unsaved changes.
+    offs.push(
+      getCurrentWindow().onCloseRequested((e) => {
+        e.preventDefault();
+        quit();
+      }),
+    );
     offs.push(listen<string[]>("open-files", (e) => openPaths(e.payload)));
     offs.push(
       getCurrentWebview().onDragDropEvent((e) => {
@@ -80,12 +87,19 @@
     getCurrentWindow().setTitle(title).catch(() => {});
   });
 
+  /** While a file is written the keyboard is held back too (a dialog on top still gets its keys). */
+  function holdKeys(e: KeyboardEvent) {
+    if (!ui.busy || ui.dialogs.length || (e.target as HTMLElement | null)?.closest?.(".xterm")) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
   function beforeUnload(e: BeforeUnloadEvent) {
     if (ws.docs.some((d) => d.dirty)) e.preventDefault();
   }
 </script>
 
-<svelte:window onkeydown={onKeydown} onbeforeunload={beforeUnload} />
+<svelte:window onkeydowncapture={holdKeys} onkeydown={onKeydown} onbeforeunload={beforeUnload} />
 
 <div class="app">
   {#if ws.docs.length}
@@ -127,6 +141,8 @@
     </div>
   {/if}
   {#if ui.busy}
+    <!-- Nothing may be edited while a file is written: it would be missing from the file, then dropped. -->
+    <div class="shield"></div>
     <div class="busy"><Icon name="loader" size={13} class="spin" />{ui.busy}</div>
   {/if}
   <Toasts />
@@ -180,6 +196,12 @@
   }
   .drop-card :global(svg) {
     color: var(--accent);
+  }
+  .shield {
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    cursor: progress;
   }
   .busy {
     position: fixed;

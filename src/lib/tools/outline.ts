@@ -80,9 +80,9 @@ export const OUTLINE_TOOLS: ToolSpec[] = [
       const ids = args.all === true ? doc.outline.map((b) => b.id) : Array.isArray(args.ids) ? args.ids.map(String) : [];
       const known = ids.filter((id) => find(doc.outline, id));
       if (!known.length) throw new Error("No matching bookmarks; list_bookmarks lists them");
-      const count = known.reduce((sum, id) => sum + flatten([find(doc.outline, id)!]).length, 0);
+      const before = flatten(doc.outline).length;
       doc.editOutline((list) => known.forEach((id) => remove(list, id)));
-      return `Removed ${count} bookmark(s)`;
+      return `Removed ${before - flatten(doc.outline).length} bookmark(s)`;
     },
   },
 ];

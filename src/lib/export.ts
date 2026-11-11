@@ -11,6 +11,8 @@ export interface ImageExport {
   dir: string;
   base: string;
   onProgress?: (done: number, total: number) => void;
+  /** Checked before each page; the pages written until then are returned. */
+  cancelled?: () => boolean;
 }
 
 /** Renders pages of a PDF file to images in `dir`; returns the written paths. */
@@ -21,7 +23,7 @@ export async function exportImages(path: string, password: string | null, opts: 
     const scale = dpi / 72;
     const width = String(pdf.numPages).length;
     const written: string[] = [];
-    for (let n = 0; n < opts.pages.length; n++) {
+    for (let n = 0; n < opts.pages.length && !opts.cancelled?.(); n++) {
       const index = opts.pages[n];
       const page = await pdf.getPage(index + 1);
       // Very large pages at high DPI would exceed canvas limits; cap at ~40 megapixels.

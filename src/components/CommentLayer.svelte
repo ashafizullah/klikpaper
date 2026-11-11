@@ -4,7 +4,7 @@
   // clicking it opens its thread. Pins stay upright and the same size at any
   // zoom, like notes in other PDF readers.
   import type { Doc, PageItem } from "../lib/doc.svelte";
-  import { displayToPage, pageToDisplay, type Rotation } from "../lib/geometry";
+  import { displayToPage, keepOnPage, pageToDisplay, type Rotation } from "../lib/geometry";
   import { sortedThreads } from "../lib/comments.svelte";
   import { persist, settings } from "../lib/settings.svelte";
   import { ui } from "../lib/ui.svelte";
@@ -31,7 +31,7 @@
   function toPage(e: PointerEvent): [number, number] {
     const r = layer.getBoundingClientRect();
     const [x, y] = displayToPage((e.clientX - r.left) / scale, (e.clientY - r.top) / scale, rotation, page.w, page.h);
-    return [Math.max(0, Math.min(page.w - ICON, x)), Math.max(0, Math.min(page.h - ICON, y))];
+    return keepOnPage(x, y, ICON, rotation, page.w, page.h);
   }
 
   function onSurfaceDown(e: PointerEvent) {
@@ -74,7 +74,8 @@
   let drag = $state<{ id: string; sx: number; sy: number; x: number; y: number; moved: boolean } | null>(null);
 
   function onPinDown(e: PointerEvent, id: string) {
-    if (e.button !== 0) return;
+    // Ctrl-click on a Mac opens the menu; it doesn't start a drag.
+    if (e.button !== 0 || e.ctrlKey) return;
     e.stopPropagation();
     const c = doc.comment(id);
     if (!c) return;
@@ -93,8 +94,7 @@
     const dx = ox + (e.clientX - drag.sx) / scale;
     const dy = oy + (e.clientY - drag.sy) / scale;
     const [x, y] = displayToPage(Math.max(0, Math.min(r.width / scale, dx)), Math.max(0, Math.min(r.height / scale, dy)), rotation, page.w, page.h);
-    drag.x = Math.max(0, Math.min(page.w - ICON, x));
-    drag.y = Math.max(0, Math.min(page.h - ICON, y));
+    [drag.x, drag.y] = keepOnPage(x, y, ICON, rotation, page.w, page.h);
   }
 
   function onPinUp() {

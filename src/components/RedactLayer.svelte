@@ -37,6 +37,15 @@
     draft = normRect(start[0], start[1], x, y);
   }
 
+  /** A box being drawn is dropped when the drag is cut short (Escape, another tool, the system taking the pointer). */
+  function cancelDraft() {
+    draft = null;
+    start = null;
+  }
+  $effect(() => {
+    if (ui.tool !== "redact") cancelDraft();
+  });
+
   function onUp() {
     const d = draft;
     draft = null;
@@ -102,7 +111,7 @@
 {/if}
 
 {#if ui.tool === "redact"}
-  <div class="surface" role="application" onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp}></div>
+  <div class="surface" role="application" onpointerdown={onDown} onpointermove={onMove} onpointerup={onUp} onpointercancel={cancelDraft}></div>
 {/if}
 
 <style>

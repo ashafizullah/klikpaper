@@ -76,7 +76,7 @@ export function luhn(digits: string): boolean {
 }
 
 /** Words that say the number after them is an account or card number. */
-const ACCOUNT_WORDS = /\b(no(?:mor)?\.?\s*rek(?:ening)?|rekening|rek\.|account(?:\s*(?:number|no\.?))?|acc\.?\s*no\.?|a\/c|virtual\s*account|kartu|card(?:\s*number)?|bca|bri|bni|mandiri|bsi|btn|cimb(?:\s*niaga)?|permata|danamon|ocbc|maybank|jago|seabank|jenius)\b/gi;
+const ACCOUNT_WORDS = /\brek\.|\b(no(?:mor)?\.?\s*rek(?:ening)?|rekening|account(?:\s*(?:number|no\.?))?|acc\.?\s*no\.?|a\/c|virtual\s*account|kartu|card(?:\s*number)?|bca|bri|bni|mandiri|bsi|btn|cimb(?:\s*niaga)?|permata|danamon|ocbc|maybank|jago|seabank|jenius)\b/gi;
 const NPWP_WORD = /\bnpwp\b/gi;
 const BIRTH_WORDS = /\b(tanggal\s*lahir|tgl\.?\s*lahir|tempat\s*\/?\s*tgl\.?\s*lahir|tempat\s*,?\s*tanggal\s*lahir|ttl|lahir|date\s*of\s*birth|birth\s*date|dob)\b/gi;
 const MONTHS = "jan(?:uari|uary)?|feb(?:ruari|ruary)?|mar(?:et|ch)?|apr(?:il)?|mei|may|jun(?:i|e)?|jul(?:i|y)?|agu(?:stus)?|aug(?:ust)?|sep(?:tember)?|okt(?:ober)?|oct(?:ober)?|nov(?:ember)?|des(?:ember)?|dec(?:ember)?";
@@ -133,7 +133,9 @@ export function findPii(text: string, kinds: PiiKind[] = PII_KINDS): PiiMatch[] 
     }
     for (const w of windows(text, run, (n) => n === 16)) if (isNik(w.digits)) add("nik", w.start, w.end);
     // Mobile numbers: 08… with 10–13 digits, or 62 8… (after a "+" or not) with 11–14.
-    for (const w of windows(text, run, (n) => n >= 10 && n <= 14)) {
+    // The longest reading first: "0812 345 678 90" is one number, not one that ends at "678".
+    const phones = [...windows(text, run, (n) => n >= 10 && n <= 14)].sort((a, b) => b.digits.length - a.digits.length);
+    for (const w of phones) {
       const local = /^08[1-9]\d{7,10}$/.test(w.digits);
       const intl = /^628[1-9]\d{7,10}$/.test(w.digits);
       if (!local && !intl) continue;
@@ -158,7 +160,8 @@ export function findPii(text: string, kinds: PiiKind[] = PII_KINDS): PiiMatch[] 
   return found
     .sort((a, b) => a.start - b.start)
     .filter((f) => {
-      const key = `${f.kind}:${f.value.replace(/[\s.\-]/g, "").toLowerCase()}`;
+      // Only what the search for a value ignores too: "0812-345" and "0812 345" are looked for separately.
+      const key = `${f.kind}:${f.value.replace(/\s+/g, "").toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

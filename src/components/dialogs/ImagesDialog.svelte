@@ -5,11 +5,12 @@
   import Icon from "../Icon.svelte";
   import { errorText, ipc, type Orientation, type PageSize } from "../../lib/ipc";
   import { baseName, stripExt } from "../../lib/pagespec";
-  import { closeDialog } from "../../lib/ui.svelte";
-  import { IMAGE_FILTER, openPaths, PDF_FILTER } from "../../lib/workspace.svelte";
+  import { closeDialog, ownDialog } from "../../lib/ui.svelte";
+  import { fileInUse, IMAGE_FILTER, openPaths, PDF_FILTER } from "../../lib/workspace.svelte";
   import { t } from "../../lib/i18n/index.svelte";
 
   let { images: initial }: { images: string[] } = $props();
+  const done = ownDialog();
   let images = $state(untrack(() => [...initial]));
   let pageSize = $state<PageSize>("a4");
   let orientation = $state<Orientation>("auto");
@@ -33,11 +34,12 @@
     const chosen = await saveFileDialog({ defaultPath: `${stripExt(baseName(images[0] ?? "images"))}.pdf`, filters: PDF_FILTER });
     if (!chosen) return;
     const output = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;
+    if (fileInUse(output)) return void (error = t("save.inUse", { file: baseName(output) }));
     working = true;
     error = null;
     try {
       await ipc.imagesToPdf({ images, output, pageSize, orientation, margin });
-      closeDialog(output);
+      done(output);
       await openPaths([output]);
     } catch (e) {
       error = errorText(e);

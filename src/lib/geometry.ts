@@ -89,3 +89,10 @@ export function normRect(x1: number, y1: number, x2: number, y2: number): Rect {
 export function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
+
+/** A page-space point moved so that an upright box of `size`, its top-left corner there, stays on the page as it is shown. */
+export function keepOnPage(x: number, y: number, size: number, r: Rotation, w: number, h: number): [number, number] {
+  const [dw, dh] = displaySize(w, h, r);
+  const [dx, dy] = pageToDisplay(x, y, r, w, h);
+  return displayToPage(clamp(dx, 0, Math.max(0, dw - size)), clamp(dy, 0, Math.max(0, dh - size)), r, w, h);
+}

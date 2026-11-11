@@ -68,6 +68,8 @@ async function loadPdf(path: string): Promise<{ pdf: PDFDocumentProxy; password?
 export const PDF_FILTER = [{ name: "PDF", extensions: ["pdf"] }];
 export const IMAGE_FILTER = [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff"] }];
 
+const opening = new Set<string>();
+
 /** Opens each file in its own tab (or focuses it when already open); returns the errors. */
 export async function openPaths(paths: string[]): Promise<string[]> {
   const errors: string[] = [];
@@ -77,6 +79,9 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       show(existing);
       continue;
     }
+    // Asked for twice at once (a double click): the first request opens it.
+    if (opening.has(path)) continue;
+    opening.add(path);
     try {
       const loaded = await loadPdf(path);
       if (!loaded) continue;
@@ -95,6 +100,8 @@ export async function openPaths(paths: string[]): Promise<string[]> {
       toast(t("open.failed", { file: baseName(path), error: errorText(e) }), "error");
       errors.push(errorText(e));
       if (/not found|No such file|os error 2/i.test(errorText(e))) removeRecent(path);
+    } finally {
+      opening.delete(path);
     }
   }
   return errors;
@@ -146,26 +153,44 @@ export async function insertFiles(doc: Doc, at: number, paths?: string[]) {
   }
   let pos = at;
   for (const path of paths) {
-    const loaded = await loadPdf(path);
-    if (!loaded) continue;
-    const id = newId("s");
-    doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
-    const items = await doc.pagesOf(id);
-    doc.insertPages(items, pos, await readOutline(loaded.pdf, items));
-    await loadComments(doc, id, items);
-    pos += items.length;
+    try {
+      const loaded = await loadPdf(path);
+      if (!loaded) continue;
+      const id = newId("s");
+      doc.addSource({ id, path, password: loaded.password, pdf: loaded.pdf });
+      const items = await doc.pagesOf(id);
+      doc.insertPages(items, pos, await readOutline(loaded.pdf, items));
+      await loadComments(doc, id, items);
+      pos += items.length;
+    } catch (e) {
+      // The other files still go in.
+      toast(`${baseName(path)}: ${errorText(e)}`, "error");
+    }
   }
 }
 
+/**
+ * Whether an open document (other than `except`) reads its pages from `path`.
+ * Writing over such a file would leave that document pointing at pages that
+ * are no longer the ones it shows.
+ */
+export function fileInUse(path: string, except?: Doc): boolean {
+  return ws.docs.some((d) => d !== except && [...d.sources.values()].some((s) => s.path === path));
+}
+
 /** Reopens `doc` from the file it was just saved to: one source, no pending edits. */
-async function reload(doc: Doc, path: string, password: string | null) {
+export async function reload(doc: Doc, path: string, password: string | null) {
   const bytes = await ipc.readFile(path);
   const pdf = await openPdf(bytes, password ?? undefined);
   doc.dropSources();
   const id = newId("s");
   doc.addSource({ id, path, password: password ?? undefined, pdf });
   const current = doc.current;
+  // A comment still being written stays on its page, which gets a new id here.
+  const draft = ui.commentDraft;
+  const draftAt = draft ? doc.pages.findIndex((p) => p.id === draft.page) : -1;
   doc.pages = await doc.pagesOf(id);
+  if (draft && draftAt >= 0 && ui.commentDraft === draft) ui.commentDraft = doc.pages[draftAt] ? { ...draft, page: doc.pages[draftAt].id } : null;
   doc.comments = [];
   doc.commentSources.clear();
   await loadComments(doc, id, doc.pages);
@@ -295,6 +320,10 @@ export async function saveDoc(doc: Doc, as = false, newFile = false): Promise<bo
     path = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;
   }
   const target = path;
+  if (fileInUse(target, doc)) {
+    toast(t("save.inUse", { file: baseName(target) }), "error");
+    return false;
+  }
   const result = await busy(t("save.saving"), async () => {
     const written = await writePdf(doc, target);
     await reload(doc, target, doc.protect);
@@ -312,6 +341,7 @@ export async function exportCopy(doc: Doc, pages: number[] | undefined, suffix: 
   const chosen = await saveFileDialog({ defaultPath: defaultName(doc, suffix), filters: PDF_FILTER });
   if (!chosen) return;
   const target = chosen.toLowerCase().endsWith(".pdf") ? chosen : `${chosen}.pdf`;
+  if (fileInUse(target)) return toast(t("save.inUse", { file: baseName(target) }), "error");
   const done = await busy(t("save.saving"), () => writePdf(doc, target, { pages }));
   if (done) toast(t("save.saved", { file: baseName(target) }), "ok");
 }
@@ -319,8 +349,9 @@ export async function exportCopy(doc: Doc, pages: number[] | undefined, suffix: 
 export async function closeDoc(doc: Doc): Promise<boolean> {
   if (doc.dirty) {
     const choice = await openDialog<"save" | "discard">("unsaved", { name: doc.name });
-    if (!choice) return false;
-    if (choice === "save" && !(await saveDoc(doc))) return false;
+    if (choice === "save") {
+      if (!(await saveDoc(doc))) return false;
+    } else if (choice !== "discard") return false;
   }
   const i = ws.docs.indexOf(doc);
   ws.docs = ws.docs.filter((d) => d !== doc);
@@ -328,6 +359,25 @@ export async function closeDoc(doc: Doc): Promise<boolean> {
   if (!ws.docs.length) ws.homeTab = false;
   doc.destroy();
   return true;
+}
+
+let quitting = false;
+
+/** Leaves the app, asking first about each document with unsaved changes; stays when one is kept open. */
+export async function quit() {
+  const unsaved = ws.docs.filter((d) => d.dirty);
+  // An open dialog is answered first when there is something to lose.
+  if (quitting || ui.busy || (unsaved.length && ui.dialogs.length)) return;
+  quitting = true;
+  try {
+    for (const doc of unsaved) {
+      activate(doc);
+      if (!(await closeDoc(doc))) return;
+    }
+    await ipc.quit();
+  } finally {
+    quitting = false;
+  }
 }
 
 /** Closes the other tabs (or only those after `doc`), stopping if one is kept open. */

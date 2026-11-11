@@ -5,7 +5,7 @@
   import { tick } from "svelte";
   import { on } from "svelte/events";
   import type { Doc, Overlay, PageItem } from "../lib/doc.svelte";
-  import { displayToPage, layerTransform, normRect, rotateOffset, type Rotation } from "../lib/geometry";
+  import { displaySize, displayToPage, keepOnPage, layerTransform, normRect, pageToDisplay, rotateOffset, type Rotation } from "../lib/geometry";
   import { selectionRects } from "../lib/selection";
   import { newId, settings } from "../lib/settings.svelte";
   import { fontStack, showFont } from "../lib/fonts.svelte";
@@ -115,6 +115,15 @@
     }
   }
 
+  /** A shape being drawn is dropped when the drag is cut short (Escape, another tool, the system taking the pointer). */
+  function cancelDraft() {
+    draft = null;
+    start = null;
+  }
+  $effect(() => {
+    if (!drawing) cancelDraft();
+  });
+
   function onSurfaceUp() {
     const d = draft;
     draft = null;
@@ -134,8 +143,11 @@
 
   /** A new text box at a page-space point, ready for typing. */
   function addText(x: number, y: number) {
-    const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x, y: Math.max(0, y - ui.fontSize * 0.6), w: Math.min(240, page.w - x - 8), text: "", size: ui.fontSize, color: toolColor("text"), rot: rotation, ...(settings.textFont ? { font: settings.textFont } : {}) };
-    if (o.w < 40) o.w = 40;
+    // The box stands upright on screen whatever the page's rotation: its room to the right and the nudge up are measured as shown.
+    const [shownX] = pageToDisplay(x, y, rotation, page.w, page.h);
+    const w = Math.max(40, Math.min(240, displaySize(page.w, page.h, rotation)[0] - shownX - 8));
+    const [ox, oy] = rotateOffset(0, ui.fontSize * 0.6, rotation);
+    const o: Overlay = { id: newId("o"), page: page.id, kind: "text", x: clampX(x - ox), y: clampY(y - oy), w, text: "", size: ui.fontSize, color: toolColor("text"), rot: rotation, ...(settings.textFont ? { font: settings.textFont } : {}) };
     doc.addOverlay(o);
     createdId = o.id;
     startEditing(o.id);
@@ -249,7 +261,8 @@
     const ICON = 20;
     ui.tool = "select";
     doc.selectedComment = null;
-    ui.commentDraft = { page: page.id, x: Math.max(0, Math.min(page.w - ICON, x)), y: Math.max(0, Math.min(page.h - ICON, y)) };
+    const [px, py] = keepOnPage(x, y, ICON, rotation, page.w, page.h);
+    ui.commentDraft = { page: page.id, x: px, y: py };
     if (!settings.showComments) {
       settings.showComments = true;
       persist();
@@ -284,6 +297,7 @@
   function onItemMenu(e: MouseEvent, o: Overlay) {
     if (editingId === o.id) return;
     doc.selectedOverlay = o.id;
+    doc.selectedRedaction = null;
     const [dx, dy] = deltaToPage(12, 12);
     openMenu(e, [
       o.kind === "text" && { label: t("ctx.editText"), icon: "edit-text", run: () => startEditing(o.id) },
@@ -303,9 +317,11 @@
     e.stopPropagation();
     e.preventDefault();
     doc.selectedOverlay = o.id;
+    doc.selectedRedaction = null;
     drag = { id: o.id, mode, x: e.clientX, y: e.clientY, moved: false, orig: $state.snapshot(o) as Overlay };
     window.addEventListener("pointermove", onDragMove);
-    window.addEventListener("pointerup", onDragUp, { once: true });
+    window.addEventListener("pointerup", onDragUp);
+    window.addEventListener("pointercancel", onDragUp);
   }
 
   function onDragMove(e: PointerEvent) {
@@ -362,8 +378,12 @@
 
   function onDragUp() {
     window.removeEventListener("pointermove", onDragMove);
+    window.removeEventListener("pointerup", onDragUp);
+    window.removeEventListener("pointercancel", onDragUp);
     drag = null;
   }
+  // A drag under way ends with the page (scrolled out of view, tab closed).
+  $effect(() => onDragUp);
 
   // ---- text editing -----------------------------------------------------
 
@@ -372,6 +392,7 @@
   async function startEditing(id: string) {
     editingId = id;
     doc.selectedOverlay = id;
+    doc.selectedRedaction = null;
     await tick();
     editor?.focus();
     autosize();
@@ -397,7 +418,7 @@
         doc.selectedOverlay = null;
       } else if (createdId === o.id) {
         // An empty new text box is dropped, as if it was never added.
-        doc.undo();
+        doc.forgetOverlay(o.id);
       } else doc.removeOverlay(o.id);
     }
     editingId = null;
@@ -579,6 +600,7 @@
     onpointerdown={onSurfaceDown}
     onpointermove={onSurfaceMove}
     onpointerup={onSurfaceUp}
+    onpointercancel={cancelDraft}
   ></div>
 {/if}
 <svelte:window onpointerup={onMarkupUp} />

@@ -28,11 +28,18 @@
 
   onMount(async () => {
     ipc.userName().then((n) => (osName = n), () => {});
+    // Started before anything is awaited, so closing the dialog early still stops it.
+    poll = setInterval(async () => (link = settings.mcpEnabled ? await ipc.mcpLink().catch(() => null) : null), 1500);
     version = await getVersion().catch(() => "");
     refreshKeys();
-    poll = setInterval(async () => (link = settings.mcpEnabled ? await ipc.mcpLink().catch(() => null) : null), 1500);
   });
   onDestroy(() => clearInterval(poll));
+
+  /** A checkbox shows what the setting became, not what was clicked, when turning it on or off failed. */
+  async function follow(box: HTMLInputElement, work: Promise<unknown>, value: () => boolean) {
+    await work.catch((e) => toast(errorText(e), "error"));
+    box.checked = value();
+  }
 
   async function refreshKeys() {
     keyStatus = await ipc.keysStatus(settings.profiles.map((p) => p.id)).catch(() => ({}));
@@ -113,7 +120,7 @@
       <div class="form-row">
         <span>{isMac ? "Finder" : "Explorer"}</span>
         <label class="row">
-          <input type="checkbox" checked={settings.shellMenu} onchange={(e) => setShellMenu(e.currentTarget.checked)} />
+          <input type="checkbox" checked={settings.shellMenu} onchange={(e) => follow(e.currentTarget, setShellMenu(e.currentTarget.checked), () => settings.shellMenu)} />
           {t("settings.shellMenuToggle")}
         </label>
       </div>
@@ -167,7 +174,7 @@
   {:else if tab === "mcp"}
     <p class="note">{t("settings.mcpIntro")}</p>
     <label class="row">
-      <input type="checkbox" checked={settings.mcpEnabled} onchange={(e) => (e.currentTarget.checked ? startMcp() : stopMcp())} />
+      <input type="checkbox" checked={settings.mcpEnabled} onchange={(e) => follow(e.currentTarget, e.currentTarget.checked ? startMcp() : stopMcp(), () => settings.mcpEnabled)} />
       {t("settings.mcpEnable")}
     </label>
     {#if mcp.error}<p class="error-text">{mcp.error}</p>{/if}

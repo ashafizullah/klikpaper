@@ -44,7 +44,7 @@
   }
 
   function onKey(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       submit();
     }

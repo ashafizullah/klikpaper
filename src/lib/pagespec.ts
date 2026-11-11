@@ -3,11 +3,17 @@
 /** 1-based page numbers in order, or an error message key. */
 export function parsePages(input: string, total: number): number[] | null {
   const out: number[] = [];
-  const parts = input.split(/[,;\s]+/).filter(Boolean);
+  // "2 - 5" is one range: spaces around a dash don't separate pages.
+  const parts = input
+    .replace(/\s*([-–])\s*/g, "$1")
+    .split(/[,;\s]+/)
+    .filter(Boolean);
   if (parts.length === 0) return null;
   for (const part of parts) {
-    const m = /^(\d*)\s*[-–]\s*(\d*)$/.exec(part);
+    const m = /^(\d*)[-–](\d*)$/.exec(part);
     if (m) {
+      // A dash on its own names no page.
+      if (!m[1] && !m[2]) return null;
       const from = m[1] ? Number(m[1]) : 1;
       const to = m[2] ? Number(m[2]) : total;
       if (from < 1 || to > total || from > to) return null;

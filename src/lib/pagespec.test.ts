@@ -5,6 +5,11 @@ test("parses page lists", () => {
   expect(parsePages("1-3, 5", 10)).toEqual([1, 2, 3, 5]);
   expect(parsePages("8-", 10)).toEqual([8, 9, 10]);
   expect(parsePages("-2", 10)).toEqual([1, 2]);
+  // Spaces around a dash are part of the range, and a dash alone is not "every page".
+  expect(parsePages("2 - 3", 10)).toEqual([2, 3]);
+  expect(parsePages("1, 4 – 5", 10)).toEqual([1, 4, 5]);
+  expect(parsePages("8 -", 10)).toEqual([8, 9, 10]);
+  expect(parsePages("-", 10)).toBeNull();
   expect(parsePages("11", 10)).toBeNull();
   expect(parsePages("3-1", 10)).toBeNull();
   expect(parsePages("abc", 10)).toBeNull();
