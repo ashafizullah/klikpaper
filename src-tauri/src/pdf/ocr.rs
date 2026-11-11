@@ -42,6 +42,7 @@ fn placement(view: [f64; 4], w: f64, h: f64, rotation: i64) -> [f64; 6] {
 /// Draws the words of `layer` over the page in `dict` (not yet in the document).
 pub fn add(doc: &mut Document, dict: &mut Dictionary, layer: &TextLayer) -> AppResult<()> {
     let mut ocr = super::load(Path::new(&layer.path), None)?;
+    super::null_dangling(&mut ocr);
     // The layer's objects (its fonts) move past this document's numbers.
     ocr.renumber_objects_with(doc.max_id + 1);
     let Some(&page_id) = ocr.get_pages().values().next() else { return Err(AppError::msg("The recognized text has no page")) };
@@ -95,11 +96,7 @@ pub fn add(doc: &mut Document, dict: &mut Dictionary, layer: &TextLayer) -> AppR
     let open = doc.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
     let close = doc.add_object(Stream::new(Dictionary::new(), format!("\n{draw}").into_bytes()));
     let mut contents = vec![Object::Reference(open)];
-    match dict.get(b"Contents") {
-        Ok(Object::Array(items)) => contents.extend(items.iter().cloned()),
-        Ok(other) => contents.push(other.clone()),
-        Err(_) => {}
-    }
+    contents.extend(super::content_refs(doc, dict));
     contents.push(Object::Reference(close));
     dict.set("Contents", contents);
     Ok(())

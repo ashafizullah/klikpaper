@@ -32,8 +32,9 @@
       justDragged = false;
       return;
     }
-    if (e.shiftKey && anchorId) {
-      const a = doc.pages.findIndex((x) => x.id === anchorId);
+    // An anchor page that was deleted since no longer counts.
+    const a = anchorId ? doc.pages.findIndex((x) => x.id === anchorId) : -1;
+    if (e.shiftKey && a >= 0) {
       const [lo, hi] = a < i ? [a, i] : [i, a];
       doc.selectedPages = doc.pages.slice(lo, hi + 1).map((x) => x.id);
     } else if (e.metaKey || e.ctrlKey) {

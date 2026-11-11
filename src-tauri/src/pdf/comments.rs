@@ -50,13 +50,24 @@ pub struct PageThreads {
     pub threads: Vec<Thread>,
 }
 
-fn annot_refs(doc: &Document, page: &Dictionary) -> Vec<ObjectId> {
-    let items = match page.get(b"Annots") {
+/// The page's annotations as listed: references, or (rarely) dictionaries written in place.
+fn annot_items(doc: &Document, page: &Dictionary) -> Vec<Object> {
+    match page.get(b"Annots") {
         Ok(Object::Reference(id)) => doc.get_object(*id).and_then(Object::as_array).cloned().unwrap_or_default(),
         Ok(Object::Array(a)) => a.clone(),
         _ => Vec::new(),
-    };
-    items.iter().filter_map(|o| o.as_reference().ok()).collect()
+    }
+}
+
+fn annot_refs(doc: &Document, page: &Dictionary) -> Vec<ObjectId> {
+    annot_items(doc, page).iter().filter_map(|o| o.as_reference().ok()).collect()
+}
+
+/// A note's place on the page, when it has one.
+fn rect(dict: &Dictionary) -> Option<[f64; 4]> {
+    let v: Vec<f64> = dict.get(b"Rect").and_then(Object::as_array).map(|a| a.iter().filter_map(number).collect()).unwrap_or_default();
+    let [a, b, c, d] = v[..] else { return None };
+    Some([a, b, c, d])
 }
 
 fn is_note(dict: &Dictionary) -> bool {
@@ -182,9 +193,7 @@ pub fn page_threads(doc: &Document, page: &Dictionary) -> Vec<Thread> {
             continue;
         }
         let Ok(dict) = doc.get_dictionary(*id) else { continue };
-        let rect: Vec<f64> =
-            dict.get(b"Rect").and_then(Object::as_array).map(|a| a.iter().filter_map(number).collect()).unwrap_or_default();
-        let [a, b, c, d] = rect[..] else { continue };
+        let Some([a, b, c, d]) = rect(dict) else { continue };
         threads.push((
             root,
             Thread {
@@ -273,12 +282,29 @@ fn note(page_id: ObjectId, rect: &[Object], author: &str, date: Option<&String>,
 /// `page_id`) with `threads`; the page's other annotations stay.
 pub fn write(doc: &mut Document, page: &mut Dictionary, page_id: ObjectId, threads: &[Thread]) -> AppResult<()> {
     let annots = annot_refs(doc, page);
-    let managed: HashSet<ObjectId> = threaded(doc, &annots).into_keys().collect();
+    // Threads whose first note has no place aren't shown as threads, so they aren't replaced either.
+    let managed: HashSet<ObjectId> = threaded(doc, &annots)
+        .into_iter()
+        .filter(|(_, root)| doc.get_dictionary(*root).is_ok_and(|d| rect(d).is_some()))
+        .map(|(id, _)| id)
+        .collect();
     if managed.is_empty() && threads.is_empty() {
         return Ok(());
     }
     let Some(bx) = sheet::visible_box(page) else { return Ok(()) };
-    let mut kept: Vec<Object> = annots.iter().filter(|id| !managed.contains(id)).map(|id| Object::Reference(*id)).collect();
+    // A note's pop-up window goes with it: left behind, it would keep the old note (and its text) in the file.
+    let popup_of = |id: &ObjectId| {
+        doc.get_dictionary(*id).is_ok_and(|d| {
+            d.get(b"Subtype").and_then(Object::as_name).is_ok_and(|n| n == b"Popup")
+                && d.get(b"Parent").and_then(Object::as_reference).is_ok_and(|p| managed.contains(&p))
+        })
+    };
+    let mut gone: HashSet<ObjectId> = annots.iter().filter(|id| popup_of(id)).copied().collect();
+    gone.extend(managed.iter().filter_map(|id| doc.get_dictionary(*id).ok()?.get(b"Popup").and_then(Object::as_reference).ok()));
+    gone.extend(managed.iter().copied());
+    // Everything else stays, annotations written in place included.
+    let mut kept: Vec<Object> =
+        annot_items(doc, page).into_iter().filter(|o| o.as_reference().map_or(true, |id| !gone.contains(&id))).collect();
     for t in threads {
         let (x, y) = (bx[0] + t.x, bx[3] - t.y);
         let rect = [x, y - ICON, x + ICON, y].map(|v| Object::Real(v as f32));
@@ -358,5 +384,26 @@ mod tests {
         write(&mut doc, &mut page, page_id, &[]).unwrap();
         assert!(page_threads(&doc, &page).is_empty());
         assert_eq!(annot_refs(&doc, &page), vec![highlight, answer]);
+    }
+    #[test]
+    fn replaced_notes_take_their_popups_and_nothing_else() {
+        let mut doc = crate::pdf::tests::sample(&["one"]);
+        let page_id = *doc.get_pages().get(&1).unwrap();
+        let mut page = crate::pdf::flattened_page(&doc, page_id).unwrap();
+        let rect = || vec![Object::Integer(0), 0.into(), 10.into(), 10.into()];
+        let note = doc.new_object_id();
+        let popup = doc.add_object(lopdf::dictionary! { "Type" => "Annot", "Subtype" => "Popup", "Parent" => note, "Rect" => rect() });
+        doc.objects.insert(
+            note,
+            Object::Dictionary(lopdf::dictionary! { "Type" => "Annot", "Subtype" => "Text", "Rect" => rect(), "Popup" => popup }),
+        );
+        // Written in place rather than as an object of its own.
+        let inline = Object::Dictionary(lopdf::dictionary! { "Type" => "Annot", "Subtype" => "Link", "Rect" => rect() });
+        // A note without a place isn't shown as a thread, so it isn't replaced.
+        let placeless = doc.add_object(lopdf::dictionary! { "Type" => "Annot", "Subtype" => "Text" });
+        page.set("Annots", vec![note.into(), popup.into(), inline.clone(), placeless.into()]);
+        assert_eq!(page_threads(&doc, &page).len(), 1);
+        write(&mut doc, &mut page, page_id, &[]).unwrap();
+        assert_eq!(page.get(b"Annots").unwrap().as_array().unwrap(), &vec![inline, Object::Reference(placeless)]);
     }
 }

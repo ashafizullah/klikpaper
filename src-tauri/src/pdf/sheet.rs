@@ -70,11 +70,8 @@ pub fn fit_page(doc: &mut Document, dict: &mut Dictionary, sheet: &Sheet, moved:
     let (s, ox, oy) = fit(page, sheet);
 
     // The page's content, as one form with the page's resources and box…
-    if let Ok(contents) = dict.get(b"Contents").cloned() {
-        let refs: Vec<Object> = match contents {
-            Object::Array(items) => items,
-            other => vec![other],
-        };
+    if dict.has(b"Contents") {
+        let refs = super::content_refs(doc, dict);
         let mut content = Vec::new();
         for r in refs {
             let Ok(id) = r.as_reference() else { continue };

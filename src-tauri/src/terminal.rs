@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Mutex;
+use std::sync::mpsc::{Sender, channel};
 use tauri::ipc::Channel;
 
 #[derive(Serialize, Clone)]
@@ -24,7 +25,8 @@ pub enum TerminalEvent {
 
 struct Session {
     master: Box<dyn MasterPty + Send>,
-    writer: Box<dyn Write + Send>,
+    /// Keystrokes on their way to the shell; a thread of the session's own writes them.
+    input: Sender<Vec<u8>>,
     killer: Box<dyn ChildKiller + Send + Sync>,
 }
 
@@ -63,7 +65,7 @@ impl Terminals {
         let mut child = pair.slave.spawn_command(cmd).map_err(|e| AppError::msg(e.to_string()))?;
         drop(pair.slave);
         let mut reader = pair.master.try_clone_reader().map_err(|e| AppError::msg(e.to_string()))?;
-        let writer = pair.master.take_writer().map_err(|e| AppError::msg(e.to_string()))?;
+        let mut writer = pair.master.take_writer().map_err(|e| AppError::msg(e.to_string()))?;
         let killer = child.clone_killer();
 
         std::thread::spawn(move || {
@@ -83,17 +85,26 @@ impl Terminals {
             let _ = on_event.send(TerminalEvent::Exit { code });
         });
 
+        // Writing blocks while the program in the terminal isn't reading; on a thread of
+        // its own that never holds up the window or the other sessions.
+        let (input, pending) = channel::<Vec<u8>>();
+        std::thread::spawn(move || {
+            for data in pending {
+                if writer.write_all(&data).and_then(|()| writer.flush()).is_err() {
+                    break;
+                }
+            }
+        });
+
         let id = uuid::Uuid::new_v4().to_string();
-        self.0.lock().unwrap().insert(id.clone(), Session { master: pair.master, writer, killer });
+        self.0.lock().unwrap().insert(id.clone(), Session { master: pair.master, input, killer });
         Ok(id)
     }
 
     pub fn write(&self, id: &str, data: &str) -> AppResult<()> {
-        let mut map = self.0.lock().unwrap();
-        let s = map.get_mut(id).ok_or_else(|| AppError::msg("Terminal session has ended"))?;
-        s.writer.write_all(data.as_bytes())?;
-        s.writer.flush()?;
-        Ok(())
+        let map = self.0.lock().unwrap();
+        let s = map.get(id).ok_or_else(|| AppError::msg("Terminal session has ended"))?;
+        s.input.send(data.as_bytes().to_vec()).map_err(|_| AppError::msg("Terminal session has ended"))
     }
 
     pub fn resize(&self, id: &str, cols: u16, rows: u16) -> AppResult<()> {

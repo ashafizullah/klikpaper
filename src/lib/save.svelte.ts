@@ -173,13 +173,15 @@ export async function splitDoc(doc: Doc, groups: number[][], dir: string): Promi
   const base = stripExt(doc.name);
   try {
     const prepared = await prepare(doc, temps);
+    // A new paper size applies last, as in writePdf.
+    const fitted = prepared.pages.map((p, i) => ({ ...p, sheet: doc.pages[i].sheet ?? null }));
     const written: string[] = [];
     const width = String(groups.length).length;
     for (let g = 0; g < groups.length; g++) {
       const output = joinPath(dir, `${base}-${String(g + 1).padStart(width, "0")}.pdf`);
       await ipc.assemble({
         sources: prepared.sources,
-        pages: groups[g].map((n) => prepared.pages[n - 1]),
+        pages: groups[g].map((n) => fitted[n - 1]),
         output,
         options: {
           stripMetadata: doc.stripMetadata,

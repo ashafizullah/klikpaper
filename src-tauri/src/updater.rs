@@ -17,6 +17,8 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 const STARTUP_DELAY: Duration = Duration::from_secs(10);
 const INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 /// How often the background thread looks at the mode, so turning updates on takes effect soon.
+/// How soon a failed check is tried again.
+const RETRY: Duration = Duration::from_secs(15 * 60);
 const TICK: Duration = Duration::from_secs(60);
 
 static CHECKING: AtomicBool = AtomicBool::new(false);
@@ -100,20 +102,24 @@ pub fn start_background_checks(app: &AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(STARTUP_DELAY);
         let mut last: Option<Instant> = None;
+        // A check that couldn't be made (offline, say) is tried again soon, not a day later.
+        let mut wait = INTERVAL;
         loop {
-            let due = last.is_none_or(|t| t.elapsed() >= INTERVAL);
-            match mode() {
-                Mode::Auto if due => {
-                    last = Some(Instant::now());
-                    tauri::async_runtime::block_on(download(app.clone()));
-                }
+            let due = last.is_none_or(|t| t.elapsed() >= wait);
+            let checked = match mode() {
+                Mode::Auto if due => Some(tauri::async_runtime::block_on(download(app.clone()))),
                 Mode::Notify if due => {
-                    last = Some(Instant::now());
-                    if let Ok(Check::Available(release)) = tauri::async_runtime::block_on(check(&app)) {
-                        let _ = app.emit("update-available", release);
+                    let found = tauri::async_runtime::block_on(check(&app));
+                    if let Ok(Check::Available(release)) = &found {
+                        let _ = app.emit("update-available", release.clone());
                     }
+                    Some(matches!(found, Ok(Check::Available(_) | Check::UpToDate { .. })))
                 }
-                _ => {}
+                _ => None,
+            };
+            if let Some(ok) = checked {
+                last = Some(Instant::now());
+                wait = if ok { INTERVAL } else { RETRY };
             }
             std::thread::sleep(TICK);
         }
@@ -121,19 +127,30 @@ pub fn start_background_checks(app: &AppHandle) {
 }
 
 /// Downloads a new version quietly and tells the frontend it is ready.
-async fn download(app: AppHandle) {
-    if PENDING.lock().unwrap().is_some() || CHECKING.swap(true, Ordering::SeqCst) {
-        return;
+/// False when the check or the download couldn't be made.
+async fn download(app: AppHandle) -> bool {
+    if PENDING.lock().unwrap().is_some() {
+        return true;
     }
-    if let Ok(Some(update)) = async { app.updater()?.check().await }.await
-        && let Ok(bytes) = update.download(|_, _| {}, || {}).await
-    {
-        *PENDING.lock().unwrap() = Some((update, bytes));
-        if let Some(ready) = pending() {
-            let _ = app.emit("update-ready", ready);
-        }
+    if CHECKING.swap(true, Ordering::SeqCst) {
+        return false;
     }
+    let done = match async { app.updater()?.check().await }.await {
+        Ok(Some(update)) => match update.download(|_, _| {}, || {}).await {
+            Ok(bytes) => {
+                *PENDING.lock().unwrap() = Some((update, bytes));
+                if let Some(ready) = pending() {
+                    let _ = app.emit("update-ready", ready);
+                }
+                true
+            }
+            Err(_) => false,
+        },
+        Ok(None) => true,
+        Err(_) => false,
+    };
     CHECKING.store(false, Ordering::SeqCst);
+    done
 }
 
 /// Looks for a newer version and keeps it for `install_available`.

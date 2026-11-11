@@ -324,6 +324,7 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
     for id in order.iter().skip(1) {
         let src = source(id)?;
         let mut other = load(Path::new(&src.path), src.password.as_deref())?;
+        null_dangling(&mut other);
         other.renumber_objects_with(doc.max_id + 1);
         page_ids.insert(id, other.get_pages().into_values().collect());
         if let Some(form) = acro_form(&other) {
@@ -340,6 +341,9 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
     let mut moved_annots: HashSet<ObjectId> = HashSet::new();
     let mut report = Report::default();
     let mut removed_annots: HashSet<ObjectId> = HashSet::new();
+    let mut redacted_pages: HashSet<ObjectId> = HashSet::new();
+    // Each page as the file has it: a page used twice starts from this, not from the first use's changes.
+    let mut pristine: HashMap<ObjectId, Dictionary> = HashMap::new();
     for (position, p) in pages.iter().enumerate() {
         let ids = &page_ids[p.source.as_str()];
         let Some(&orig) = ids.get(p.index as usize) else {
@@ -349,8 +353,21 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
                 file_name(Path::new(&source(&p.source)?.path))
             )));
         };
-        let mut dict = flattened_page(&doc, orig)?;
-        let rotation = (dict.get(b"Rotate").and_then(Object::as_i64).unwrap_or(0) + p.rotate).rem_euclid(360);
+        let mut dict = match pristine.get(&orig) {
+            Some(d) => d.clone(),
+            None => {
+                let d = flattened_page(&doc, orig)?;
+                pristine.insert(orig, d.clone());
+                d
+            }
+        };
+        // Usually an integer; some writers give a real or a reference.
+        let own = match dict.get(b"Rotate").ok().map(|o| doc.dereference(o).map_or(o, |(_, o)| o)) {
+            Some(Object::Integer(i)) => *i,
+            Some(Object::Real(r)) => r.round() as i64,
+            _ => 0,
+        };
+        let rotation = (own + p.rotate).rem_euclid(360);
         dict.set("Rotate", rotation - rotation % 90);
         dict.set("Parent", pages_id);
         // A page used twice becomes a second page object sharing the same content.
@@ -375,6 +392,7 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
                 report.raster_needed.push(position);
             }
             report.redacted += p.redact.len();
+            redacted_pages.insert(orig);
         }
         // After the comments, so they move with the content.
         if let Some(paper) = &p.sheet {
@@ -407,6 +425,7 @@ fn build(sources: &[Source], pages: &[PageRef], bookmarks: Option<&[outline::Boo
     if !removed_annots.is_empty() {
         redact::prune_fields(&mut doc, catalog_id, &removed_annots)?;
     }
+    redact::strip_structure_text(&mut doc, catalog_id, &redacted_pages);
     if let Some(items) = bookmarks {
         let page_objects: Vec<ObjectId> = kids_ids;
         outline::write(&mut doc, catalog_id, &page_objects, items)?;
@@ -443,12 +462,40 @@ pub(crate) fn flattened_page(doc: &Document, id: ObjectId) -> AppResult<Dictiona
 }
 
 fn null_references(obj: &mut Object, dropped: &HashSet<ObjectId>) {
+    null_references_where(obj, &|id| dropped.contains(id));
+}
+
+fn null_references_where(obj: &mut Object, gone: &dyn Fn(&ObjectId) -> bool) {
     match obj {
-        Object::Reference(id) if dropped.contains(id) => *obj = Object::Null,
-        Object::Array(items) => items.iter_mut().for_each(|o| null_references(o, dropped)),
-        Object::Dictionary(dict) => dict.iter_mut().for_each(|(_, o)| null_references(o, dropped)),
-        Object::Stream(stream) => stream.dict.iter_mut().for_each(|(_, o)| null_references(o, dropped)),
+        Object::Reference(id) if gone(id) => *obj = Object::Null,
+        Object::Array(items) => items.iter_mut().for_each(|o| null_references_where(o, gone)),
+        Object::Dictionary(dict) => dict.iter_mut().for_each(|(_, o)| null_references_where(o, gone)),
+        Object::Stream(stream) => stream.dict.iter_mut().for_each(|(_, o)| null_references_where(o, gone)),
         _ => {}
+    }
+}
+
+/// References to objects a file doesn't have read as null. They are made so
+/// before the file's objects join another document, where the same number
+/// could belong to something else.
+pub(crate) fn null_dangling(doc: &mut Document) {
+    let present: HashSet<ObjectId> = doc.objects.keys().copied().collect();
+    for obj in doc.objects.values_mut() {
+        null_references_where(obj, &|id| !present.contains(id));
+    }
+}
+
+/// The page's content streams: `/Contents` is one stream, an array of them,
+/// or a reference to such an array.
+pub(crate) fn content_refs(doc: &Document, page: &Dictionary) -> Vec<Object> {
+    match page.get(b"Contents") {
+        Ok(Object::Array(items)) => items.clone(),
+        Ok(Object::Reference(id)) => match doc.get_object(*id) {
+            Ok(Object::Array(items)) => items.clone(),
+            _ => vec![Object::Reference(*id)],
+        },
+        Ok(other) => vec![other.clone()],
+        Err(_) => Vec::new(),
     }
 }
 
@@ -900,6 +947,42 @@ pub(crate) mod tests {
         assemble(&job).unwrap();
         assert_eq!(labels(&Document::load(&out).unwrap()), ["A2", "A2"]);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_page_used_twice_is_not_changed_twice() {
+        let dir = temp_dir();
+        let a = write_sample(&dir, "a.pdf", &["A1"]);
+        let out = dir.join("dup.pdf").display().to_string();
+        let job = AssembleJob {
+            sources: vec![src("a", &a)],
+            pages: vec![page("a", 0, 90), page("a", 0, 90)],
+            output: out.clone(),
+            options: Options::default(),
+            outline: None,
+        };
+        assemble(&job).unwrap();
+        let doc = Document::load(&out).unwrap();
+        let turns: Vec<i64> =
+            doc.get_pages().into_values().map(|id| doc.get_dictionary(id).unwrap().get(b"Rotate").unwrap().as_i64().unwrap()).collect();
+        assert_eq!(turns, [90, 90]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn reads_content_listed_through_a_reference_and_drops_dangling_references() {
+        let mut doc = Document::with_version("1.5");
+        let stream = doc.add_object(Stream::new(dictionary! {}, b"q Q".to_vec()));
+        let list = doc.add_object(Object::Array(vec![stream.into()]));
+        let page = dictionary! { "Contents" => list };
+        assert_eq!(content_refs(&doc, &page), vec![Object::Reference(stream)]);
+        assert_eq!(content_refs(&doc, &dictionary! { "Contents" => stream }), vec![Object::Reference(stream)]);
+
+        let holder = doc.add_object(dictionary! { "Here" => stream, "Gone" => Object::Reference((999, 0)) });
+        null_dangling(&mut doc);
+        let holder = doc.get_dictionary(holder).unwrap();
+        assert_eq!(holder.get(b"Here").unwrap(), &Object::Reference(stream));
+        assert_eq!(holder.get(b"Gone").unwrap(), &Object::Null);
     }
 
     #[test]

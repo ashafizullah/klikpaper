@@ -230,10 +230,13 @@ impl Font {
                 let mut widths = HashMap::new();
                 if let Some(w) = descendant.get(b"W").ok().map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()) {
                     let mut i = 0;
-                    while i < w.len() {
+                    // Codes are two bytes, so honest tables stay far below this; a crafted one stops here.
+                    let mut budget: usize = 1 << 20;
+                    while i < w.len() && budget > 0 {
                         let Some(first) = number(deref(doc, &w[i])) else { break };
                         match w.get(i + 1).map(|o| deref(doc, o)) {
                             Some(Object::Array(list)) => {
+                                budget = budget.saturating_sub(list.len());
                                 for (k, v) in list.iter().enumerate() {
                                     if let Some(v) = number(deref(doc, v)) {
                                         widths.insert(first as u32 + k as u32, v / 1000.0);
@@ -246,7 +249,9 @@ impl Font {
                                     break;
                                 };
                                 // A crafted range can't make this loop run long.
-                                for c in (first as u32)..=(last as u32).min(first as u32 + 0xFFFF) {
+                                let last = (last as u32).min((first as u32).saturating_add(0xFFFF));
+                                budget = budget.saturating_sub(last.saturating_sub(first as u32) as usize + 1);
+                                for c in (first as u32)..=last {
                                     widths.insert(c, v / 1000.0);
                                 }
                                 i += 3;
@@ -814,28 +819,36 @@ impl Redactor<'_> {
         (out, changed)
     }
 
-    fn strip_replacement_text(&self, op: &mut Operation, res: &Dictionary) {
-        const KEYS: [&[u8]; 3] = [b"ActualText", b"Alt", b"E"];
+    fn strip_replacement_text(&self, op: &mut Operation, res: &mut Dictionary) {
         if op.operator != "BDC" {
             return;
         }
-        let props = match op.operands.get(1) {
-            Some(Object::Dictionary(d)) => Some(d.clone()),
-            Some(Object::Name(n)) => dict_at(self.doc, res, b"Properties")
-                .and_then(|p| p.get(n).ok().map(|o| deref(self.doc, o).clone()))
-                .and_then(|o| o.as_dict().ok().cloned()),
-            _ => None,
-        };
-        let Some(mut props) = props else { return };
-        if !KEYS.iter().any(|k| props.has(k)) {
-            return;
+        match op.operands.get_mut(1) {
+            Some(Object::Dictionary(props)) => {
+                for k in REPLACEMENT_TEXT {
+                    props.remove(k);
+                }
+            }
+            // A named property list lives in the resources: it is rewritten there, or the text would stay in the file.
+            Some(Object::Name(n)) => {
+                let Some(mut list) = dict_at(self.doc, res, b"Properties") else { return };
+                let Some(mut props) = list.get(n).ok().and_then(|o| deref(self.doc, o).as_dict().ok().cloned()) else { return };
+                if !REPLACEMENT_TEXT.iter().any(|k| props.has(k)) {
+                    return;
+                }
+                for k in REPLACEMENT_TEXT {
+                    props.remove(k);
+                }
+                list.set(n.clone(), props);
+                res.set("Properties", list);
+            }
+            _ => {}
         }
-        for k in KEYS {
-            props.remove(k);
-        }
-        op.operands[1] = Object::Dictionary(props);
     }
 }
+
+/// Entries that say in words what marked content shows.
+const REPLACEMENT_TEXT: [&[u8]; 3] = [b"ActualText", b"Alt", b"E"];
 
 fn decode(stream: &Stream) -> Option<Vec<Operation>> {
     let bytes = stream.decompressed_content().ok().or_else(|| stream.dict.get(b"Filter").is_err().then(|| stream.content.clone()))?;
@@ -900,8 +913,11 @@ fn components(doc: &Document, cs: &Object) -> Option<usize> {
         Object::Array(a) => match a.first().and_then(|o| o.as_name().ok())? {
             b"Indexed" | b"I" | b"Separation" | b"CalGray" => Some(1),
             b"CalRGB" | b"Lab" => Some(3),
-            b"DeviceN" => a.get(1).map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()).map(Vec::len),
-            b"ICCBased" => deref(doc, a.get(1)?).as_stream().ok()?.dict.get(b"N").ok().and_then(number).map(|n| n as usize),
+            // No components at all is malformed: such an image can't be cleared, so it isn't said to be.
+            b"DeviceN" => a.get(1).map(|o| deref(doc, o)).and_then(|o| o.as_array().ok()).map(Vec::len).filter(|&n| n > 0),
+            b"ICCBased" => {
+                deref(doc, a.get(1)?).as_stream().ok()?.dict.get(b"N").ok().and_then(number).map(|n| n as usize).filter(|&n| n > 0)
+            }
             _ => None,
         },
         _ => None,
@@ -1017,18 +1033,10 @@ fn page_areas(page: &Dictionary, areas: &[Area]) -> Vec<Bounds> {
         .collect()
 }
 
-fn content_refs(page: &Dictionary) -> Vec<Object> {
-    match page.get(b"Contents") {
-        Ok(Object::Array(items)) => items.clone(),
-        Ok(other) => vec![other.clone()],
-        Err(_) => Vec::new(),
-    }
-}
-
 /// The page's content streams joined, or None when one can't be read.
 fn page_content(doc: &Document, page: &Dictionary) -> Option<Vec<u8>> {
     let mut out = Vec::new();
-    for r in content_refs(page) {
+    for r in super::content_refs(doc, page) {
         let stream = deref(doc, &r).as_stream().ok()?;
         out.extend(stream.decompressed_content().ok().or_else(|| stream.dict.get(b"Filter").is_err().then(|| stream.content.clone()))?);
         out.push(b'\n');
@@ -1115,7 +1123,7 @@ pub fn apply(doc: &mut Document, dict: &mut Dictionary, areas: &[Area], content:
             let open = doc.add_object(Stream::new(Dictionary::new(), b"q\n".to_vec()));
             let close = doc.add_object(Stream::new(Dictionary::new(), format!("\nQ\n{painted}").into_bytes()));
             let mut contents = vec![Object::Reference(open)];
-            contents.extend(content_refs(dict));
+            contents.extend(super::content_refs(doc, dict));
             contents.push(Object::Reference(close));
             dict.set("Contents", contents);
         }
@@ -1125,6 +1133,74 @@ pub fn apply(doc: &mut Document, dict: &mut Dictionary, areas: &[Area], content:
     dict.remove(b"PieceInfo");
     let removed = remove_annotations(doc, dict, &areas);
     Ok(Outcome { removed, issue })
+}
+
+/// Tagged files describe their content in words too (a figure's alternate
+/// text, a span's replacement text). On redacted pages those go, for the
+/// element drawn there and the elements holding it, so they can't tell what
+/// was under a black box.
+pub fn strip_structure_text(doc: &mut Document, catalog_id: ObjectId, pages: &HashSet<ObjectId>) {
+    if pages.is_empty() {
+        return;
+    }
+    let root = doc.get_dictionary(catalog_id).ok().and_then(|c| c.get(b"StructTreeRoot").ok()).and_then(|o| o.as_reference().ok());
+    let Some(root) = root else { return };
+
+    /// Whether the element (or anything under it) is drawn on one of `pages`; such elements are collected.
+    fn walk(
+        doc: &Document,
+        id: ObjectId,
+        inherited: Option<ObjectId>,
+        pages: &HashSet<ObjectId>,
+        seen: &mut HashSet<ObjectId>,
+        hits: &mut Vec<ObjectId>,
+        depth: usize,
+    ) -> bool {
+        if depth > 256 || !seen.insert(id) {
+            return false;
+        }
+        let Ok(d) = doc.get_dictionary(id) else { return false };
+        let pg = d.get(b"Pg").and_then(Object::as_reference).ok().or(inherited);
+        let on_page = |pg: Option<ObjectId>| pg.is_some_and(|p| pages.contains(&p));
+        let is_ref = |d: &Dictionary| d.get(b"Type").and_then(Object::as_name).is_ok_and(|t| t == b"MCR" || t == b"OBJR");
+        let kids: Vec<Object> = match d.get(b"K") {
+            Ok(Object::Array(items)) => items.clone(),
+            Ok(Object::Reference(k)) => match doc.get_object(*k) {
+                Ok(Object::Array(items)) => items.clone(),
+                _ => vec![Object::Reference(*k)],
+            },
+            Ok(other) => vec![other.clone()],
+            Err(_) => Vec::new(),
+        };
+        let mut touches = false;
+        for kid in &kids {
+            touches |= match kid {
+                // Marked content of the element's own page.
+                Object::Integer(_) => on_page(pg),
+                Object::Dictionary(k) => on_page(k.get(b"Pg").and_then(Object::as_reference).ok().or(pg)),
+                Object::Reference(k) => match doc.get_dictionary(*k) {
+                    Ok(k) if is_ref(k) => on_page(k.get(b"Pg").and_then(Object::as_reference).ok().or(pg)),
+                    Ok(_) => walk(doc, *k, pg, pages, seen, hits, depth + 1),
+                    Err(_) => false,
+                },
+                _ => false,
+            };
+        }
+        if touches && REPLACEMENT_TEXT.iter().any(|k| d.has(k)) {
+            hits.push(id);
+        }
+        touches
+    }
+
+    let mut hits = Vec::new();
+    walk(doc, root, None, pages, &mut HashSet::new(), &mut hits, 0);
+    for id in hits {
+        if let Ok(d) = doc.get_dictionary_mut(id) {
+            for k in REPLACEMENT_TEXT {
+                d.remove(k);
+            }
+        }
+    }
 }
 
 /// Takes annotations touching an area off the page, with their pop-ups and replies.
@@ -1465,6 +1541,42 @@ mod tests {
         let out = apply(&mut doc, &mut page, &[over(99.0, 171.0)], true).unwrap();
         assert_eq!(out.removed, vec![link, popup]);
         assert_eq!(page.get(b"Annots").unwrap().as_array().unwrap(), &vec![Object::Reference(other)]);
+    }
+
+    #[test]
+    fn removes_replacement_text_kept_in_the_resources() {
+        let mut doc = Document::with_version("1.5");
+        let mut page = text_page(&mut doc, "secret", true);
+        let content = "/Span /MC0 BDC BT /F1 10 Tf 100 700 Td (secret) Tj ET EMC\n";
+        let content = doc.add_object(Stream::new(dictionary! {}, content.as_bytes().to_vec()));
+        page.set("Contents", content);
+        let props =
+            doc.add_object(dictionary! { "ActualText" => Object::string_literal("secret"), "Lang" => Object::string_literal("en") });
+        let mut res = page.get(b"Resources").unwrap().as_dict().unwrap().clone();
+        res.set("Properties", dictionary! { "MC0" => props });
+        page.set("Resources", res);
+        apply(&mut doc, &mut page, &[over(99.0, 131.0)], true).unwrap();
+        let res = page.get(b"Resources").unwrap().as_dict().unwrap();
+        let list = res.get(b"Properties").unwrap().as_dict().unwrap().get(b"MC0").unwrap().as_dict().unwrap();
+        assert!(!list.has(b"ActualText"));
+        assert!(list.has(b"Lang"));
+    }
+
+    #[test]
+    fn removes_descriptions_of_redacted_pages_from_the_structure_tree() {
+        let mut doc = Document::with_version("1.5");
+        let (redacted, other) = (doc.new_object_id(), doc.new_object_id());
+        let figure = |doc: &mut Document, page: ObjectId| {
+            doc.add_object(dictionary! { "Type" => "StructElem", "S" => "Figure", "Pg" => page, "K" => 0, "Alt" => Object::string_literal("Signature of Budi") })
+        };
+        let (gone, kept) = (figure(&mut doc, redacted), figure(&mut doc, other));
+        let section =
+            doc.add_object(dictionary! { "Type" => "StructElem", "S" => "Sect", "K" => vec![Object::Reference(gone), kept.into()] });
+        let root = doc.add_object(dictionary! { "Type" => "StructTreeRoot", "K" => section });
+        let catalog = doc.add_object(dictionary! { "Type" => "Catalog", "StructTreeRoot" => root });
+        strip_structure_text(&mut doc, catalog, &HashSet::from([redacted]));
+        assert!(!doc.get_dictionary(gone).unwrap().has(b"Alt"));
+        assert!(doc.get_dictionary(kept).unwrap().has(b"Alt"));
     }
 
     #[test]

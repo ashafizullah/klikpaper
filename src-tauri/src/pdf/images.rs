@@ -2,6 +2,7 @@
 //! quality loss); other formats are stored losslessly, with transparency kept
 //! as a soft mask.
 use crate::error::{AppError, AppResult};
+use image::metadata::Orientation as Exif;
 use image::{DynamicImage, ImageDecoder, ImageFormat};
 use lopdf::{Dictionary, Document, Object, Stream, dictionary};
 use serde::{Deserialize, Serialize};
@@ -49,10 +50,27 @@ pub struct ImagesResult {
 }
 
 struct Embedded {
+    /// As shown: a photo stored on its side has these swapped.
     width: u32,
     height: u32,
     stream: Stream,
     smask: Option<Stream>,
+    /// Turns the stored picture upright (a matrix on the unit square), when the camera stored it turned.
+    turn: Option<[i8; 6]>,
+}
+
+/// The matrix that shows a picture stored with `orientation` (from its EXIF data) upright.
+fn upright(orientation: Exif) -> Option<[i8; 6]> {
+    match orientation {
+        Exif::NoTransforms => None,
+        Exif::FlipHorizontal => Some([-1, 0, 0, 1, 1, 0]),
+        Exif::Rotate180 => Some([-1, 0, 0, -1, 1, 1]),
+        Exif::FlipVertical => Some([1, 0, 0, -1, 0, 1]),
+        Exif::Rotate90 => Some([0, -1, 1, 0, 0, 1]),
+        Exif::Rotate270 => Some([0, 1, -1, 0, 1, 0]),
+        Exif::Rotate90FlipH => Some([0, -1, -1, 0, 1, 1]),
+        Exif::Rotate270FlipH => Some([0, 1, 1, 0, 0, 0]),
+    }
 }
 
 fn image_stream(width: u32, height: u32, color_space: &str, filter: Option<&str>, data: Vec<u8>) -> Stream {
@@ -79,8 +97,11 @@ fn image_stream(width: u32, height: u32, color_space: &str, filter: Option<&str>
 fn embed(bytes: Vec<u8>) -> AppResult<Embedded> {
     let format = image::guess_format(&bytes)?;
     if format == ImageFormat::Jpeg {
-        let decoder = image::codecs::jpeg::JpegDecoder::new(Cursor::new(&bytes))?;
+        let mut decoder = image::codecs::jpeg::JpegDecoder::new(Cursor::new(&bytes))?;
         let (width, height) = decoder.dimensions();
+        // Phone photos are often stored on their side, with a note saying which way is up.
+        let turn = upright(decoder.orientation().unwrap_or(Exif::NoTransforms));
+        let sideways = turn.is_some_and(|m| m[0] == 0);
         let color_space = match decoder.original_color_type() {
             image::ExtendedColorType::L8 => Some("DeviceGray"),
             image::ExtendedColorType::Rgb8 => Some("DeviceRGB"),
@@ -88,10 +109,15 @@ fn embed(bytes: Vec<u8>) -> AppResult<Embedded> {
             _ => None,
         };
         if let Some(cs) = color_space {
-            return Ok(Embedded { width, height, stream: image_stream(width, height, cs, Some("DCTDecode"), bytes), smask: None });
+            let stream = image_stream(width, height, cs, Some("DCTDecode"), bytes);
+            let (width, height) = if sideways { (height, width) } else { (width, height) };
+            return Ok(Embedded { width, height, stream, smask: None, turn });
         }
     }
-    let img = image::load_from_memory(&bytes)?;
+    let mut decoder = image::ImageReader::new(Cursor::new(&bytes)).with_guessed_format()?.into_decoder()?;
+    let orientation = decoder.orientation().unwrap_or(Exif::NoTransforms);
+    let mut img = DynamicImage::from_decoder(decoder)?;
+    img.apply_orientation(orientation);
     let (width, height) = (img.width(), img.height());
     let alpha = img.color().has_alpha().then(|| img.to_luma_alpha8().pixels().map(|p| p.0[1]).collect::<Vec<u8>>());
     let smask = alpha.filter(|a| a.iter().any(|&v| v != 255)).map(|a| image_stream(width, height, "DeviceGray", None, a));
@@ -101,7 +127,7 @@ fn embed(bytes: Vec<u8>) -> AppResult<Embedded> {
         }
         _ => image_stream(width, height, "DeviceRGB", None, img.to_rgb8().into_raw()),
     };
-    Ok(Embedded { width, height, stream, smask })
+    Ok(Embedded { width, height, stream, smask, turn: None })
 }
 
 /// Page size in points for an image of `w`×`h` points.
@@ -150,7 +176,8 @@ pub fn images_to_pdf(job: &ImagesJob) -> AppResult<ImagesResult> {
         let scale = ((pw - 2.0 * margin) / w).min((ph - 2.0 * margin) / h).min(if job.page_size == PageSize::Fit { 1.0 } else { f32::MAX });
         let (dw, dh) = (w * scale, h * scale);
         let (x, y) = ((pw - dw) / 2.0, (ph - dh) / 2.0);
-        let content = format!("q {dw:.3} 0 0 {dh:.3} {x:.3} {y:.3} cm /Im0 Do Q");
+        let turn = img.turn.map(|m| format!("{} {} {} {} {} {} cm ", m[0], m[1], m[2], m[3], m[4], m[5])).unwrap_or_default();
+        let content = format!("q {dw:.3} 0 0 {dh:.3} {x:.3} {y:.3} cm {turn}/Im0 Do Q");
         let content_id = doc.add_object(Stream::new(Dictionary::new(), content.into_bytes()));
         let page = doc.add_object(dictionary! {
             "Type" => "Page",
@@ -238,5 +265,21 @@ mod tests {
             ImagesJob { images, output: out.display().to_string(), page_size: PageSize::Fit, orientation: Orientation::Auto, margin: 0.0 };
         assert_eq!(images_to_pdf(&job).unwrap().pages, EXTENSIONS.len());
         let _ = std::fs::remove_dir_all(dir);
+    }
+    #[test]
+    fn photos_stored_on_their_side_are_shown_upright() {
+        let mut jpeg = Vec::new();
+        RgbImage::from_pixel(80, 60, Rgb([200, 30, 30])).write_to(&mut Cursor::new(&mut jpeg), ImageFormat::Jpeg).unwrap();
+        // The camera's note (EXIF orientation 6): turn a quarter clockwise to see it upright.
+        let mut exif = b"Exif\0\0MM\0\x2A\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0\x06\0\0\0\0\0\0".to_vec();
+        let mut photo = vec![0xFF, 0xD8, 0xFF, 0xE1];
+        photo.extend(((exif.len() + 2) as u16).to_be_bytes());
+        photo.append(&mut exif);
+        photo.extend(&jpeg[2..]);
+        let img = embed(photo).unwrap();
+        assert_eq!((img.width, img.height), (60, 80));
+        assert_eq!(img.turn, Some([0, -1, 1, 0, 0, 1]));
+        let plain = embed(jpeg).unwrap();
+        assert_eq!((plain.width, plain.height, plain.turn), (80, 60, None));
     }
 }

@@ -318,6 +318,56 @@ struct Checked {
     cert_valid_when_signed: Option<bool>,
 }
 
+/// One DER element: its tag, its content, the whole of it, and what follows.
+type Element<'a> = (u8, &'a [u8], &'a [u8], &'a [u8]);
+
+fn tlv(b: &[u8]) -> Option<Element<'_>> {
+    let tag = *b.first()?;
+    let first = *b.get(1)? as usize;
+    let (len, head) = if first < 0x80 {
+        (first, 2)
+    } else {
+        let n = first & 0x7F;
+        if n == 0 || n > 4 {
+            return None;
+        }
+        let mut len = 0usize;
+        for i in 0..n {
+            len = (len << 8) | *b.get(2 + i)? as usize;
+        }
+        (len, 2 + n)
+    };
+    let end = head.checked_add(len).filter(|&e| e <= b.len())?;
+    Some((tag, &b[head..end], &b[..end], &b[end..]))
+}
+
+/// The first signer's signed attributes exactly as the file has them, as the SET that was signed.
+fn raw_signed_attrs(cms: &[u8]) -> Option<Vec<u8>> {
+    let (_, info, _, _) = tlv(cms)?;
+    let (_, _, _, rest) = tlv(info)?; // the content type
+    let (_, wrapped, _, _) = tlv(rest)?;
+    let (_, mut at, _, _) = tlv(wrapped)?; // SignedData
+    // Its last SET holds the signers (the first one, the digest algorithms).
+    let mut signers = None;
+    while let Some((tag, content, _, rest)) = tlv(at) {
+        if tag == 0x31 {
+            signers = Some(content);
+        }
+        at = rest;
+    }
+    let (_, mut at, _, _) = tlv(signers?)?;
+    while let Some((tag, _, whole, rest)) = tlv(at) {
+        // [0] IMPLICIT in the signer; signed as a SET.
+        if tag == 0xA0 {
+            let mut set = whole.to_vec();
+            set[0] = 0x31;
+            return Some(set);
+        }
+        at = rest;
+    }
+    None
+}
+
 fn check(cms: &[u8], signed: &[&[u8]]) -> Result<Checked, String> {
     let info = ContentInfo::decode(&mut SliceReader::new(cms).map_err(|_| "a signature that couldn't be read")?)
         .map_err(|_| "a signature that couldn't be read")?;
@@ -375,7 +425,13 @@ fn check(cms: &[u8], signed: &[&[u8]]) -> Result<Checked, String> {
     let spki = &cert.tbs_certificate.subject_public_key_info;
     let sig = si.signature.as_bytes();
     let verified = if si.signed_attrs.is_some() {
+        // The signature is over the attributes as written. Read back they come sorted,
+        // which some signers don't do: then the bytes in the file are the ones to check.
         verify(spki, &si.signature_algorithm.oid, Some(hash), &message, sig)?
+            || match raw_signed_attrs(cms) {
+                Some(raw) if raw != message => verify(spki, &si.signature_algorithm.oid, Some(hash), &raw, sig)?,
+                _ => false,
+            }
     } else {
         // Without signed attributes the signature is over the content itself.
         match scheme(&si.signature_algorithm.oid, Some(hash))? {
@@ -710,5 +766,20 @@ mod tests {
     fn reads_dates_with_offsets() {
         assert_eq!(iso_to_secs("1970-01-01T00:00:10Z"), Some(10));
         assert_eq!(iso_to_secs("1970-01-01T07:00:00+07:00"), Some(0));
+    }
+    #[test]
+    fn reads_signed_attributes_as_written() {
+        // A signer whose attributes are one NULL, inside the smallest SignedData that holds it.
+        let signer = [0x30, 0x07, 0x02, 0x01, 0x01, 0xA0, 0x02, 0x05, 0x00];
+        let mut data = vec![0x02, 0x01, 0x01, 0x31, 0x00, 0x30, 0x00, 0x31, signer.len() as u8];
+        data.extend(signer);
+        let mut wrapped = vec![0x30, data.len() as u8];
+        wrapped.extend(data);
+        let mut info = vec![0x06, 0x01, 0x2A, 0xA0, wrapped.len() as u8];
+        info.extend(wrapped);
+        let mut cms = vec![0x30, info.len() as u8];
+        cms.extend(info);
+        assert_eq!(raw_signed_attrs(&cms), Some(vec![0x31, 0x02, 0x05, 0x00]));
+        assert_eq!(raw_signed_attrs(&cms[..cms.len() - 1]), None);
     }
 }

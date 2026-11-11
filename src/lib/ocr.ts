@@ -118,7 +118,8 @@ async function addText(doc: Doc, sourceId: string, byIndex: Map<number, { path: 
   const output = await ipc.tempFile("pdf");
   try {
     await ipc.assemble({
-      sources: [{ id: sourceId, path: input, password: input === src.path ? (src.password ?? null) : null }],
+      // pdf.js keeps a protected file protected when it writes the form values in.
+      sources: [{ id: sourceId, path: input, password: src.password ?? null }],
       pages: Array.from({ length: src.pdf.numPages }, (_, index) => ({ source: sourceId, index, rotate: 0, ocr: byIndex.get(index) ?? null })),
       output,
     });
