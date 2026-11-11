@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.21
+
+- Fixes: quitting or closing the window now asks about unsaved changes first
+- Fixes: a page range typed with spaces, such as "2 - 3", means pages 2 to 3; before, it could mean the whole document
+- Fixes: Black out personal data now finds a number in every way it is written (0812-3456-7890 and 081234567890), takes phone numbers to their last digit, and recognizes "Rek." as an account label
+- Fixes: an export that finishes after its dialog was closed can no longer answer another dialog, which could discard unsaved changes
+- Fixes: the AI chat changes the document it was asked about, even after switching tabs, and Stop also stops the changes it was about to make
+- Fixes: a comment being written is kept on its page when the file is saved
+- Fixes: nothing can be edited while a file is being saved, so no edit is lost
+- Fixes: saving over a file that is still open in KlikPaper is refused; compressing over the document's own file reopens it
+- Fixes: pressing Escape while drawing no longer leaves a half-drawn shape or black-out box behind
+- Fixes: pressing Delete twice no longer removes a black-out mark that was selected earlier
+- Fixes: search finds text right after it was recognized (OCR)
+- Fixes: a new text box is placed correctly on rotated pages, and an empty one leaves nothing to redo
+- Fixes: double-clicking a file no longer opens it in two tabs
+- Fixes: Insert PDF says so when a file can't be read
+- Fixes: closing the Export as images or Split dialog stops the work
+- Fixes: restarting the terminal no longer shows "session ended" on the new shell
+- Fixes: on a Mac, Control with a letter moves the cursor in text fields again; shortcuts use Command
+- Fixes: white-out added by an AI agent is recorded in the file's edit history, and replacing text is one step to undo
+
 ## 0.1.20
 
 - Fixes: a duplicated page no longer picks up the first copy's rotation, black-out marks or paper size when saved

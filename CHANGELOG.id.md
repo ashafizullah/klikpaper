@@ -2,6 +2,27 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.21
+
+- Perbaikan: keluar atau menutup jendela kini menanyakan perubahan yang belum disimpan terlebih dahulu
+- Perbaikan: rentang halaman yang diketik dengan spasi, seperti "2 - 3", berarti halaman 2 sampai 3; sebelumnya bisa berarti seluruh dokumen
+- Perbaikan: Hitamkan data pribadi kini menemukan nomor dalam setiap cara penulisannya (0812-3456-7890 dan 081234567890), mengambil nomor HP sampai digit terakhir, dan mengenali "Rek." sebagai label rekening
+- Perbaikan: ekspor yang selesai setelah dialognya ditutup tidak lagi bisa menjawab dialog lain, yang dapat membuang perubahan yang belum disimpan
+- Perbaikan: chat AI mengubah dokumen yang ditanyakan, juga setelah pindah tab, dan Stop ikut menghentikan perubahan yang akan dibuatnya
+- Perbaikan: komentar yang sedang ditulis tetap di halamannya saat file disimpan
+- Perbaikan: tidak ada yang bisa disunting selama file disimpan, sehingga tidak ada suntingan yang hilang
+- Perbaikan: menyimpan di atas file yang masih terbuka di KlikPaper ditolak; mengompres di atas file dokumen itu sendiri membukanya kembali
+- Perbaikan: menekan Escape saat menggambar tidak lagi meninggalkan bentuk atau kotak hitam setengah jadi
+- Perbaikan: menekan Delete dua kali tidak lagi menghapus tanda hitam yang dipilih sebelumnya
+- Perbaikan: pencarian menemukan teks segera setelah dikenali (OCR)
+- Perbaikan: kotak teks baru ditempatkan dengan benar di halaman yang diputar, dan kotak kosong tidak meninggalkan langkah untuk diulang
+- Perbaikan: klik ganda pada file tidak lagi membukanya di dua tab
+- Perbaikan: Sisipkan PDF kini memberi tahu bila sebuah file tidak bisa dibaca
+- Perbaikan: menutup dialog Ekspor sebagai gambar atau Pisahkan PDF menghentikan pekerjaannya
+- Perbaikan: memulai ulang terminal tidak lagi menampilkan "sesi berakhir" pada shell yang baru
+- Perbaikan: di Mac, Control dengan huruf kembali menggerakkan kursor di kotak teks; pintasan memakai Command
+- Perbaikan: white-out yang ditambahkan agen AI tercatat di riwayat suntingan file, dan mengganti teks menjadi satu langkah urungkan
+
 ## 0.1.20
 
 - Perbaikan: halaman yang diduplikasi tidak lagi ikut memakai rotasi, tanda hitam, atau ukuran kertas salinan pertamanya saat disimpan
