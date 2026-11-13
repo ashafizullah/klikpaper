@@ -35,6 +35,8 @@ const id: Record<Key, string> = {
   "home.viewTiles": "Ubin",
   "home.viewList": "Daftar",
   "home.forget": "Hapus dari daftar",
+  "home.clearAll": "Hapus semua",
+  "home.cleared": "Daftar file terakhir dikosongkan.",
   "home.privacy": "File Anda tetap di komputer ini. Tidak ada yang diunggah, kecuali Anda memakai chat AI dengan penyedia pilihan Anda.",
   "drop.hint": "Lepas PDF untuk membuka, gambar untuk dijadikan PDF",
 

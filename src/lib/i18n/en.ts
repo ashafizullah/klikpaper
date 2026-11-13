@@ -33,6 +33,8 @@ const en = {
   "home.viewTiles": "Tiles",
   "home.viewList": "List",
   "home.forget": "Remove from list",
+  "home.clearAll": "Clear all",
+  "home.cleared": "Recent list cleared.",
   "home.privacy": "Your files stay on this computer. Nothing is uploaded unless you use AI chat with your own provider.",
   "drop.hint": "Drop PDFs to open, images to make a PDF",
 

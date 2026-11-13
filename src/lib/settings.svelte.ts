@@ -120,6 +120,20 @@ export function removeRecent(path: string) {
   persist();
 }
 
+/** Empties the recent list and returns what was in it, for undo. */
+export function clearRecent(): string[] {
+  const old = settings.recent;
+  settings.recent = [];
+  persist();
+  return old;
+}
+
+/** Puts back a list from clearRecent, keeping files opened since then on top. */
+export function restoreRecent(paths: string[]) {
+  settings.recent = [...settings.recent, ...paths.filter((p) => !settings.recent.includes(p))].slice(0, 12);
+  persist();
+}
+
 export function activeProfile(): AiProfile | undefined {
   return settings.profiles.find((p) => p.id === settings.activeProfileId) ?? settings.profiles[0];
 }

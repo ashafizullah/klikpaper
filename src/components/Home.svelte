@@ -3,13 +3,13 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { command, imagesToPdf } from "../lib/commands.svelte";
   import { openPaths } from "../lib/workspace.svelte";
-  import { persist, removeRecent, settings } from "../lib/settings.svelte";
+  import { clearRecent, persist, removeRecent, restoreRecent, settings } from "../lib/settings.svelte";
   import { checkForUpdates, updates } from "../lib/updates.svelte";
   import { baseName, dirName, formatBytes } from "../lib/pagespec";
   import { ipc, type FileStat } from "../lib/ipc";
   import { recentPreview } from "../lib/recent";
   import { copyText, openMenu, revealFile, revealLabel } from "../lib/contextmenu.svelte";
-  import { isMac, mod, openDialog } from "../lib/ui.svelte";
+  import { isMac, mod, openDialog, toast } from "../lib/ui.svelte";
   import { t } from "../lib/i18n/index.svelte";
   import Icon from "./Icon.svelte";
   import LanguageToggle from "./LanguageToggle.svelte";
@@ -51,6 +51,11 @@
     persist();
   }
 
+  function clearAll() {
+    const old = clearRecent();
+    if (old.length) toast(t("home.cleared"), "info", { label: t("toolbar.undo"), run: () => restoreRecent(old) });
+  }
+
   function recentMenu(e: MouseEvent, path: string, missing: boolean) {
     openMenu(e, [
       { label: t("ctx.open"), icon: "open", disabled: missing, run: () => openPaths([path]) },
@@ -58,6 +63,7 @@
       { label: t("ctx.copyPath"), icon: "duplicate", run: () => copyText(path) },
       "sep",
       { label: t("home.forget"), icon: "close", run: () => removeRecent(path) },
+      { label: t("home.clearAll"), icon: "trash", run: clearAll },
     ]);
   }
 
@@ -146,13 +152,18 @@
         <div class="recent-head">
           <h2 class="label">{t("home.recent")}</h2>
           {#if settings.recent.length}
-            <div class="views" role="radiogroup" aria-label={t("home.view")}>
-              <button class="icon-btn" class:on={settings.recentView !== "list"} role="radio" aria-checked={settings.recentView !== "list"} onclick={() => setView("tiles")} title={t("home.viewTiles")} aria-label={t("home.viewTiles")}>
-                <Icon name="tiles" size={14} />
+            <div class="head-actions">
+              <button class="clear" onclick={clearAll}>
+                <Icon name="trash" size={13} />{t("home.clearAll")}
               </button>
-              <button class="icon-btn" class:on={settings.recentView === "list"} role="radio" aria-checked={settings.recentView === "list"} onclick={() => setView("list")} title={t("home.viewList")} aria-label={t("home.viewList")}>
-                <Icon name="list" size={14} />
-              </button>
+              <div class="views" role="radiogroup" aria-label={t("home.view")}>
+                <button class="icon-btn" class:on={settings.recentView !== "list"} role="radio" aria-checked={settings.recentView !== "list"} onclick={() => setView("tiles")} title={t("home.viewTiles")} aria-label={t("home.viewTiles")}>
+                  <Icon name="tiles" size={14} />
+                </button>
+                <button class="icon-btn" class:on={settings.recentView === "list"} role="radio" aria-checked={settings.recentView === "list"} onclick={() => setView("list")} title={t("home.viewList")} aria-label={t("home.viewList")}>
+                  <Icon name="list" size={14} />
+                </button>
+              </div>
             </div>
           {/if}
         </div>
@@ -423,6 +434,29 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
+  }
+  .head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .clear:hover {
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    color: var(--danger);
   }
   .views {
     display: flex;
