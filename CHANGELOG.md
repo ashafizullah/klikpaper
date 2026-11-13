@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.22
+
+- Clear all: the Recent list on the start screen can be emptied in one click, from the button next to the view switch or the right-click menu, with Undo in case it was a mistake
+
 ## 0.1.21
 
 - Fixes: quitting or closing the window now asks about unsaved changes first

@@ -2,6 +2,10 @@
 
 Versi bahasa Indonesia dari [CHANGELOG.md](CHANGELOG.md). KlikPaper menampilkan bagian ini setelah pembaruan saat bahasa antarmukanya Bahasa Indonesia.
 
+## 0.1.22
+
+- Hapus semua: daftar Terakhir dibuka di layar awal bisa dikosongkan dengan sekali klik, dari tombol di samping pilihan tampilan atau menu klik kanan, dengan Urungkan bila tidak sengaja
+
 ## 0.1.21
 
 - Perbaikan: keluar atau menutup jendela kini menanyakan perubahan yang belum disimpan terlebih dahulu
